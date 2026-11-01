@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-crm-navy: #0F172A;
+  --color-crm-navy-light: #1E293B;
+  --color-crm-navy-dark: #020617;
+  --color-crm-lime: #4F46E5;
+  --color-crm-lime-hover: #4338CA;
+  --color-crm-lime-light: #EEF2FF;
+  --color-crm-bg: #F8FAFC;
+  --color-crm-card: #FFFFFF;
+  --color-crm-border: #E2E8F0;
+  --color-crm-text: #1E293B;
+  --color-crm-muted: #64748B;
+}
+
+@layer base {
+  :root {
+    --primary: #4F46E5;
+    --primary-hover: #4338CA;
+    --bg-main: #F8FAFC;
+    --sidebar-bg: #FFFFFF;
+    --card-bg: #FFFFFF;
+    --text-main: #111827;
+    --text-muted: #64748B;
+    --border-subtle: #E2E8F0;
+
+    /* CRM Harmonized Tokens */
+    --crm-navy: #0F172A;
+    --crm-navy-light: #1E293B;
+    --crm-navy-dark: #020617;
+    --crm-lime: #4F46E5;
+    --crm-lime-hover: #4338CA;
+    --crm-lime-light: #EEF2FF;
+    --crm-bg: #F8FAFC;
+    --crm-card: #FFFFFF;
+    --crm-border: #E2E8F0;
+    --crm-text: #111827;
+    --crm-muted: #64748B;
+
+    color-scheme: light;
+  }
+
+  :root.dark, html.dark {
+    --primary: #6366F1;
+    --primary-hover: #4F46E5;
+    --bg-main: #0B0F19;
+    --sidebar-bg: #111827;
+    --card-bg: #1A2234;
+    --text-main: #F9FAFB;
+    --text-muted: #94A3B8;
+    --border-subtle: #1F293D;
+
+    /* CRM Harmonized Dark Tokens */
+    --crm-navy: #111827;
+    --crm-navy-light: #1F2937;
+    --crm-navy-dark: #0B0F19;
+    --crm-lime: #6366F1;
+    --crm-lime-hover: #4F46E5;
+    --crm-lime-light: rgba(99, 102, 241, 0.15);
+    --crm-bg: #0B0F19;
+    --crm-card: #1A2234;
+    --crm-border: #1F293D;
+    --crm-text: #F9FAFB;
+    --crm-muted: #94A3B8;
+
+    color-scheme: dark;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    overflow-x: hidden;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+}
+
+/* CRM Direct Utility Mapping */
+.bg-crm-navy { background-color: var(--crm-navy) !important; }
+.bg-crm-navy-light { background-color: var(--crm-navy-light) !important; }
+.bg-crm-navy-dark { background-color: var(--crm-navy-dark) !important; }
+.text-crm-navy { color: var(--crm-navy) !important; }
+.border-crm-navy { border-color: var(--crm-navy) !important; }
+
+.bg-crm-lime { background-color: var(--crm-lime) !important; }
+.hover\:bg-crm-lime-hover:hover { background-color: var(--crm-lime-hover) !important; }
+.text-crm-lime { color: var(--crm-lime) !important; }
+.bg-crm-lime-light { background-color: var(--crm-lime-light) !important; }
+.border-crm-lime { border-color: var(--crm-lime) !important; }
+
+.bg-crm-bg { background-color: var(--crm-bg) !important; }
+.bg-crm-card { background-color: var(--crm-card) !important; }
+.border-crm-border { border-color: var(--crm-border) !important; }
+.text-crm-text { color: var(--crm-text) !important; }
+.text-crm-muted { color: var(--crm-muted) !important; }
+
+/* Ensure crisp contrast for buttons using bg-crm-lime text-crm-navy */
+.bg-crm-lime.text-crm-navy,
+.bg-crm-lime .text-crm-navy,
+button.bg-crm-lime,
+a.bg-crm-lime,
+span.bg-crm-lime.text-crm-navy {
+  color: #FFFFFF !important;
+}
+
+.bg-crm-lime:hover,
+button.bg-crm-lime:hover,
+a.bg-crm-lime:hover {
+  background-color: var(--crm-lime-hover) !important;
+}
+
+/* Custom premium scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.dark .glass-panel {
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Animation utilities */
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.animate-pulse-subtle {
+  animation: pulseSubtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
