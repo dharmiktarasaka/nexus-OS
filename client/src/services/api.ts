@@ -1,6 +1,7 @@
 // Central API Service Client
 
-const BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const rawApiUrl = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
+const BASE_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('auth_token') || localStorage.getItem('crm_token');

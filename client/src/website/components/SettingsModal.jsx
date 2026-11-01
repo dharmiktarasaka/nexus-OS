@@ -1,6 +1,7 @@
 // client/src/components/SettingsModal.jsx
 import React, { useState, useEffect } from 'react';
 import { X, Key, Shield, Check, RefreshCw, Cpu, Database } from 'lucide-react';
+import { getWebsiteApiUrl } from '../apiConfig';
 
 export default function SettingsModal({ isOpen, onClose }) {
   const [apiKey, setApiKey] = useState('');
@@ -13,7 +14,7 @@ export default function SettingsModal({ isOpen, onClose }) {
   const checkHealth = async () => {
     setLoadingHealth(true);
     try {
-      const res = await fetch('/api/health');
+      const res = await fetch(getWebsiteApiUrl('/api/health'));
       const data = await res.json();
       setServerHealth(data);
     } catch (err) {

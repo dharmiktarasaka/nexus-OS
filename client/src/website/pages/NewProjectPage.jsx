@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { createClientFallbackProject, saveOfflineProject } from '../utils/clientGenerator';
+import { getWebsiteApiUrl } from '../apiConfig';
 import {
   Sparkles,
   ArrowRight,
@@ -148,7 +149,7 @@ export default function NewProjectPage() {
 
     try {
       const customKey = localStorage.getItem('gemini_custom_api_key') || '';
-      const res = await fetch('/api/analyze-prompt', {
+      const res = await fetch(getWebsiteApiUrl('/api/analyze-prompt'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -223,7 +224,7 @@ export default function NewProjectPage() {
       let newProject = null;
 
       try {
-        const res = await fetch('/api/generate', {
+        const res = await fetch(getWebsiteApiUrl('/api/generate'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

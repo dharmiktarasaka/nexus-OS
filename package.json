@@ -8,6 +8,7 @@
     "dev": "node start.js",
     "start": "node start.js",
     "dev:all": "node start.js",
+    "install:backend": "npm --prefix server install && npm --prefix server/crm install && npm --prefix server/website install",
     "server": "node server/src/index.js",
     "crm:server": "node server/crm/server.js",
     "website:server": "node server/website/index.js",

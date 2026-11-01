@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { exportProjectToZip } from '../utils/zipExport';
+import { getWebsiteApiUrl } from '../apiConfig';
 import {
   Plus,
   Search,
@@ -38,7 +39,7 @@ export default function DashboardPage() {
       const queryParam = userId ? `?userId=${encodeURIComponent(userId)}` : '';
       let serverProjects = [];
       try {
-        const res = await fetch(`/api/projects${queryParam}`, {
+        const res = await fetch(getWebsiteApiUrl(`/api/projects${queryParam}`), {
           headers: {
             ...(userId ? { 'x-user-id': userId } : {})
           }
@@ -79,7 +80,7 @@ export default function DashboardPage() {
   const handleExportZip = async (projectSummary) => {
     setExportingId(projectSummary.id);
     try {
-      const res = await fetch(`/api/projects/${projectSummary.id}`);
+      const res = await fetch(getWebsiteApiUrl(`/api/projects/${projectSummary.id}`));
       const fullProject = await res.json();
       await exportProjectToZip(fullProject);
     } catch (err) {
@@ -91,7 +92,7 @@ export default function DashboardPage() {
 
   const handleDelete = async (id) => {
     try {
-      const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+      const res = await fetch(getWebsiteApiUrl(`/api/projects/${id}`), { method: 'DELETE' });
       if (res.ok) {
         setProjects(prev => prev.filter(p => p.id !== id));
         setDeleteConfirmId(null);
@@ -103,7 +104,7 @@ export default function DashboardPage() {
 
   const handleOpenLiveWindow = async (id) => {
     try {
-      const res = await fetch(`/api/projects/${id}`);
+      const res = await fetch(getWebsiteApiUrl(`/api/projects/${id}`));
       const fullProject = await res.json();
       let doc = fullProject.html || '<!DOCTYPE html><html><body>No content</body></html>';
       if (fullProject.css) {

@@ -8,7 +8,9 @@ import axios from 'axios';
 // 3. Guaranteed 0 console errors when port 5001 is starting or offline
 const rawBaseUrl = import.meta.env.VITE_CRM_API_URL || import.meta.env.VITE_API_URL || '/crm-api';
 const cleanBaseUrl = rawBaseUrl.replace(/\/+$/, '');
-const baseURL = cleanBaseUrl.endsWith('/api') || cleanBaseUrl === '/crm-api' ? cleanBaseUrl : `${cleanBaseUrl}/api`;
+const baseURL = (cleanBaseUrl.endsWith('/crm-api') || cleanBaseUrl.endsWith('/api'))
+  ? cleanBaseUrl
+  : (cleanBaseUrl.startsWith('http') ? `${cleanBaseUrl}/crm-api` : '/crm-api');
 
 export const SERVER_URL = cleanBaseUrl;
 

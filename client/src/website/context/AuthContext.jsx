@@ -1,5 +1,6 @@
 // client/src/context/AuthContext.jsx - Unified MongoDB & Cloud Auth State
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getWebsiteApiUrl } from '../apiConfig';
 import {
   authInstance,
   isRealFirebase,
@@ -22,7 +23,7 @@ export function AuthProvider({ children }) {
   // Sync user object into MongoDB database
   const syncToMongoDB = async (userData) => {
     try {
-      const res = await fetch('/api/auth/sync', {
+      const res = await fetch(getWebsiteApiUrl('/api/auth/sync'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -56,7 +57,7 @@ export function AuthProvider({ children }) {
       const savedToken = localStorage.getItem('studio_auth_token');
       if (savedToken) {
         try {
-          const res = await fetch('/api/auth/me', {
+          const res = await fetch(getWebsiteApiUrl('/api/auth/me'), {
             headers: { Authorization: `Bearer ${savedToken}` }
           });
           if (res.ok) {
@@ -116,7 +117,7 @@ export function AuthProvider({ children }) {
   // MongoDB Native Register
   const signup = async (email, password, displayName) => {
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch(getWebsiteApiUrl('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, displayName })
@@ -162,7 +163,7 @@ export function AuthProvider({ children }) {
   // MongoDB Native Login
   const login = async (email, password) => {
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(getWebsiteApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

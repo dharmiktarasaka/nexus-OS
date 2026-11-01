@@ -4,6 +4,7 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import DeviceFrame from '../components/DeviceFrame';
 import CodeEditor from '../components/CodeEditor';
 import { exportProjectToZip } from '../utils/zipExport';
+import { getWebsiteApiUrl } from '../apiConfig';
 import {
   Sparkles,
   ArrowLeft,
@@ -57,7 +58,7 @@ export default function EditorPage() {
     try {
       let data = null;
       try {
-        const res = await fetch(`/api/projects/${id}`);
+        const res = await fetch(getWebsiteApiUrl(`/api/projects/${id}`));
         if (res.ok) {
           data = await res.json();
         }
@@ -103,7 +104,7 @@ export default function EditorPage() {
     setSaving(true);
     try {
       try {
-        await fetch(`/api/projects/${id}`, {
+        await fetch(getWebsiteApiUrl(`/api/projects/${id}`), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -160,7 +161,7 @@ export default function EditorPage() {
 
     try {
       const customKey = localStorage.getItem('gemini_custom_api_key') || '';
-      const res = await fetch('/api/refine', {
+      const res = await fetch(getWebsiteApiUrl('/api/refine'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
