@@ -6,3 +6,4 @@ export function getWebsiteApiUrl(endpoint) {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   return API_BASE ? `${API_BASE}${cleanEndpoint}` : cleanEndpoint;
 }
+

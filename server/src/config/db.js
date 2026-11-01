@@ -24,6 +24,35 @@ const options = {
 };
 
 export async function initDatabases() {
+  const unifiedUri = process.env.MONGODB_URI || process.env.CENTRAL_MONGODB_URI;
+
+  if (unifiedUri) {
+    let cleanUri = unifiedUri;
+    if (cleanUri.endsWith('/')) {
+      cleanUri = `${cleanUri}nexus_os?retryWrites=true&w=majority`;
+    } else if (!cleanUri.includes('?') && !cleanUri.split('/').pop()) {
+      cleanUri = `${cleanUri}/nexus_os`;
+    }
+
+    try {
+      const conn = await mongoose.createConnection(cleanUri, options).asPromise();
+      dbConnections.crm = conn;
+      dbConnections.website = conn;
+      dbConnections.analytics = conn;
+      dbConnections.central = conn;
+
+      connectionStatus.crm = true;
+      connectionStatus.website = true;
+      connectionStatus.analytics = true;
+      connectionStatus.central = true;
+
+      console.log(`[DB] Unified MongoDB cluster connected to '${conn.name}' for Central, CRM, Website & Analytics!`);
+      return connectionStatus;
+    } catch (err) {
+      console.warn('[DB] Unified MongoDB connection deferred/fallback:', err.message);
+    }
+  }
+
   const promises = [];
 
   // 1. CRM Connection

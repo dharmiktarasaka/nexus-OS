@@ -1,16 +1,26 @@
 import { spawn } from 'child_process';
 import http from 'http';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load root .env if present
+const rootEnvPath = path.join(__dirname, '.env');
+if (fs.existsSync(rootEnvPath) && typeof process.loadEnvFile === 'function') {
+  try { process.loadEnvFile(rootEnvPath); } catch (e) {}
+}
+
+const UNIFIED_MONGODB_URI = process.env.MONGODB_URI || process.env.CENTRAL_MONGODB_URI || '';
+
 const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.PORT) || Boolean(process.env.RENDER) || Boolean(process.env.RAILWAY_ENVIRONMENT);
 const GATEWAY_PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : (isProduction ? 10000 : 5000);
 
 console.log('===============================================================');
 console.log(`🚀 Launching Nexus OS • All-in-One Platform Services [${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}]`);
+console.log(`📦 Database: Single Unified MongoDB Cluster [nexus_os]`);
 console.log('===============================================================');
 
 const processes = [];
@@ -46,15 +56,28 @@ function startProcess(name, cmd, args, cwd, colorCode, extraEnv = {}) {
 
 // 1. Start Central Platform Server (Fixed Internal Port 5050)
 const centralServerPath = path.join(__dirname, 'server');
-startProcess('Central:5050', 'node', ['src/index.js'], centralServerPath, '34', { PORT: '5050' });
+startProcess('Central:5050', 'node', ['src/index.js'], centralServerPath, '34', {
+  PORT: '5050',
+  MONGODB_URI: UNIFIED_MONGODB_URI,
+  CENTRAL_MONGODB_URI: UNIFIED_MONGODB_URI,
+  CRM_MONGODB_URI: UNIFIED_MONGODB_URI,
+  WEBSITE_MONGODB_URI: UNIFIED_MONGODB_URI,
+  ANALYTICS_MONGODB_URI: UNIFIED_MONGODB_URI
+});
 
 // 2. Start CRM Backend Server (Fixed Internal Port 5001)
 const crmServerPath = path.join(__dirname, 'server', 'crm');
-startProcess('CRM:5001', 'node', ['server.js'], crmServerPath, '32', { PORT: '5001' });
+startProcess('CRM:5001', 'node', ['server.js'], crmServerPath, '32', {
+  PORT: '5001',
+  MONGODB_URI: UNIFIED_MONGODB_URI
+});
 
 // 3. Start Website Builder Backend Server (Fixed Internal Port 5002)
 const websiteServerPath = path.join(__dirname, 'server', 'website');
-startProcess('Website:5002', 'node', ['index.js'], websiteServerPath, '36', { PORT: '5002' });
+startProcess('Website:5002', 'node', ['index.js'], websiteServerPath, '36', {
+  PORT: '5002',
+  MONGODB_URI: UNIFIED_MONGODB_URI
+});
 
 // 4. Start Client Vite Dev Server (Only in local development)
 if (!isProduction) {

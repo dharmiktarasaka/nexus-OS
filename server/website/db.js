@@ -12,13 +12,13 @@ const mongoose = require('mongoose');
 let isConnected = false;
 
 async function connectDB() {
-  let uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/pulse_studio';
+  let uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/nexus_os';
 
   // Ensure database name is included if URI ends with / or lacks one
   if (uri.endsWith('/')) {
-    uri = `${uri}pulse_studio?retryWrites=true&w=majority`;
+    uri = `${uri}nexus_os?retryWrites=true&w=majority`;
   } else if (!uri.includes('?') && !uri.split('/').pop()) {
-    uri = `${uri}/pulse_studio`;
+    uri = `${uri}/nexus_os`;
   }
 
   try {
@@ -61,7 +61,7 @@ function isMongoConnected() {
 }
 
 function getDatabaseName() {
-  return mongoose.connection?.name || 'pulse_studio';
+  return mongoose.connection?.name || 'nexus_os';
 }
 
 module.exports = {

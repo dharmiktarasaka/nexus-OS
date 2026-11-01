@@ -22,12 +22,17 @@ const { backfillLeadsUser } = require('../utils/backfillLeadsUser');
 
 const connectDB = async () => {
   try {
-    const connStr = process.env.MONGODB_URI ;
+    let connStr = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/nexus_os';
+    if (connStr.endsWith('/')) {
+      connStr = `${connStr}nexus_os?retryWrites=true&w=majority`;
+    } else if (!connStr.includes('?') && !connStr.split('/').pop()) {
+      connStr = `${connStr}/nexus_os`;
+    }
     console.log(`Connecting to MongoDB...`);
     const conn = await mongoose.connect(connStr, {
-      serverSelectionTimeoutMS: 3000
+      serverSelectionTimeoutMS: 6000
     });
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`MongoDB Connected: ${conn.connection.host} (Database: ${conn.connection.name})`);
     await autoSeedIfEmpty();
     await backfillLeadsUser();
   } catch (error) {

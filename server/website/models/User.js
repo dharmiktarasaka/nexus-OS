@@ -84,4 +84,4 @@ userSchema.methods.toSafeObject = function () {
   };
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.models.WebsiteUser || mongoose.model('WebsiteUser', userSchema, 'website_users');
