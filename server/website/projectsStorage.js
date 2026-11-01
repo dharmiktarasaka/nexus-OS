@@ -65,11 +65,18 @@ async function migrateFileProjectsToMongo() {
   }
 }
 
-// GET all projects (summaries for dashboard)
+// GET all projects (summaries for dashboard strictly isolated to logged-in user)
 async function getAllProjects(userId) {
+  if (!userId || userId === 'anonymous' || userId === 'null' || userId === 'undefined') {
+    return [];
+  }
+
+  const query = {
+    $or: [{ userId: String(userId) }, { ownerId: String(userId) }]
+  };
+
   if (isMongoConnected()) {
     try {
-      const query = userId && userId !== 'all' ? { $or: [{ userId }, { ownerId: userId }] } : {};
       const docs = await Project.find(query).sort({ updatedAt: -1 }).lean();
       return docs.map(p => ({
         id: p.id,
@@ -95,15 +102,13 @@ async function getAllProjects(userId) {
     }
   }
 
-  // Fallback to local JSON file
+  // Fallback to local JSON file strictly filtered by user
   const projects = readProjectsFromFile();
-  const filtered = userId && userId !== 'all'
-    ? projects.filter(p => p.userId === userId || p.ownerId === userId)
-    : projects;
+  const filtered = projects.filter(p => p.userId === userId || p.ownerId === userId);
   return filtered.map(p => ({
     id: p.id,
-    ownerId: p.ownerId || p.userId || 'anonymous',
-    userId: p.userId || p.ownerId || 'anonymous',
+    ownerId: p.ownerId || p.userId,
+    userId: p.userId || p.ownerId,
     userEmail: p.userEmail || '',
     name: p.name,
     category: p.category,
@@ -121,11 +126,16 @@ async function getAllProjects(userId) {
   }));
 }
 
-// GET project by ID
-async function getProjectById(id) {
+// GET project by ID (strictly isolated to owner if userId provided)
+async function getProjectById(id, userId) {
+  const query = { id };
+  if (userId && userId !== 'all') {
+    query.$or = [{ userId: String(userId) }, { ownerId: String(userId) }];
+  }
+
   if (isMongoConnected()) {
     try {
-      const doc = await Project.findOne({ id }).lean();
+      const doc = await Project.findOne(query).lean();
       if (doc) return doc;
     } catch (err) {
       console.warn('[Storage] MongoDB get failed, checking file backup:', err.message);
@@ -133,7 +143,7 @@ async function getProjectById(id) {
   }
 
   const projects = readProjectsFromFile();
-  return projects.find(p => p.id === id) || null;
+  return projects.find(p => p.id === id && (!userId || p.userId === userId || p.ownerId === userId)) || null;
 }
 
 // CREATE new project
@@ -188,10 +198,15 @@ async function createProject(data) {
   return projectPayload;
 }
 
-// UPDATE existing project
-async function updateProject(id, updateData) {
+// UPDATE existing project (strictly isolated to owner if userId provided)
+async function updateProject(id, updateData, userId) {
   const now = new Date();
   let updatedDoc = null;
+
+  const filter = { id };
+  if (userId && userId !== 'all') {
+    filter.$or = [{ userId: String(userId) }, { ownerId: String(userId) }];
+  }
 
   // 1. Update in MongoDB
   if (isMongoConnected()) {
@@ -212,7 +227,7 @@ async function updateProject(id, updateData) {
       }
 
       updatedDoc = await Project.findOneAndUpdate(
-        { id },
+        filter,
         mongoUpdate,
         { new: true }
       ).lean();
@@ -227,7 +242,7 @@ async function updateProject(id, updateData) {
 
   // 2. Update in local file backup
   const projects = readProjectsFromFile();
-  const index = projects.findIndex(p => p.id === id);
+  const index = projects.findIndex(p => p.id === id && (!userId || p.userId === userId || p.ownerId === userId));
 
   if (index !== -1) {
     const current = projects[index];
@@ -259,14 +274,19 @@ async function updateProject(id, updateData) {
   return updatedDoc;
 }
 
-// DELETE project
-async function deleteProject(id) {
+// DELETE project (strictly isolated to owner if userId provided)
+async function deleteProject(id, userId) {
   let deletedFromMongo = false;
+
+  const filter = { id };
+  if (userId && userId !== 'all') {
+    filter.$or = [{ userId: String(userId) }, { ownerId: String(userId) }];
+  }
 
   // 1. Delete from MongoDB
   if (isMongoConnected()) {
     try {
-      const res = await Project.findOneAndDelete({ id });
+      const res = await Project.findOneAndDelete(filter);
       deletedFromMongo = Boolean(res);
       if (deletedFromMongo) {
         console.log(`[Storage] Deleted project from MongoDB: ${id}`);
@@ -278,7 +298,7 @@ async function deleteProject(id) {
 
   // 2. Delete from local file backup
   const projects = readProjectsFromFile();
-  const filtered = projects.filter(p => p.id !== id);
+  const filtered = projects.filter(p => !(p.id === id && (!userId || p.userId === userId || p.ownerId === userId)));
   const deletedFromFile = filtered.length !== projects.length;
 
   if (deletedFromFile) {

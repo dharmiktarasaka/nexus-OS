@@ -70,8 +70,11 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('crm_token');
-    localStorage.removeItem('crm_user');
+    const keysToRemove = ['crm_token', 'crm_user', 'auth_token', 'token', 'nexus_current_user', 'studio_auth_token'];
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    try {
+      sessionStorage.clear();
+    } catch {}
   };
 
   return (

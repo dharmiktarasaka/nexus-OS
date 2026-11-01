@@ -37,15 +37,13 @@ export const Kanban = () => {
     setLoading(true);
     try {
       const leadsRes = await api.get('/leads/kanban');
-      if (leadsRes.data?.success) setLeads(leadsRes.data.leads);
+      if (leadsRes.data?.success && Array.isArray(leadsRes.data.leads)) {
+        setLeads(leadsRes.data.leads);
+      } else {
+        setLeads([]);
+      }
     } catch (err) {
-      setLeads([
-        { _id: 'lead_k1', name: 'Marcus Vance', companyName: 'Apex Technologies', status: 'QUALIFIED', priority: 'HIGH', dealValue: 18500 },
-        { _id: 'lead_k2', name: 'Elena Rostova', companyName: 'Starlight Media', status: 'PROPOSAL', priority: 'MEDIUM', dealValue: 12000 },
-        { _id: 'lead_k3', name: 'David Chen', companyName: 'OmniFlow Logistics', status: 'NEW', priority: 'URGENT', dealValue: 24000 },
-        { _id: 'lead_k4', name: 'Sarah Jenkins', companyName: 'Nexus Global', status: 'CONTACTED', priority: 'MEDIUM', dealValue: 9500 },
-        { _id: 'lead_k5', name: 'Alex Wong', companyName: 'Vertex AI Labs', status: 'WON', priority: 'HIGH', dealValue: 32000 }
-      ]);
+      setLeads([]);
     } finally {
       setLoading(false);
     }

@@ -36,12 +36,21 @@ export default function DashboardPage() {
     setLoading(true);
     try {
       const userId = user?.uid || user?.id || '';
-      const queryParam = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+      if (!userId) {
+        setProjects([]);
+        setLoading(false);
+        return;
+      }
+
+      const queryParam = `?userId=${encodeURIComponent(userId)}`;
       let serverProjects = [];
       try {
+        const token = localStorage.getItem('studio_auth_token') || localStorage.getItem('auth_token') || '';
         const res = await fetch(getWebsiteApiUrl(`/api/projects${queryParam}`), {
           headers: {
-            ...(userId ? { 'x-user-id': userId } : {})
+            'x-user-id': userId,
+            ...(user?.email ? { 'x-user-email': user.email } : {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
           }
         });
         if (res.ok) {
@@ -52,10 +61,10 @@ export default function DashboardPage() {
         console.warn('Network call to /api/projects deferred:', err.message);
       }
 
-      // Merge with offline created projects
+      // Merge with offline created projects ONLY for this specific user
       let localProjects = [];
       try {
-        localProjects = JSON.parse(localStorage.getItem('pulse_offline_projects') || '[]');
+        localProjects = JSON.parse(localStorage.getItem(`pulse_offline_projects_${userId}`) || '[]');
       } catch (e) {}
 
       const merged = [...serverProjects];
@@ -68,14 +77,20 @@ export default function DashboardPage() {
       setProjects(merged);
     } catch (err) {
       console.error('Failed to fetch projects:', err);
+      setProjects([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProjects();
-  }, []);
+    if (user) {
+      fetchProjects();
+    } else {
+      setProjects([]);
+      setLoading(false);
+    }
+  }, [user]);
 
   const handleExportZip = async (projectSummary) => {
     setExportingId(projectSummary.id);

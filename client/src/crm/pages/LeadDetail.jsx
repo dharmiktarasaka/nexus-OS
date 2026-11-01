@@ -47,6 +47,7 @@ export const LeadDetail = () => {
 
   // Follow-up form
   const [followUpDate, setFollowUpDate] = useState('');
+  const [notFound, setNotFound] = useState(false);
   const [followUpTime, setFollowUpTime] = useState('10:00 AM');
   const [followUpNote, setFollowUpNote] = useState('');
 
@@ -59,44 +60,20 @@ export const LeadDetail = () => {
       ]);
       if (leadRes.data?.success && leadRes.data?.lead) {
         setLead(leadRes.data.lead);
+        setNotFound(false);
       } else {
-        setLead({
-          _id: id,
-          name: 'Marcus Vance',
-          companyName: 'Apex Technologies Inc.',
-          email: 'm.vance@apextech.io',
-          phone: '+1 (555) 234-5678',
-          status: 'QUALIFIED',
-          source: 'LinkedIn B2B',
-          serviceInterest: 'Enterprise Cloud Suite',
-          priority: 'HIGH',
-          dealValue: 18500,
-          createdAt: new Date().toISOString()
-        });
+        setLead(null);
+        setNotFound(true);
       }
-      if (actRes.data?.success && actRes.data?.activities) {
+      if (actRes.data?.success && Array.isArray(actRes.data?.activities)) {
         setActivities(actRes.data.activities);
       } else {
-        setActivities([
-          { _id: 'act_1', action: 'NOTE_ADDED', details: 'Initial consultation call completed. Strong interest in multi-seat deployment.', createdAt: new Date().toISOString() },
-          { _id: 'act_2', action: 'STATUS_CHANGED', details: 'Status moved from CONTACTED to QUALIFIED', createdAt: new Date(Date.now() - 3600000).toISOString() }
-        ]);
+        setActivities([]);
       }
     } catch (err) {
-      setLead({
-        _id: id,
-        name: 'Marcus Vance',
-        companyName: 'Apex Technologies Inc.',
-        email: 'm.vance@apextech.io',
-        phone: '+1 (555) 234-5678',
-        status: 'QUALIFIED',
-        source: 'LinkedIn B2B',
-        serviceInterest: 'Enterprise Cloud Suite',
-        priority: 'HIGH',
-        dealValue: 18500,
-        createdAt: new Date().toISOString()
-      });
+      setLead(null);
       setActivities([]);
+      setNotFound(true);
     } finally {
       setLoading(false);
     }
@@ -183,6 +160,21 @@ export const LeadDetail = () => {
       window.open(`mailto:${lead.email}`, '_self');
     }
   };
+
+  if (notFound) {
+    return (
+      <div className="p-8 text-center space-y-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 my-6">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Lead Not Found</h3>
+        <p className="text-sm text-slate-500">This lead does not exist or you do not have permission to view it.</p>
+        <button
+          onClick={() => navigate(`${basePath}/leads`)}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors"
+        >
+          Back to Leads
+        </button>
+      </div>
+    );
+  }
 
   if (loading || !lead) {
     return <Loader message="Loading lead profile..." />;

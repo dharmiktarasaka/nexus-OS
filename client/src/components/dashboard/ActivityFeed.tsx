@@ -88,6 +88,12 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, loading 
         </div>
       )}
 
+      {!loading && activities.length === 0 && (
+        <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+          No recent activity. Actions taken across CRM, Website Studio, and Social Media will stream here live.
+        </div>
+      )}
+
       {!loading && activities.length > 0 && (
         <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
           {activities.map((item) => {

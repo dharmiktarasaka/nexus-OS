@@ -83,7 +83,7 @@ export const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <StatCard
             label="Total Leads"
-            value={stats?.crm?.totalLeads ?? 42}
+            value={stats?.crm?.totalLeads ?? 0}
             sublabel="Personal Leads CRM"
             icon={Users}
             iconColor="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60"
@@ -94,7 +94,7 @@ export const DashboardPage: React.FC = () => {
 
           <StatCard
             label="Social Posts"
-            value={stats?.social?.totalPosts ?? 38}
+            value={stats?.social?.totalPosts ?? 0}
             sublabel="Published & Drafts"
             icon={Share2}
             iconColor="text-indigo-600 bg-indigo-50 dark:bg-indigo-950/60"
@@ -105,7 +105,7 @@ export const DashboardPage: React.FC = () => {
 
           <StatCard
             label="Scheduled Posts"
-            value={stats?.social?.scheduledPosts ?? 7}
+            value={stats?.social?.scheduledPosts ?? 0}
             sublabel="Autonomous Queue"
             icon={Clock}
             iconColor="text-amber-600 bg-amber-50 dark:bg-amber-950/60"
@@ -116,7 +116,7 @@ export const DashboardPage: React.FC = () => {
 
           <StatCard
             label="Website Projects"
-            value={stats?.website?.totalProjects ?? 16}
+            value={stats?.website?.totalProjects ?? 0}
             sublabel="AI Studio Sites"
             icon={Globe}
             iconColor="text-sky-600 bg-sky-50 dark:bg-sky-950/60"
@@ -127,7 +127,7 @@ export const DashboardPage: React.FC = () => {
 
           <StatCard
             label="Business Reports"
-            value={stats?.analytics?.totalReports ?? 9}
+            value={stats?.analytics?.totalReports ?? 0}
             sublabel="Strategic Audits"
             icon={TrendingUp}
             iconColor="text-purple-600 bg-purple-50 dark:bg-purple-950/60"

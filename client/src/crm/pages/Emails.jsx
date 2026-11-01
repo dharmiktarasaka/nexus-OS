@@ -124,30 +124,8 @@ export const Emails = () => {
           if (fresh) setSelectedEmail(fresh);
         }
       } else if (res.data?.offline) {
-        // High fidelity baseline emails when offline
-        setEmails([
-          {
-            _id: 'sample_em_1',
-            to: 'sarah.j@vertexcloud.io',
-            subject: 'Following up: Enterprise Platform Demo & Architecture',
-            body: 'Hi Sarah, thank you for the time today. Looking forward to reviewing the proposal.',
-            folder: 'INBOX',
-            isRead: false,
-            isStarred: true,
-            createdAt: new Date().toISOString()
-          },
-          {
-            _id: 'sample_em_2',
-            to: 'marcus@horizontech.com',
-            subject: 'Meeting Confirmation for Thursday 2:00 PM',
-            body: 'Hello Marcus, confirming our product walkthrough for Thursday.',
-            folder: 'INBOX',
-            isRead: true,
-            isStarred: false,
-            createdAt: new Date(Date.now() - 3600000 * 4).toISOString()
-          }
-        ]);
-        setCounts({ inboxUnread: 1, sentTotal: 12, scheduledTotal: 2, trashTotal: 0 });
+        setEmails([]);
+        setCounts({ inboxUnread: 0, sentTotal: 0, scheduledTotal: 0, trashTotal: 0 });
       }
     } catch (err) {
       if (!err.message?.includes('Network Error')) {

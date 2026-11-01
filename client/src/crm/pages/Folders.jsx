@@ -52,27 +52,26 @@ export const Folders = () => {
     setLoading(true);
     try {
       const res = await api.get('/folders');
-      if (res.data?.success && Array.isArray(res.data?.folders) && res.data.folders.length > 0) {
+      if (res.data?.success && Array.isArray(res.data?.folders)) {
         setFolders(res.data.folders);
       } else {
-        setFolders([
-          { _id: 'f_1', name: 'India Tech & SaaS Startups', description: 'Verified founders and CEOs in Bangalore & Mumbai', color: '#4F46E5', category: 'INDIA', datasetCount: 2, totalRecords: 28, leadCount: 28, isOwner: true, accessLevel: 'FULL_ACCESS' },
-          { _id: 'f_2', name: 'US HealthCare Providers', description: 'Medical and healthcare clinics in California', color: '#059669', category: 'INTERNATIONAL', datasetCount: 1, totalRecords: 14, leadCount: 14, isOwner: true, accessLevel: 'FULL_ACCESS' }
-        ]);
+        setFolders([]);
       }
     } catch (err) {
-      setFolders([
-        { _id: 'f_1', name: 'India Tech & SaaS Startups', description: 'Verified founders and CEOs in Bangalore & Mumbai', color: '#4F46E5', category: 'INDIA', datasetCount: 2, totalRecords: 28, leadCount: 28, isOwner: true, accessLevel: 'FULL_ACCESS' },
-        { _id: 'f_2', name: 'US HealthCare Providers', description: 'Medical and healthcare clinics in California', color: '#059669', category: 'INTERNATIONAL', datasetCount: 1, totalRecords: 14, leadCount: 14, isOwner: true, accessLevel: 'FULL_ACCESS' }
-      ]);
+      setFolders([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchFolders();
-  }, []);
+    if (currentUser) {
+      fetchFolders();
+    } else {
+      setFolders([]);
+      setLoading(false);
+    }
+  }, [currentUser]);
 
   const handleCategoryFilter = (cat) => {
     if (cat === 'all') {

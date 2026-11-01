@@ -29,13 +29,19 @@ export const Tasks = () => {
         api.get('/tasks'),
         api.get('/users')
       ]);
-      if (taskRes.data?.success) setTasks(taskRes.data.tasks);
-      if (userRes.data?.users) setUsers(userRes.data.users);
+      if (taskRes.data?.success && Array.isArray(taskRes.data.tasks)) {
+        setTasks(taskRes.data.tasks);
+      } else {
+        setTasks([]);
+      }
+      if (userRes.data?.users && Array.isArray(userRes.data.users)) {
+        setUsers(userRes.data.users);
+      } else {
+        setUsers([]);
+      }
     } catch (err) {
-      setTasks([
-        { _id: 't_1', title: 'Prepare Enterprise Proposal for Apex Tech', dueDate: new Date(Date.now() + 86400000).toISOString(), priority: 'HIGH', status: 'TODO', description: 'Include SLA and cloud tier pricing breakdown' },
-        { _id: 't_2', title: 'Follow-up with Elena on AI website demo', dueDate: new Date(Date.now() + 172800000).toISOString(), priority: 'MEDIUM', status: 'IN_PROGRESS', description: 'Review custom components requirements' }
-      ]);
+      setTasks([]);
+      setUsers([]);
     } finally {
       setLoading(false);
     }

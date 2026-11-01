@@ -22,20 +22,13 @@ export const Followups = () => {
     setLoading(true);
     try {
       const res = await api.get(`/followups?filter=${activeTab}`);
-      if (res.data?.success) {
+      if (res.data?.success && Array.isArray(res.data.followUps)) {
         setFollowUps(res.data.followUps);
+      } else {
+        setFollowUps([]);
       }
     } catch (err) {
-      setFollowUps([
-        {
-          _id: 'fu_1',
-          date: new Date().toISOString(),
-          time: '02:30 PM',
-          note: 'Contract review call with Marcus Vance regarding SLA guarantees',
-          status: 'PENDING',
-          leadId: { _id: 'lead_1', name: 'Marcus Vance', companyName: 'Apex Technologies', phone: '+1 (555) 234-5678' }
-        }
-      ]);
+      setFollowUps([]);
     } finally {
       setLoading(false);
     }

@@ -75,59 +75,21 @@ export const Leads = () => {
       };
 
       const res = await api.get('/leads', { params });
-      if (res.data?.success) {
+      if (res.data?.success && Array.isArray(res.data?.leads)) {
         setLeads(res.data.leads);
         setPagination({
-          page: res.data.currentPage,
+          page: res.data.currentPage || 1,
           limit: pagination.limit,
-          total: res.data.total,
-          totalPages: res.data.totalPages
+          total: res.data.total || res.data.leads.length,
+          totalPages: res.data.totalPages || 1
         });
+      } else {
+        setLeads([]);
+        setPagination({ page: 1, limit: pagination.limit, total: 0, totalPages: 1 });
       }
     } catch (err) {
-      // Baseline offline leads
-      setLeads([
-        {
-          _id: 'lead_1',
-          name: 'Marcus Vance',
-          companyName: 'Apex Technologies',
-          email: 'm.vance@apextech.io',
-          phone: '+1 (555) 234-5678',
-          status: 'QUALIFIED',
-          source: 'LinkedIn B2B',
-          serviceInterest: 'Enterprise Cloud Suite',
-          priority: 'HIGH',
-          dealValue: 18500,
-          createdAt: new Date().toISOString()
-        },
-        {
-          _id: 'lead_2',
-          name: 'Elena Rostova',
-          companyName: 'Starlight Media Group',
-          email: 'elena@starlight.co',
-          phone: '+1 (555) 876-5432',
-          status: 'PROPOSAL',
-          source: 'Google Maps',
-          serviceInterest: 'AI Automation Suite',
-          priority: 'MEDIUM',
-          dealValue: 12000,
-          createdAt: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-          _id: 'lead_3',
-          name: 'David Chen',
-          companyName: 'OmniFlow Logistics',
-          email: 'd.chen@omniflow.com',
-          phone: '+1 (555) 432-1098',
-          status: 'NEW',
-          source: 'Web Directory',
-          serviceInterest: 'CRM Integration',
-          priority: 'URGENT',
-          dealValue: 24000,
-          createdAt: new Date(Date.now() - 172800000).toISOString()
-        }
-      ]);
-      setPagination({ page: 1, limit: 10, total: 3, totalPages: 1 });
+      setLeads([]);
+      setPagination({ page: 1, limit: pagination.limit, total: 0, totalPages: 1 });
     } finally {
       setLoading(false);
     }

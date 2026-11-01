@@ -18,6 +18,40 @@ const {
   migrateFileProjectsToMongo
 } = require('./projectsStorage');
 
+const jwt = require('jsonwebtoken');
+
+// Helper to strictly resolve authenticated user on every request
+function resolveUser(req) {
+  let userId = null;
+  let userEmail = null;
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    const token = req.headers.authorization.split(' ')[1];
+    try {
+      const decoded = jwt.decode(token);
+      if (decoded) {
+        userId = decoded.uid || decoded.id || decoded._id || decoded.sub || null;
+        userEmail = decoded.email || null;
+      }
+    } catch (e) {}
+  }
+
+  if (!userId && req.headers['x-user-id']) {
+    userId = req.headers['x-user-id'];
+  }
+  if (!userEmail && req.headers['x-user-email']) {
+    userEmail = req.headers['x-user-email'];
+  }
+  if (!userId && req.query.userId) {
+    userId = req.query.userId;
+  }
+
+  if (userId) userId = String(userId).trim();
+  if (userEmail) userEmail = String(userEmail).trim();
+
+  return { userId, userEmail };
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -75,10 +109,13 @@ app.post('/api/analyze-prompt', async (req, res) => {
   }
 });
 
-// Projects Persistence Endpoints (MongoDB backed)
+// Projects Persistence Endpoints (Strictly user-isolated)
 app.get('/api/projects', async (req, res) => {
   try {
-    const userId = req.query.userId || req.headers['x-user-id'];
+    const { userId } = resolveUser(req);
+    if (!userId || userId === 'anonymous') {
+      return res.json([]);
+    }
     const list = await getAllProjects(userId);
     res.json(list);
   } catch (err) {
@@ -88,9 +125,10 @@ app.get('/api/projects', async (req, res) => {
 
 app.get('/api/projects/:id', async (req, res) => {
   try {
-    const project = await getProjectById(req.params.id);
+    const { userId } = resolveUser(req);
+    const project = await getProjectById(req.params.id, userId);
     if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
+      return res.status(404).json({ error: 'Project not found or unauthorized' });
     }
     res.json(project);
   } catch (err) {
@@ -100,8 +138,13 @@ app.get('/api/projects/:id', async (req, res) => {
 
 app.post('/api/projects', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] || req.body.ownerId || req.body.userId || 'anonymous';
-    const userEmail = req.headers['x-user-email'] || req.body.userEmail || '';
+    const { userId: resolvedUid, userEmail: resolvedEmail } = resolveUser(req);
+    const userId = resolvedUid || req.body.ownerId || req.body.userId;
+    const userEmail = resolvedEmail || req.body.userEmail || '';
+
+    if (!userId || userId === 'anonymous') {
+      return res.status(401).json({ error: 'Authentication required to save project' });
+    }
 
     const project = await createProject({
       ...req.body,
@@ -117,9 +160,10 @@ app.post('/api/projects', async (req, res) => {
 
 app.put('/api/projects/:id', async (req, res) => {
   try {
-    const updated = await updateProject(req.params.id, req.body);
+    const { userId } = resolveUser(req);
+    const updated = await updateProject(req.params.id, req.body, userId);
     if (!updated) {
-      return res.status(404).json({ error: 'Project not found' });
+      return res.status(404).json({ error: 'Project not found or unauthorized' });
     }
     res.json(updated);
   } catch (err) {
@@ -129,9 +173,10 @@ app.put('/api/projects/:id', async (req, res) => {
 
 app.delete('/api/projects/:id', async (req, res) => {
   try {
-    const success = await deleteProject(req.params.id);
+    const { userId } = resolveUser(req);
+    const success = await deleteProject(req.params.id, userId);
     if (!success) {
-      return res.status(404).json({ error: 'Project not found' });
+      return res.status(404).json({ error: 'Project not found or unauthorized' });
     }
     res.json({ success: true, message: 'Project deleted' });
   } catch (err) {
@@ -139,13 +184,14 @@ app.delete('/api/projects/:id', async (req, res) => {
   }
 });
 
-// AI Generation Endpoint (Automatically stores to MongoDB)
+// AI Generation Endpoint (Automatically stores to MongoDB strictly tied to user)
 app.post('/api/generate', async (req, res) => {
   try {
-    const { prompt, category, stylePreferences, blueprint, userId, userEmail } = req.body;
+    const { prompt, category, stylePreferences, blueprint } = req.body;
     const apiKey = req.headers['x-gemini-key'] || req.body.apiKey;
-    const resolvedUserId = req.headers['x-user-id'] || userId || 'anonymous';
-    const resolvedUserEmail = req.headers['x-user-email'] || userEmail || '';
+    const { userId: authUid, userEmail: authEmail } = resolveUser(req);
+    const resolvedUserId = authUid || req.body.userId || 'anonymous';
+    const resolvedUserEmail = authEmail || req.body.userEmail || '';
 
     if (!prompt || typeof prompt !== 'string') {
       return res.status(400).json({ error: 'A descriptive website prompt is required' });

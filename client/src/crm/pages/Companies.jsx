@@ -28,14 +28,13 @@ export const Companies = () => {
     setLoading(true);
     try {
       const res = await api.get('/companies');
-      if (res.data?.success) {
+      if (res.data?.success && Array.isArray(res.data.companies)) {
         setCompanies(res.data.companies);
+      } else {
+        setCompanies([]);
       }
     } catch (err) {
-      setCompanies([
-        { _id: 'comp_1', name: 'Apex Technologies', industry: 'Software / SaaS', phone: '+1 (555) 234-5678', email: 'contact@apextech.io', website: 'https://apextech.io', address: 'San Francisco, CA' },
-        { _id: 'comp_2', name: 'Starlight Media Group', industry: 'Digital Marketing', phone: '+1 (555) 876-5432', email: 'hello@starlight.co', website: 'https://starlight.co', address: 'New York, NY' }
-      ]);
+      setCompanies([]);
     } finally {
       setLoading(false);
     }

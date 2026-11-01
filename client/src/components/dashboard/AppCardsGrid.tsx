@@ -34,9 +34,9 @@ export const AppCardsGrid: React.FC<AppCardsGridProps> = ({ stats, recentActivit
       icon: Users,
       iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
       tagline: 'Sales Pipeline & Outreach',
-      statText: `${stats?.crm?.totalLeads || 42} Active Leads • ${stats?.crm?.qualifiedLeads || 18} Qualified`,
-      recentEvent: recentActivity.find(a => a.appId === 'crm')?.title || 'New Lead: Apex Technologies ($18,500)',
-      lastAccessed: '12m ago',
+      statText: `${stats?.crm?.totalLeads ?? 0} Active Leads • ${stats?.crm?.qualifiedLeads ?? 0} Qualified`,
+      recentEvent: recentActivity.find(a => a.appId === 'crm')?.title || 'No recent activity',
+      lastAccessed: 'Active',
       features: ['Lead Scraper', 'Excel Import', 'Kanban Board']
     },
     {
@@ -48,9 +48,9 @@ export const AppCardsGrid: React.FC<AppCardsGridProps> = ({ stats, recentActivit
       icon: Share2,
       iconBg: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20',
       tagline: 'Autonomous Social Publisher',
-      statText: `${stats?.social?.totalPosts || 38} Total Posts • ${stats?.social?.scheduledPosts || 7} In Queue`,
-      recentEvent: recentActivity.find(a => a.appId === 'social')?.title || 'Scheduled Carousel: "5 SaaS Scaling Metrics"',
-      lastAccessed: '45m ago',
+      statText: `${stats?.social?.totalPosts ?? 0} Total Posts • ${stats?.social?.scheduledPosts ?? 0} In Queue`,
+      recentEvent: recentActivity.find(a => a.appId === 'social')?.title || 'No scheduled posts',
+      lastAccessed: 'Active',
       features: ['AI Captions', 'Instagram & FB', 'Post Scheduler']
     },
     {
@@ -62,9 +62,9 @@ export const AppCardsGrid: React.FC<AppCardsGridProps> = ({ stats, recentActivit
       icon: Globe,
       iconBg: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20',
       tagline: 'Gemini Site Generation & Editor',
-      statText: `${stats?.website?.totalProjects || 16} Projects • ${stats?.website?.publishedSites || 12} Published`,
-      recentEvent: recentActivity.find(a => a.appId === 'website-builder')?.title || 'Generated: NovaPay NeoBanking Page',
-      lastAccessed: '2h ago',
+      statText: `${stats?.website?.totalProjects ?? 0} Projects • ${stats?.website?.publishedSites ?? 0} Published`,
+      recentEvent: recentActivity.find(a => a.appId === 'website-builder')?.title || 'No projects created yet',
+      lastAccessed: 'Active',
       features: ['Gemini AI Engine', 'Live Code Editor', 'Clean ZIP Export']
     },
     {
@@ -76,9 +76,9 @@ export const AppCardsGrid: React.FC<AppCardsGridProps> = ({ stats, recentActivit
       icon: TrendingUp,
       iconBg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
       tagline: 'Strategic Intelligence & Stepper',
-      statText: `${stats?.analytics?.totalReports || 9} Reports • Health Score ${stats?.analytics?.avgHealthScore || 88}/100`,
-      recentEvent: recentActivity.find(a => a.appId === 'analytics')?.title || 'Diagnostic: Veloce Digital Logistics (Score 88)',
-      lastAccessed: '4h ago',
+      statText: `${stats?.analytics?.totalReports ?? 0} Reports • Health Score ${stats?.analytics?.avgHealthScore ?? 0}/100`,
+      recentEvent: recentActivity.find(a => a.appId === 'analytics')?.title || 'No diagnostic reports yet',
+      lastAccessed: 'Active',
       features: ['4-Pillar Stepper', 'SWOT Matrix', 'PDF & Excel Reports']
     }
   ];

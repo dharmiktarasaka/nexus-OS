@@ -252,6 +252,15 @@ export function AuthProvider({ children }) {
   // Logout
   const logout = async () => {
     localStorage.removeItem('studio_auth_token');
+    localStorage.removeItem('pulse_offline_projects');
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('pulse_offline_projects_')) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (e) {}
     setToken(null);
     if (isRealFirebase && authInstance) {
       await signOut(authInstance);

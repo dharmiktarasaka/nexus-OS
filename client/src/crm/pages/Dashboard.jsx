@@ -53,42 +53,28 @@ export const Dashboard = () => {
           setData({
             success: true,
             kpi: {
-              totalLeads: 42,
-              newLeads: 12,
-              followUpsToday: 5,
-              overdueFollowUps: 1,
-              qualifiedLeads: 18,
-              proposalSentLeads: 6,
-              wonLeads: 8,
-              lostLeads: 3,
-              conversionRate: 68
+              totalLeads: 0,
+              newLeads: 0,
+              followUpsToday: 0,
+              overdueFollowUps: 0,
+              qualifiedLeads: 0,
+              proposalSentLeads: 0,
+              wonLeads: 0,
+              lostLeads: 0,
+              conversionRate: 0
             },
             charts: {
               pipelineData: [
-                { stage: 'NEW', count: 12 },
-                { stage: 'CONTACTED', count: 9 },
-                { stage: 'QUALIFIED', count: 7 },
-                { stage: 'PROPOSAL_SENT', count: 4 },
-                { stage: 'WON', count: 8 },
-                { stage: 'LOST', count: 2 }
+                { stage: 'NEW', count: 0 },
+                { stage: 'CONTACTED', count: 0 },
+                { stage: 'QUALIFIED', count: 0 },
+                { stage: 'PROPOSAL_SENT', count: 0 },
+                { stage: 'WON', count: 0 },
+                { stage: 'LOST', count: 0 }
               ],
-              sourceData: [
-                { source: 'Google Maps', count: 18 },
-                { source: 'LinkedIn B2B', count: 14 },
-                { source: 'Web Directory', count: 6 },
-                { source: 'Referral', count: 4 }
-              ],
-              trendData: [
-                { month: 'Jun 2026', total: 18, won: 4, lost: 1 },
-                { month: 'Jul 2026', total: 24, won: 5, lost: 2 },
-                { month: 'Aug 2026', total: 31, won: 6, lost: 2 },
-                { month: 'Sep 2026', total: 38, won: 7, lost: 3 },
-                { month: 'Oct 2026', total: 42, won: 8, lost: 2 }
-              ],
-              lostReasonData: [
-                { reason: 'Budget Constraint', count: 2 },
-                { reason: 'Competitor Chosen', count: 1 }
-              ]
+              sourceData: [],
+              trendData: [],
+              lostReasonData: []
             }
           });
         }

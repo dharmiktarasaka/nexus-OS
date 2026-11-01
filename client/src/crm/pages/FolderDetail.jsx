@@ -59,114 +59,7 @@ export const FolderDetail = () => {
   const [isSendEmailModalOpen, setIsSendEmailModalOpen] = useState(false);
   const [isSendWhatsAppModalOpen, setIsSendWhatsAppModalOpen] = useState(false);
 
-  const loadFallbackFolder = () => {
-    const isHealth = folderId === 'f_2';
-    const mockFolder = {
-      _id: folderId,
-      name: isHealth ? 'US HealthCare Providers' : 'India Tech & SaaS Startups',
-      description: isHealth ? 'Medical and healthcare clinics in California' : 'Verified founders and CEOs in Bangalore & Mumbai',
-      color: isHealth ? '#059669' : '#4F46E5',
-      category: isHealth ? 'INTERNATIONAL' : 'INDIA',
-      datasetCount: isHealth ? 1 : 2,
-      totalRecords: isHealth ? 14 : 28,
-      isOwner: true,
-      accessLevel: 'FULL_ACCESS'
-    };
-    const mockDatasets = isHealth ? [
-      {
-        _id: 'ds_3',
-        fileName: 'California_Clinics_Directory.xlsx',
-        recordCount: 14,
-        headers: [
-          { key: 'clinic_name', label: 'Clinic Name', type: 'TEXT' },
-          { key: 'contact_person', label: 'Contact Person', type: 'TEXT' },
-          { key: 'speciality', label: 'Speciality', type: 'TEXT' },
-          { key: 'email', label: 'Email', type: 'EMAIL' },
-          { key: 'phone', label: 'Phone', type: 'PHONE' },
-          { key: 'city', label: 'City', type: 'TEXT' },
-          { key: 'state', label: 'State', type: 'TEXT' }
-        ]
-      }
-    ] : [
-      {
-        _id: 'ds_1',
-        fileName: 'Bangalore_Founders_Oct2026.xlsx',
-        recordCount: 16,
-        headers: [
-          { key: 'name', label: 'Founder Name', type: 'TEXT' },
-          { key: 'company', label: 'Company', type: 'TEXT' },
-          { key: 'designation', label: 'Designation', type: 'TEXT' },
-          { key: 'email', label: 'Email', type: 'EMAIL' },
-          { key: 'phone', label: 'Phone', type: 'PHONE' },
-          { key: 'city', label: 'City', type: 'TEXT' },
-          { key: 'funding', label: 'Funding Stage', type: 'TEXT' }
-        ]
-      },
-      {
-        _id: 'ds_2',
-        fileName: 'Mumbai_SaaS_Leadership.xlsx',
-        recordCount: 12,
-        headers: [
-          { key: 'name', label: 'Founder Name', type: 'TEXT' },
-          { key: 'company', label: 'Company', type: 'TEXT' },
-          { key: 'designation', label: 'Designation', type: 'TEXT' },
-          { key: 'email', label: 'Email', type: 'EMAIL' },
-          { key: 'phone', label: 'Phone', type: 'PHONE' },
-          { key: 'city', label: 'City', type: 'TEXT' },
-          { key: 'funding', label: 'Funding Stage', type: 'TEXT' }
-        ]
-      }
-    ];
-
-    setFolder(mockFolder);
-    setDatasets(mockDatasets);
-  };
-
-  const loadFallbackRecords = () => {
-    const isHealth = folderId === 'f_2';
-    if (isHealth) {
-      const hdrs = [
-        { key: 'clinic_name', label: 'Clinic Name', type: 'TEXT' },
-        { key: 'contact_person', label: 'Contact Person', type: 'TEXT' },
-        { key: 'speciality', label: 'Speciality', type: 'TEXT' },
-        { key: 'email', label: 'Email', type: 'EMAIL' },
-        { key: 'phone', label: 'Phone', type: 'PHONE' },
-        { key: 'city', label: 'City', type: 'TEXT' },
-        { key: 'state', label: 'State', type: 'TEXT' }
-      ];
-      const recs = [
-        { _id: 'rec_201', data: { clinic_name: 'Bay Area Health & Heart Institute', contact_person: 'Dr. Robert Miller', speciality: 'Cardiology', email: 'r.miller@bayhealth.org', phone: '+1 (415) 555-0192', city: 'San Francisco', state: 'California' } },
-        { _id: 'rec_202', data: { clinic_name: 'Pacific Coast Wellness Center', contact_person: 'Dr. Sarah Lin', speciality: 'Orthopedics', email: 's.lin@pacificwellness.com', phone: '+1 (310) 555-0144', city: 'Los Angeles', state: 'California' } },
-        { _id: 'rec_203', data: { clinic_name: 'Golden State Dermatology & Laser', contact_person: 'Dr. Michael Chen', speciality: 'Dermatology', email: 'chen@goldenstatemed.com', phone: '+1 (619) 555-0187', city: 'San Diego', state: 'California' } },
-        { _id: 'rec_204', data: { clinic_name: 'Silicon Valley Urgent Care Network', contact_person: 'Dr. Emily Vance', speciality: 'Urgent Care', email: 'evance@svurgentcare.org', phone: '+1 (408) 555-0133', city: 'San Jose', state: 'California' } },
-        { _id: 'rec_205', data: { clinic_name: 'Newport Beach Neurological Group', contact_person: 'Dr. David Foster', speciality: 'Neurology', email: 'dfoster@newportneuro.com', phone: '+1 (949) 555-0165', city: 'Newport Beach', state: 'California' } }
-      ];
-      setHeaders(hdrs);
-      setRecords(recs);
-      setPagination({ page: 1, totalPages: 1, total: recs.length, limit: pagination.limit });
-    } else {
-      const hdrs = [
-        { key: 'name', label: 'Founder Name', type: 'TEXT' },
-        { key: 'company', label: 'Company', type: 'TEXT' },
-        { key: 'designation', label: 'Designation', type: 'TEXT' },
-        { key: 'email', label: 'Email', type: 'EMAIL' },
-        { key: 'phone', label: 'Phone', type: 'PHONE' },
-        { key: 'city', label: 'City', type: 'TEXT' },
-        { key: 'funding', label: 'Funding Stage', type: 'TEXT' }
-      ];
-      const recs = [
-        { _id: 'rec_101', data: { name: 'Arjun Mehta', company: 'HyperScale AI Technologies', designation: 'Founder & CEO', email: 'arjun@hyperscale.io', phone: '+91 98201 12345', city: 'Bangalore', funding: 'Series A ($4.2M)' } },
-        { _id: 'rec_102', data: { name: 'Pooja Sharma', company: 'CloudMatrix Security Labs', designation: 'Co-Founder & CTO', email: 'pooja@cloudmatrix.dev', phone: '+91 98450 67890', city: 'Bangalore', funding: 'Seed ($1.5M)' } },
-        { _id: 'rec_103', data: { name: 'Rohan Verma', company: 'FinFlow Enterprise Tech', designation: 'VP Engineering', email: 'rohan.v@finflow.in', phone: '+91 98190 23456', city: 'Mumbai', funding: 'Series B ($12M)' } },
-        { _id: 'rec_104', data: { name: 'Ananya Iyer', company: 'CyberShield Systems India', designation: 'Managing Director', email: 'ananya@cybershield.in', phone: '+91 98765 43210', city: 'Bangalore', funding: 'Pre-Seed ($500K)' } },
-        { _id: 'rec_105', data: { name: 'Vikram Joshi', company: 'DataSphere Omni Analytics', designation: 'Chief Executive Officer', email: 'vikram@datasphere.ai', phone: '+91 98234 56789', city: 'Mumbai', funding: 'Series A ($6.8M)' } },
-        { _id: 'rec_106', data: { name: 'Neha Kulkarni', company: 'LogiNext Cloud Platforms', designation: 'Head of Growth', email: 'neha@loginext.in', phone: '+91 98333 45678', city: 'Mumbai', funding: 'Series C ($35M)' } }
-      ];
-      setHeaders(hdrs);
-      setRecords(recs);
-      setPagination({ page: 1, totalPages: 1, total: recs.length, limit: pagination.limit });
-    }
-  };
+  const [notFound, setNotFound] = useState(false);
 
   // Fetch Folder Header Details
   const fetchFolderInfo = async () => {
@@ -175,11 +68,14 @@ export const FolderDetail = () => {
       if (res.data?.success && res.data?.folder) {
         setFolder(res.data.folder);
         setDatasets(res.data.datasets || []);
+        setNotFound(false);
       } else {
-        loadFallbackFolder();
+        setNotFound(true);
+        setFolder(null);
       }
     } catch (err) {
-      loadFallbackFolder();
+      setNotFound(true);
+      setFolder(null);
     }
   };
 
@@ -198,20 +94,22 @@ export const FolderDetail = () => {
       };
 
       const res = await api.get(`/folders/${folderId}/records`, { params });
-      if (res.data?.success && Array.isArray(res.data?.records) && res.data.records.length > 0) {
+      if (res.data?.success && Array.isArray(res.data?.records)) {
         setRecords(res.data.records);
         setHeaders(res.data.headers || []);
         setPagination({
           page: res.data.currentPage || 1,
           totalPages: res.data.totalPages || 1,
-          total: res.data.total || res.data.records.length,
+          total: res.data.total ?? res.data.records.length,
           limit: pagination.limit
         });
       } else {
-        loadFallbackRecords();
+        setRecords([]);
+        setHeaders([]);
       }
     } catch (err) {
-      loadFallbackRecords();
+      setRecords([]);
+      setHeaders([]);
     } finally {
       setLoading(false);
     }
@@ -315,6 +213,21 @@ export const FolderDetail = () => {
       showError(err.response?.data?.message || 'Failed to export folder records');
     }
   };
+
+  if (notFound) {
+    return (
+      <div className="p-8 text-center space-y-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 my-6">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Folder Not Found</h3>
+        <p className="text-sm text-slate-500">This folder does not exist or you do not have permission to access it.</p>
+        <button
+          onClick={() => navigate(`${basePath}/folders`)}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors"
+        >
+          Back to Folders
+        </button>
+      </div>
+    );
+  }
 
   if (!folder) {
     return <Loader message="Loading folder dataset records..." />;
