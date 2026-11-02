@@ -338,10 +338,17 @@ export default defineConfig({
         target: 'http://localhost:5002',
         changeOrigin: true,
         configure: (proxy) => {
-          proxy.on('error', (_err, _req, res) => {
+          proxy.on('error', (_err, req, res) => {
             if (res && !res.headersSent && typeof res.writeHead === 'function') {
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify([]));
+              const url = req.url || '';
+              // If requesting a specific single project (/api/projects/:id), return 404 so client knows to load from offline storage
+              if (url !== '/api/projects' && url !== '/api/projects/') {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Project not found on backend' }));
+              } else {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify([]));
+              }
             }
           });
         }

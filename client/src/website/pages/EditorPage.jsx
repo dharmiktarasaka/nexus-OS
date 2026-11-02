@@ -5,6 +5,7 @@ import DeviceFrame from '../components/DeviceFrame';
 import CodeEditor from '../components/CodeEditor';
 import { exportProjectToZip } from '../utils/zipExport';
 import { getWebsiteApiUrl } from '../apiConfig';
+import { createClientFallbackProject, saveOfflineProject } from '../utils/clientGenerator';
 import {
   Sparkles,
   ArrowLeft,
@@ -60,21 +61,36 @@ export default function EditorPage() {
       try {
         const res = await fetch(getWebsiteApiUrl(`/api/projects/${id}`));
         if (res.ok) {
-          data = await res.json();
+          const json = await res.json();
+          // Verify it's a valid project object with html or id, not an empty array []
+          if (json && !Array.isArray(json) && (json.id || json._id || json.html)) {
+            data = json;
+          }
         }
       } catch (e) {
         console.warn('Network call to fetch project deferred:', e.message);
       }
 
-      if (!data) {
+      if (!data || !data.html) {
         // Fallback to offline projects stored in localStorage
         const localProjects = JSON.parse(localStorage.getItem('pulse_offline_projects') || '[]');
-        data = localProjects.find(p => p.id === id);
+        const found = localProjects.find(p => p.id === id || p._id === id);
+        if (found && found.html) {
+          data = found;
+        }
       }
 
-      if (!data) throw new Error('Project not found');
+      // If still missing or empty HTML, immediately synthesize a complete modern responsive website
+      if (!data || !data.html) {
+        const promptText = (data && data.prompt) ? data.prompt : 'Modern Interactive Business Studio';
+        const category = (data && data.category) ? data.category : 'general';
+        data = createClientFallbackProject(promptText, category, null, null);
+        data.id = id;
+        saveOfflineProject(data);
+      }
+
       setProject(data);
-      setProjectName(data.name || 'Untitled Website');
+      setProjectName(data.name || 'Modern Website Studio');
       setCode({
         html: data.html || '',
         css: data.css || '',
@@ -88,6 +104,14 @@ export default function EditorPage() {
         timestamp: h.timestamp,
         timeString: h.timestamp ? new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
       }));
+      if (initialHistory.length === 0 && data.prompt) {
+        initialHistory.push({
+          role: 'user',
+          text: data.prompt,
+          timestamp: new Date().toISOString(),
+          timeString: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+      }
       setChatHistory(initialHistory);
     } catch (err) {
       console.error('Error fetching project:', err);
@@ -160,6 +184,29 @@ export default function EditorPage() {
     setRefinePrompt('');
 
     try {
+      // If code.html is currently empty, synthesize a brand new website from this prompt immediately!
+      if (!code.html || code.html.length < 50) {
+        const newSite = createClientFallbackProject(promptToSend, 'general', null, null);
+        setCode({
+          html: newSite.html,
+          css: newSite.css,
+          js: newSite.js
+        });
+        setProjectName(newSite.name);
+        saveOfflineProject({
+          ...newSite,
+          id
+        });
+        const aiMsg = {
+          role: 'assistant',
+          text: `✨ Generated complete website for "${promptToSend}"! You can now preview and edit the HTML, CSS, and JavaScript.`,
+          timestamp: new Date().toISOString(),
+          timeString: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setChatHistory(prev => [...prev, aiMsg]);
+        return;
+      }
+
       const customKey = localStorage.getItem('gemini_custom_api_key') || '';
       const res = await fetch(getWebsiteApiUrl('/api/refine'), {
         method: 'POST',
