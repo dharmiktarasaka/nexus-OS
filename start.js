@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
@@ -6,6 +6,28 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Helper to kill orphaned processes holding platform ports on Windows
+function freePort(port) {
+  try {
+    if (process.platform === 'win32') {
+      const output = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      const lines = output.trim().split('\n');
+      for (const line of lines) {
+        if (line.includes('LISTENING') || line.includes('ESTABLISHED')) {
+          const parts = line.trim().split(/\s+/);
+          const pid = parts[parts.length - 1];
+          if (pid && parseInt(pid, 10) > 0 && pid !== String(process.pid)) {
+            try {
+              execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' });
+              console.log(`[Port Manager] Freed stale process ${pid} on port ${port}`);
+            } catch (e) {}
+          }
+        }
+      }
+    }
+  } catch (e) {}
+}
 
 // Load root .env if present
 const rootEnvPath = path.join(__dirname, '.env');
@@ -22,6 +44,11 @@ console.log('===============================================================');
 console.log(`🚀 Launching Nexus OS • All-in-One Platform Services [${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}]`);
 console.log(`📦 Database: Single Unified MongoDB Cluster [nexus_os]`);
 console.log('===============================================================');
+
+// Clean up any stale/orphaned processes holding ports on Windows
+if (!isProduction) {
+  [5000, 5001, 5002, 5050, 5180, 5182].forEach(p => freePort(p));
+}
 
 const processes = [];
 
@@ -84,10 +111,16 @@ if (!isProduction) {
   const clientPath = path.join(__dirname, 'client');
   startProcess('Client:5180', 'npm', ['run', 'dev'], clientPath, '35');
 
-  // 4b. Start Separate Admin Control Portal Vite Dev Server (Fixed Port 5182)
+  // 4b. Start Separate Admin Control Portal (Fixed Port 5182)
   const adminPath = path.join(__dirname, 'admin');
   if (fs.existsSync(adminPath)) {
-    startProcess('Admin:5182', 'npm', ['run', 'dev'], adminPath, '33');
+    const distHtml = path.join(adminPath, 'dist', 'index.html');
+    if (fs.existsSync(distHtml)) {
+      // Use preview mode for production-built assets: 0 esbuild daemon crashes, instant load!
+      startProcess('Admin:5182', 'npm', ['run', 'preview'], adminPath, '33');
+    } else {
+      startProcess('Admin:5182', 'npm', ['run', 'dev'], adminPath, '33');
+    }
   }
 }
 

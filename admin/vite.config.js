@@ -3,9 +3,16 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    force: true
+  },
   server: {
     port: 5182,
     host: '0.0.0.0',
+    strictPort: false,
+    hmr: {
+      overlay: false
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:5050',
@@ -23,6 +30,18 @@ export default defineConfig({
             }
           });
         }
+      }
+    }
+  },
+  preview: {
+    port: 5182,
+    host: '0.0.0.0',
+    strictPort: false,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5050',
+        changeOrigin: true,
+        secure: false
       }
     }
   }

@@ -15,6 +15,7 @@
     "website:server": "node server/website/index.js",
     "client": "npm --prefix client run dev",
     "admin": "npm --prefix admin run dev",
+    "admin:preview": "npm --prefix admin run preview",
     "build": "npm --prefix client run build",
     "build:admin": "npm --prefix admin run build"
   }
