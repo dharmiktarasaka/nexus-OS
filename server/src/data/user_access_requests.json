@@ -1,0 +1,16 @@
+[
+  {
+    "_id": "rec_1793594793117",
+    "uid": "3qu5Wrjz2WMVfzQ66OKIyoe5P5z2",
+    "email": "dharmikrathod857@gmail.com",
+    "displayName": "DharmiK Rathod",
+    "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocJ0tCDzkpnQy1zhwagCJurKqQiM5SV8YsKAtdzRSNq3RcYyldW6=s96-c",
+    "provider": "email",
+    "status": "PENDING",
+    "role": "USER",
+    "requestedAt": "2026-11-02T04:46:33.117Z",
+    "lastRequestedAt": "2026-11-02T04:49:50.805Z",
+    "reviewedAt": null,
+    "reviewedBy": null
+  }
+]

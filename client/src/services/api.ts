@@ -207,7 +207,29 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(user)
     });
-    if (!res.ok) throw new Error('Auth bridge synchronization failed');
+    const data = await res.json();
+    if (!res.ok) {
+      const err: any = new Error(data.message || 'Auth bridge synchronization failed');
+      err.status = data.status || (res.status === 403 ? 'PENDING' : 'ERROR');
+      err.data = data;
+      throw err;
+    }
+    return data;
+  },
+
+  // Check User Access Request Status
+  async checkAccessStatus(payload: { email: string; uid?: string; displayName?: string; photoURL?: string; provider?: string }): Promise<{
+    success: boolean;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    isApproved: boolean;
+    message: string;
+    user: any;
+  }> {
+    const res = await fetch(`${BASE_URL}/auth/check-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
     return res.json();
   }
 };

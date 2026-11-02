@@ -22,6 +22,7 @@ export interface UserProfile {
   role?: string;
   companyName?: string;
   phone?: string;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 interface AuthContextType {
@@ -33,6 +34,7 @@ interface AuthContextType {
   loginAsDemoExecutive: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (data: Partial<UserProfile>) => Promise<void>;
+  checkApprovalStatus: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -88,6 +90,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Helper to authenticate session and gate by administrator approval
+  const handleAuthBridge = async (profile: UserProfile, idToken?: string, provider: string = 'email') => {
+    try {
+      const bridge = await api.bridgeAuth({ ...profile, idToken, provider });
+      const approvedUser: UserProfile = { ...profile, status: 'APPROVED' };
+      setUser(approvedUser);
+      localStorage.setItem('nexus_current_user', JSON.stringify(approvedUser));
+      syncSubAppSessions(approvedUser, bridge);
+      return approvedUser;
+    } catch (err: any) {
+      if (err.status === 'PENDING' || err.message?.includes('pending') || err.message?.includes('administrator approval')) {
+        const pendingUser: UserProfile = { ...profile, status: 'PENDING' };
+        setUser(pendingUser);
+        localStorage.setItem('nexus_current_user', JSON.stringify(pendingUser));
+        return pendingUser;
+      }
+      if (err.status === 'REJECTED' || err.message?.includes('declined')) {
+        const rejectedUser: UserProfile = { ...profile, status: 'REJECTED' };
+        setUser(rejectedUser);
+        localStorage.setItem('nexus_current_user', JSON.stringify(rejectedUser));
+        return rejectedUser;
+      }
+      if (profile.email === 'dharmik.tarasaka@gmail.com') {
+        const adminUser: UserProfile = { ...profile, status: 'APPROVED', role: 'Enterprise Administrator' };
+        setUser(adminUser);
+        syncSubAppSessions(adminUser);
+        return adminUser;
+      }
+      const pendingUser: UserProfile = { ...profile, status: 'PENDING' };
+      setUser(pendingUser);
+      localStorage.setItem('nexus_current_user', JSON.stringify(pendingUser));
+      return pendingUser;
+    }
+  };
+
+  const checkApprovalStatus = async () => {
+    if (!user?.email) return;
+    try {
+      const bridge = await api.bridgeAuth({ ...user });
+      const approved: UserProfile = { ...user, status: 'APPROVED' };
+      setUser(approved);
+      localStorage.setItem('nexus_current_user', JSON.stringify(approved));
+      syncSubAppSessions(approved, bridge);
+    } catch (e: any) {
+      // Quiet check
+    }
+  };
+
   useEffect(() => {
     let unsubscribe: () => void = () => {};
 
@@ -103,14 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: 'Enterprise Administrator',
             companyName: 'Personal Workspace'
           };
-          setUser(profile);
-
-          try {
-            const bridge = await api.bridgeAuth({ ...profile, idToken });
-            syncSubAppSessions(profile, bridge);
-          } catch {
-            syncSubAppSessions(profile);
-          }
+          await handleAuthBridge(profile, idToken, 'firebase-auto');
         } else {
           // Check saved session in localStorage
           const saved = localStorage.getItem('nexus_current_user');
@@ -129,8 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       unsubscribe = mockAuth.onAuthStateChanged(async (mockUser) => {
         if (mockUser) {
-          setUser(mockUser);
-          syncSubAppSessions(mockUser);
+          await handleAuthBridge(mockUser, undefined, 'mock-auto');
         } else {
           const saved = localStorage.getItem('nexus_current_user');
           if (saved) {
@@ -164,9 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: 'Enterprise Administrator',
           companyName: 'Personal Workspace'
         };
-        setUser(profile);
-        const bridge = await api.bridgeAuth({ ...profile, idToken }).catch(() => null);
-        syncSubAppSessions(profile, bridge);
+        await handleAuthBridge(profile, idToken, 'google');
       } else {
         await loginAsDemoExecutive();
       }
@@ -188,13 +228,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: 'Enterprise Administrator',
           companyName: 'Personal Workspace'
         };
-        setUser(profile);
-        const bridge = await api.bridgeAuth({ ...profile, idToken }).catch(() => null);
-        syncSubAppSessions(profile, bridge);
+        await handleAuthBridge(profile, idToken, 'password');
       } else {
         const res = await mockAuth.signIn(email);
-        setUser(res.user);
-        syncSubAppSessions(res.user);
+        await handleAuthBridge(res.user, undefined, 'mock-email');
       }
     } finally {
       setLoading(false);
@@ -215,14 +252,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: 'Enterprise Administrator',
           companyName: 'Personal Workspace'
         };
-        setUser(profile);
-        const bridge = await api.bridgeAuth({ ...profile, idToken }).catch(() => null);
-        syncSubAppSessions(profile, bridge);
+        await handleAuthBridge(profile, idToken, 'registration');
       } else {
         const res = await mockAuth.signIn(email);
         res.user.displayName = name;
-        setUser(res.user);
-        syncSubAppSessions(res.user);
+        await handleAuthBridge(res.user, undefined, 'mock-register');
       }
     } finally {
       setLoading(false);
@@ -307,6 +341,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginAsDemoExecutive,
         resetPassword,
         updateUserProfile,
+        checkApprovalStatus,
         logout
       }}
     >

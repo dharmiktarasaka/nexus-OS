@@ -10,6 +10,7 @@ import crmRoutes from './routes/crm.js';
 import websiteRoutes from './routes/website.js';
 import analyticsRoutes from './routes/analytics.js';
 import socialRoutes from './routes/social.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/modules', modulesRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/crm', crmRoutes);
 app.use('/api/website', websiteRoutes);
 app.use('/api/analytics', analyticsRoutes);

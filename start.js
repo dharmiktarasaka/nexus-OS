@@ -83,6 +83,12 @@ startProcess('Website:5002', 'node', ['index.js'], websiteServerPath, '36', {
 if (!isProduction) {
   const clientPath = path.join(__dirname, 'client');
   startProcess('Client:5180', 'npm', ['run', 'dev'], clientPath, '35');
+
+  // 4b. Start Separate Admin Control Portal Vite Dev Server (Fixed Port 5182)
+  const adminPath = path.join(__dirname, 'admin');
+  if (fs.existsSync(adminPath)) {
+    startProcess('Admin:5182', 'npm', ['run', 'dev'], adminPath, '33');
+  }
 }
 
 // 5. Start Unified Cloud Gateway (Listens on process.env.PORT or 5000)

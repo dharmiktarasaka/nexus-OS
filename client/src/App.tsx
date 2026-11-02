@@ -7,6 +7,7 @@ import { ShellLayout } from './components/layout/ShellLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { PendingApprovalPage } from './pages/PendingApprovalPage';
 import { ActivityPage } from './pages/ActivityPage';
 import { FavoritesPage } from './pages/FavoritesPage';
 import { WorkspacePage } from './pages/WorkspacePage';
@@ -34,6 +35,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (user.status === 'PENDING' || user.status === 'REJECTED') {
+    return <Navigate to="/pending-approval" replace />;
   }
 
   return <>{children}</>;
@@ -70,6 +75,7 @@ export const App: React.FC = () => {
               {/* Public Authentication Routes */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/pending-approval" element={<PendingApprovalPage />} />
 
               {/* Protected Platform Application Shell */}
               <Route
