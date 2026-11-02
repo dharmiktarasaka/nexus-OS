@@ -251,8 +251,8 @@ export default function NewProjectPage() {
         console.warn('Backend generation network error, activating resilient client synthesizer:', networkErr.message);
       }
 
-      // If backend generation didn't return a project, use client-side generator
-      if (!newProject || !newProject.id) {
+      // If backend generation didn't return a project or returned empty HTML, use client-side generator
+      if (!newProject || !newProject.id || !newProject.html) {
         newProject = createClientFallbackProject(
           prompt,
           blueprint?.category || selectedCategory,
