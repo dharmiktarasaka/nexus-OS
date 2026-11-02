@@ -26,13 +26,13 @@ function cleanAndParseJSON(text) {
 /**
  * Helper to call Gemini model with fallback
  */
-async function callGemini(activeKey, systemInstruction, userPrompt, temperature = 0.7, timeoutMs = 12000) {
-  if (!activeKey || typeof activeKey !== 'string' || !activeKey.startsWith('AIzaSy')) {
-    throw new Error('Valid Google Gemini API Key required (must start with AIzaSy)');
+async function callGemini(activeKey, systemInstruction, userPrompt, temperature = 0.7, timeoutMs = 60000) {
+  if (!activeKey || typeof activeKey !== 'string' || activeKey.trim().length < 10) {
+    throw new Error('Valid Google Gemini API Key required');
   }
 
-  // Models with active quota on this key
-  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+  // Models with active quota on this key - prefer fast, capable flash models
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
   let lastError = null;
 
   for (const model of models) {
@@ -347,7 +347,7 @@ Respond ONLY with valid JSON:
 `;
 
   try {
-    const result = await callGemini(activeKey, SYSTEM_REFINEMENT_PROMPT, userInstruction, 0.5);
+    const result = await callGemini(activeKey, SYSTEM_REFINEMENT_PROMPT, userInstruction, 0.5, 60000);
     return result;
   } catch (err) {
     console.error('[GeminiService] Refinement error:', err.message);

@@ -47,7 +47,7 @@ console.log('===============================================================');
 
 // Clean up any stale/orphaned processes holding ports on Windows
 if (!isProduction) {
-  [5000, 5001, 5002, 5050, 5180, 5182].forEach(p => freePort(p));
+  [5000, 5001, 5002, 5003, 5050, 5180, 5182].forEach(p => freePort(p));
 }
 
 const processes = [];
@@ -105,6 +105,18 @@ startProcess('Website:5002', 'node', ['index.js'], websiteServerPath, '36', {
   PORT: '5002',
   MONGODB_URI: UNIFIED_MONGODB_URI
 });
+
+// 3b. Start Social Media (Mediamation) Backend Server (Fixed Internal Port 5003)
+const socialServerPath = path.join(__dirname, 'server', 'social');
+if (fs.existsSync(socialServerPath)) {
+  startProcess('Social:5003', 'node', ['src/index.js'], socialServerPath, '35', {
+    PORT: '5003',
+    MONGODB_URI: UNIFIED_MONGODB_URI,
+    JWT_SECRET: process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026',
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
+    CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5180'
+  });
+}
 
 // 4. Start Client Vite Dev Server (Only in local development)
 if (!isProduction) {
@@ -184,6 +196,17 @@ const gateway = http.createServer((req, res) => {
   } else if (urlPath.startsWith('/website-api/')) {
     targetPort = 5002;
     targetPath = urlPath.replace(/^\/website-api/, '/api');
+  } else if (
+    urlPath.startsWith('/social-api') ||
+    urlPath.startsWith('/api/accounts') ||
+    urlPath.startsWith('/api/posts') ||
+    urlPath.startsWith('/api/upload') ||
+    urlPath.startsWith('/api/ai') ||
+    urlPath.startsWith('/api/social') ||
+    urlPath.startsWith('/api/auth/instagram')
+  ) {
+    targetPort = 5003;
+    targetPath = urlPath.replace(/^\/social-api/, '/api');
   } else {
     targetPort = 5050;
     targetPath = urlPath;

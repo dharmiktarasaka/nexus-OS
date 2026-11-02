@@ -90,7 +90,9 @@ const mockAuth = new CentralMockAuth();
 
 export {
   appInstance,
+  appInstance as app,
   authInstance,
+  authInstance as auth,
   isRealFirebase,
   googleProvider,
   mockAuth,

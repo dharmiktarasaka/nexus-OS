@@ -41,7 +41,19 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:5050',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        configure: (proxy) => {
+          proxy.on('error', (_err, req, res) => {
+            console.error('[Admin Preview Proxy] Cannot reach backend on port 5050 for:', req?.url);
+            if (res && !res.headersSent && typeof res.writeHead === 'function') {
+              res.writeHead(503, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: false,
+                message: 'Central backend server is offline or starting up on port 5050. Please ensure node start.js is running.'
+              }));
+            }
+          });
+        }
       }
     }
   }

@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 
-const PORTS = [5000, 5001, 5002, 5050, 5180, 5182];
+const PORTS = [5000, 5001, 5002, 5003, 5050, 5180, 5182];
 
 console.log('🔍 Checking and freeing ports:', PORTS.join(', '));
 

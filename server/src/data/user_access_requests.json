@@ -5,11 +5,11 @@
     "email": "dharmikrathod857@gmail.com",
     "displayName": "DharmiK Rathod",
     "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocJ0tCDzkpnQy1zhwagCJurKqQiM5SV8YsKAtdzRSNq3RcYyldW6=s96-c",
-    "provider": "auth-bridge",
+    "provider": "firebase-auto",
     "status": "APPROVED",
     "role": "USER",
     "requestedAt": "2026-11-02T04:46:33.117Z",
-    "lastRequestedAt": "2026-11-02T05:53:26.749Z",
+    "lastRequestedAt": "2026-11-02T16:25:48.234Z",
     "reviewedAt": "2026-11-02T05:52:49.348Z",
     "reviewedBy": "dharmik.tarasaka@gmail.com"
   }

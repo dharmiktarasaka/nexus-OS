@@ -17,6 +17,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { CrmApp } from './crm/CrmApp';
 import { WebsiteApp } from './website/WebsiteApp';
+import { SocialApp } from './social/SocialApp';
 
 // Protected Route Guard
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -65,6 +66,12 @@ const DynamicWebsiteEditorRedirect: React.FC = () => {
   return <Navigate to={`/apps/website-builder${location.pathname}${search}`} replace />;
 };
 
+const DynamicSocialRedirect: React.FC = () => {
+  const location = useLocation();
+  const search = location.search || '';
+  return <Navigate to={`/apps/social${search}`} replace />;
+};
+
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
@@ -90,12 +97,21 @@ export const App: React.FC = () => {
                 <Route path="/favorites" element={<FavoritesPage />} />
                 <Route path="/workspace" element={<WorkspacePage />} />
                 <Route path="/apps/crm/*" element={<CrmApp />} />
+                <Route path="/apps/social/*" element={<SocialApp />} />
+                <Route path="/apps/mediamation/*" element={<SocialApp />} />
                 <Route path="/apps/website-builder/*" element={<WebsiteApp />} />
                 <Route path="/apps/website/*" element={<WebsiteApp />} />
                 <Route path="/apps/:appSlug" element={<AppWorkspacePage />} />
                 <Route path="/apps/marketplace" element={<MarketplacePage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+
+                {/* Direct Social Media Convenience Redirects */}
+                <Route path="/dashboard" element={<DynamicSocialRedirect />} />
+                <Route path="/social" element={<Navigate to="/apps/social" replace />} />
+                <Route path="/social/*" element={<Navigate to="/apps/social" replace />} />
+                <Route path="/mediamation" element={<Navigate to="/apps/social" replace />} />
+                <Route path="/mediamation/*" element={<Navigate to="/apps/social" replace />} />
 
                 {/* Direct CRM Convenience Redirects - dynamically preserving subpaths & parameters */}
                 <Route path="/crm" element={<Navigate to="/apps/crm" replace />} />

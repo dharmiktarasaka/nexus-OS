@@ -3,6 +3,7 @@ import { useParams, Navigate } from 'react-router-dom';
 import { WorkspaceContainer } from '../components/workspace/WorkspaceContainer';
 import { CrmHub } from '../components/workspace/CrmHub';
 import { SocialHub } from '../components/workspace/SocialHub';
+import { SocialApp } from '../social/SocialApp';
 import { WebsiteHub } from '../components/workspace/WebsiteHub';
 import { AnalyticsHub } from '../components/workspace/AnalyticsHub';
 import { api, AppModule } from '../services/api';
@@ -94,7 +95,7 @@ export const AppWorkspacePage: React.FC = () => {
       case 'crm':
         return <CrmHub />;
       case 'social':
-        return <SocialHub />;
+        return <SocialApp />;
       case 'website-builder':
         return <WebsiteHub />;
       case 'analytics':

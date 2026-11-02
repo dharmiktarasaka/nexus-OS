@@ -5113,21 +5113,8 @@ WATERMARK FOR timestamp BOUNDED BY INTERVAL '2' SECOND;\`
 const { generateEcommerceSite } = require('./ecommerceGenerator');
 const { generateUniversalBespokeSite } = require('./universalSynthesizer');
 
-// Fallback intelligent synthesizer for arbitrary prompts
+// Fallback intelligent synthesizer for arbitrary prompts - guarantees rich multi-page comprehensive output
 function generateDynamicSite(prompt = '', category = 'general', blueprint = null) {
-  const cleanPrompt = (prompt || 'Modern Digital Experience').toLowerCase();
-  
-  // Specific footwear only if explicitly shoes or sneakers
-  if (cleanPrompt.includes('shoe') || cleanPrompt.includes('sneaker') || cleanPrompt.includes('footwear')) {
-    return generateEcommerceSite(prompt, blueprint);
-  }
-  
-  // Specific aerospace/manufacturing only if explicitly CNC/metallurgy
-  if (cleanPrompt.includes('cnc') || cleanPrompt.includes('metallurgy') || cleanPrompt.includes('aerospace precision')) {
-    return generateIndustrialSite(prompt);
-  }
-
-  // Universal bespoke synthesis for ALL other categories (fish, pets, cafe, fitness, real estate, custom prompts)
   return generateUniversalBespokeSite(prompt, category, blueprint);
 }
 

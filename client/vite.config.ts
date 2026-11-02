@@ -274,6 +274,75 @@ export default defineConfig({
           });
         }
       },
+      '/social-api': {
+        target: 'http://localhost:5003',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/social-api/, '/api'),
+        secure: false,
+        configure: (proxy) => {
+          proxy.on('error', (_err, req, res) => {
+            if (res && !res.headersSent && typeof res.writeHead === 'function') {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              const url = req.url || '';
+              if (url.includes('/accounts/facebook') || url.includes('/accounts/instagram') || url.includes('/accounts/pinterest') || url.includes('/accounts/tumblr') || url.includes('/accounts/linkedin')) {
+                res.end(JSON.stringify({ url: '/apps/social?connected=demo' }));
+              } else if (url.includes('/accounts')) {
+                res.end(JSON.stringify([]));
+              } else if (url.includes('/posts')) {
+                res.end(JSON.stringify([]));
+              } else {
+                res.end(JSON.stringify({ success: true, offline: true }));
+              }
+            }
+          });
+        }
+      },
+      '/api/accounts': {
+        target: 'http://localhost:5003',
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy) => {
+          proxy.on('error', (_err, _req, res) => {
+            if (res && !res.headersSent && typeof res.writeHead === 'function') {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify([]));
+            }
+          });
+        }
+      },
+      '/api/posts': {
+        target: 'http://localhost:5003',
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy) => {
+          proxy.on('error', (_err, _req, res) => {
+            if (res && !res.headersSent && typeof res.writeHead === 'function') {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify([]));
+            }
+          });
+        }
+      },
+      '/api/upload': {
+        target: 'http://localhost:5003',
+        changeOrigin: true,
+        secure: false
+      },
+      '/api/ai': {
+        target: 'http://localhost:5003',
+        changeOrigin: true,
+        secure: false
+      },
+      '/api/social': {
+        target: 'http://localhost:5003',
+        changeOrigin: true,
+        secure: false
+      },
+      '/api/auth/instagram': {
+        target: 'http://localhost:5003',
+        changeOrigin: true,
+        secure: false
+      },
       '/api/generate': {
         target: 'http://localhost:5002',
         changeOrigin: true,

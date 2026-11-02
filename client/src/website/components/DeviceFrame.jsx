@@ -10,6 +10,7 @@ import {
   ZoomIn,
   ZoomOut
 } from 'lucide-react';
+import { createClientFallbackProject } from '../utils/clientGenerator';
 
 export default function DeviceFrame({ html, css, js, title }) {
   const [device, setDevice] = useState('desktop'); // 'desktop' | 'tablet' | 'mobile'
@@ -20,13 +21,26 @@ export default function DeviceFrame({ html, css, js, title }) {
 
   // Combine HTML, CSS, and JS into a complete self-contained bundle for srcdoc
   const bundledSrcDoc = useMemo(() => {
-    if (!html) return '<!DOCTYPE html><html><body><div style="font-family:sans-serif;padding:2rem;color:#888;">No content generated yet.</div></body></html>';
+    let effectiveHtml = html;
+    let effectiveCss = css;
+    let effectiveJs = js;
 
-    let doc = html;
+    if (!effectiveHtml || !effectiveHtml.trim()) {
+      const fallback = createClientFallbackProject(title || 'Modern Interactive Studio', 'general');
+      effectiveHtml = fallback.html;
+      effectiveCss = fallback.css;
+      effectiveJs = fallback.js;
+    }
+
+    let doc = effectiveHtml;
+
+    // Strip out relative external file links (styles.css & script.js) to eliminate 404 / ERR_CONNECTION_REFUSED in srcdoc
+    doc = doc.replace(/<link\b[^>]*\bhref=["'](?:\.?\/)?styles?\.css["'][^>]*\/?>/gi, '');
+    doc = doc.replace(/<script\b[^>]*\bsrc=["'](?:\.?\/)?scripts?\.js["'][^>]*>\s*<\/script>/gi, '');
 
     // Inject CSS into <head>
-    if (css) {
-      const styleTag = `<style id="injected-studio-css">\n${css}\n</style>`;
+    if (effectiveCss && effectiveCss.trim()) {
+      const styleTag = `<style id="injected-studio-css">\n${effectiveCss}\n</style>`;
       if (doc.includes('</head>')) {
         doc = doc.replace('</head>', `${styleTag}\n</head>`);
       } else {
@@ -34,9 +48,10 @@ export default function DeviceFrame({ html, css, js, title }) {
       }
     }
 
-    // Inject JS before </body>
-    if (js) {
-      const scriptTag = `<script id="injected-studio-js">\ntry {\n${js}\n} catch (err) {\n  console.error('[Preview JS Error]', err);\n}\n</script>`;
+    // Safely escape any internal </script> tags in JS to prevent parser syntax errors
+    const safeJs = (effectiveJs || '').replace(/<\/script/gi, '<\\/script');
+    if (safeJs.trim()) {
+      const scriptTag = `<script id="injected-studio-js">\ntry {\n${safeJs}\n} catch (err) {\n  console.warn('[Preview JS Error]', err);\n}\n</script>`;
       if (doc.includes('</body>')) {
         doc = doc.replace('</body>', `${scriptTag}\n</body>`);
       } else {
@@ -45,7 +60,7 @@ export default function DeviceFrame({ html, css, js, title }) {
     }
 
     return doc;
-  }, [html, css, js]);
+  }, [html, css, js, title]);
 
   const handleRefresh = () => {
     setKey(prev => prev + 1);
