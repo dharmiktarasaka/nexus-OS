@@ -5,12 +5,12 @@
     "email": "dharmikrathod857@gmail.com",
     "displayName": "DharmiK Rathod",
     "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocJ0tCDzkpnQy1zhwagCJurKqQiM5SV8YsKAtdzRSNq3RcYyldW6=s96-c",
-    "provider": "email",
-    "status": "PENDING",
+    "provider": "auth-bridge",
+    "status": "APPROVED",
     "role": "USER",
     "requestedAt": "2026-11-02T04:46:33.117Z",
-    "lastRequestedAt": "2026-11-02T05:34:48.660Z",
-    "reviewedAt": null,
-    "reviewedBy": null
+    "lastRequestedAt": "2026-11-02T05:53:26.749Z",
+    "reviewedAt": "2026-11-02T05:52:49.348Z",
+    "reviewedBy": "dharmik.tarasaka@gmail.com"
   }
 ]

@@ -20,3 +20,4 @@ foreach ($port in $ports) {
 }
 
 Write-Host "All ports cleaned and ready."
+
