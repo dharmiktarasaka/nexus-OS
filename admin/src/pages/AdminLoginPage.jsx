@@ -23,7 +23,8 @@ export const AdminLoginPage = () => {
         await login(email.trim(), password);
       }
     } catch (err) {
-      setError(err.message || 'Failed to authenticate administrator');
+      const msg = err.response?.data?.message || err.message || 'Failed to authenticate administrator';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -116,9 +117,19 @@ export const AdminLoginPage = () => {
                       className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
                     />
                   </div>
-                  <span className="text-[10px] text-slate-500 mt-1 block">
-                    Default password: <code className="text-indigo-400">Admin@2026</code>
-                  </span>
+                  <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
+                    <span>Default: <code className="text-indigo-400 font-mono">Admin@2026</code></span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmail('dharmik.tarasaka@gmail.com');
+                        setPassword('Admin@2026');
+                      }}
+                      className="text-[10px] text-indigo-400 hover:text-indigo-300 underline cursor-pointer"
+                    >
+                      Auto-fill
+                    </button>
+                  </div>
                 </div>
               </>
             ) : (
@@ -137,9 +148,18 @@ export const AdminLoginPage = () => {
                     className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
                   />
                 </div>
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Default Master Key: <code className="text-indigo-400">nexus_master_admin_secret_key_2026</code>
-                </span>
+                <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
+                  <span className="truncate pr-2">
+                    Default: <code className="text-indigo-400 font-mono text-[10px]">nexus_master_admin_secret_key_2026</code>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setMasterKey('nexus_master_admin_secret_key_2026')}
+                    className="shrink-0 text-[10px] text-indigo-400 hover:text-indigo-300 underline cursor-pointer"
+                  >
+                    Auto-fill
+                  </button>
+                </div>
               </div>
             )}
 
@@ -174,3 +194,4 @@ export const AdminLoginPage = () => {
     </div>
   );
 };
+

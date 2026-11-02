@@ -193,3 +193,4 @@ export const PendingApprovalPage: React.FC = () => {
 };
 
 export default PendingApprovalPage;
+

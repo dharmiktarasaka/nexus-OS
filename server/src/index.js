@@ -23,6 +23,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Register API Routes
 app.use('/api/dashboard', dashboardRoutes);
