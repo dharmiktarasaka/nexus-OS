@@ -18,7 +18,11 @@ export const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
 
   const handleStartFresh = async () => {
-    await createNewBusiness('My Business');
+    try {
+      await createNewBusiness('My Business');
+    } catch (err) {
+      console.warn('Proceeding to stepper with local draft:', err);
+    }
     navigate('/apps/analytics/stepper');
   };
 

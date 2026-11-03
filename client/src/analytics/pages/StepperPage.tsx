@@ -86,9 +86,13 @@ export const StepperPage: React.FC = () => {
         setCurrentStep(activeBusiness.currentStep);
       }
     } else {
-      createNewBusiness('My Enterprise').then((biz) => {
-        setFormData(biz);
-      });
+      createNewBusiness('My Enterprise')
+        .then((biz) => {
+          if (biz) setFormData(biz);
+        })
+        .catch((err) => {
+          console.warn('Fallback to local business profile for stepper:', err);
+        });
     }
   }, [activeBusiness]);
 

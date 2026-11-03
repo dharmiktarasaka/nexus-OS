@@ -24,7 +24,8 @@ export async function connectDB(): Promise<boolean> {
   try {
     const conn = await mongoose.connect(config.mongoUri, {
       dbName: 'stratiq_db',
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 7000,
       autoIndex: true
     });
     isConnected = true;

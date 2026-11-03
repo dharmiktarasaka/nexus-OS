@@ -28,7 +28,8 @@ async function connectDB() {
     try {
         const conn = await mongoose_1.default.connect(env_js_1.config.mongoUri, {
             dbName: 'stratiq_db',
-            serverSelectionTimeoutMS: 10000,
+            serverSelectionTimeoutMS: 5000,
+            connectTimeoutMS: 7000,
             autoIndex: true
         });
         isConnected = true;

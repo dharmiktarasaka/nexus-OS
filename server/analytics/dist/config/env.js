@@ -7,7 +7,7 @@ exports.config = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 exports.config = {
-    port: parseInt(process.env.PORT || '5000', 10),
+    port: parseInt(process.env.PORT || process.env.ANALYTICS_PORT || '5004', 10),
     nodeEnv: process.env.NODE_ENV || 'development',
     corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
     mongoUri: process.env.MONGODB_URI || '',
