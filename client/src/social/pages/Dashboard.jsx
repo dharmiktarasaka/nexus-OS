@@ -64,8 +64,9 @@ export default function Dashboard() {
   // Platform Connection Modal State
   const [connectModalPlatform, setConnectModalPlatform] = useState(null);
   const [customHandle, setCustomHandle] = useState('');
+  const [tokenInput, setTokenInput] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
-  const [activeConnectTab, setActiveConnectTab] = useState('instant'); // 'instant' | 'oauth' | 'credentials'
+  const [activeConnectTab, setActiveConnectTab] = useState('oauth'); // 'oauth' | 'token' | 'demo' | 'credentials'
   const [copiedUri, setCopiedUri] = useState(false);
 
   // Instagram credentials flow
@@ -114,12 +115,40 @@ export default function Dashboard() {
     const config = PLATFORM_CONFIG[platform] || {};
     setConnectModalPlatform(platform);
     setCustomHandle(config.defaultHandle || '');
-    setActiveConnectTab('instant');
+    setTokenInput('');
+    setActiveConnectTab(platform === 'instagram' ? 'credentials' : 'oauth');
     setCopiedUri(false);
     setInstaStep(1);
     setInstaUsername('');
     setInstaPassword('');
     setInstaCode('');
+  };
+
+  const handleTokenConnect = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!connectModalPlatform || !tokenInput.trim()) return;
+    const config = PLATFORM_CONFIG[connectModalPlatform] || {};
+    setIsConnecting(true);
+    try {
+      const res = await accountsAPI.connectToken({
+        platform: connectModalPlatform,
+        accessToken: tokenInput.trim(),
+      });
+      if (res.data?.account) {
+        setAccounts(prev => {
+          const filtered = prev.filter(a => a._id !== res.data.account._id && a.platformUserId !== res.data.account.platformUserId);
+          return [res.data.account, ...filtered];
+        });
+      }
+      toast.success(res.data?.message || `Real ${config.name} account connected successfully!`);
+      setConnectModalPlatform(null);
+      setTokenInput('');
+      refreshAccounts();
+    } catch (err) {
+      toast.error(err.response?.data?.message || `Failed to verify token with ${config.name} API.`);
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   const handleInstantConnect = async (e) => {
@@ -407,9 +436,62 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px', flexWrap: 'wrap' }}>
               <button
                 type="button"
+                onClick={() => setActiveConnectTab('oauth')}
+                style={{
+                  background: activeConnectTab === 'oauth' ? (currentConfig.color || 'var(--primary, #6366f1)') : 'rgba(255, 255, 255, 0.05)',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                🌐 Official Login (OAuth)
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveConnectTab('token')}
+                style={{
+                  background: activeConnectTab === 'token' ? (currentConfig.color || 'var(--primary, #6366f1)') : 'rgba(255, 255, 255, 0.05)',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                🔑 Access Token Connect
+              </button>
+              {connectModalPlatform === 'instagram' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveConnectTab('credentials')}
+                  style={{
+                    background: activeConnectTab === 'credentials' ? 'var(--ig)' : 'rgba(255, 255, 255, 0.05)',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  📸 Instagram Login
+                </button>
+              )}
+              <button
+                type="button"
                 onClick={() => setActiveConnectTab('instant')}
                 style={{
-                  background: activeConnectTab === 'instant' ? 'var(--primary, #6366f1)' : 'rgba(255, 255, 255, 0.05)',
+                  background: activeConnectTab === 'instant' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)',
                   color: activeConnectTab === 'instant' ? '#fff' : 'var(--text-secondary)',
                   border: 'none',
                   padding: '8px 14px',
@@ -420,56 +502,129 @@ export default function Dashboard() {
                   transition: 'all 0.2s',
                 }}
               >
-                ⚡ Instant Connect
+                ⚡ Offline Demo
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveConnectTab('oauth')}
-                style={{
-                  background: activeConnectTab === 'oauth' ? 'var(--primary, #6366f1)' : 'rgba(255, 255, 255, 0.05)',
-                  color: activeConnectTab === 'oauth' ? '#fff' : 'var(--text-secondary)',
-                  border: 'none',
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-              >
-                🌐 Official OAuth
-              </button>
-              {connectModalPlatform === 'instagram' && (
-                <button
-                  type="button"
-                  onClick={() => setActiveConnectTab('credentials')}
-                  style={{
-                    background: activeConnectTab === 'credentials' ? 'var(--primary, #6366f1)' : 'rgba(255, 255, 255, 0.05)',
-                    color: activeConnectTab === 'credentials' ? '#fff' : 'var(--text-secondary)',
-                    border: 'none',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '13px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  🔑 Instagram Login
-                </button>
-              )}
             </div>
 
-            {/* TAB 1: Instant Connect */}
-            {activeConnectTab === 'instant' && (
-              <form onSubmit={handleInstantConnect} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* TAB 1: Official Developer OAuth */}
+            {activeConnectTab === 'oauth' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '12px 14px', borderRadius: '10px', fontSize: '13px', color: 'var(--text)', lineHeight: 1.5 }}>
-                  <strong>⚡ Instant Setup (0 Developer Config):</strong> Connects your {currentConfig.name} channel directly. Full support for AI caption generation, image scheduling, automated queue publishing, and calendar tracking.
+                  <strong>Connect Your Real Account:</strong> Clicking the button below opens the official <strong>{currentConfig.name}</strong> authorization window. Log in with your actual {currentConfig.name} profile and approve access to link your live handle, real avatar, and boards.
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                    Account Handle / Display Name
+                    Registered Redirect URI for {currentConfig.name} Developer App
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      readOnly
+                      value={resolvedRedirectUri}
+                      style={{ width: '100%', background: 'rgba(0, 0, 0, 0.3)', fontFamily: 'monospace', fontSize: '12px', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyUri}
+                      style={{
+                        background: copiedUri ? '#10b981' : (currentConfig.color || 'var(--primary, #6366f1)'),
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '0 14px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {copiedUri ? '✓ Copied' : 'Copy URI'}
+                    </button>
+                  </div>
+                  <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    Add this exact URL in your <a href={currentConfig.docs} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>{currentConfig.name} Developer Portal</a> under <em>Redirect URIs</em>.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                  <button
+                    type="button"
+                    className="btn-logout"
+                    onClick={() => setConnectModalPlatform(null)}
+                    disabled={isConnecting}
+                    style={{ padding: '8px 16px', margin: 0, fontSize: '13px' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={handleOfficialOAuth}
+                    disabled={isConnecting}
+                    style={{ padding: '8px 20px', fontSize: '13px', background: currentConfig.color }}
+                  >
+                    {isConnecting ? 'Opening Login...' : `Log in with Real ${currentConfig.name} →`}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: Direct Real Access Token Connect */}
+            {activeConnectTab === 'token' && (
+              <form onSubmit={handleTokenConnect} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '12px 14px', borderRadius: '10px', fontSize: '13px', color: 'var(--text)', lineHeight: 1.5 }}>
+                  <strong>Direct Live API Verification:</strong> In your <a href={currentConfig.docs} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>{currentConfig.name} Developer Console</a>, generate an <strong>Access Token</strong> and paste it below. We will verify it directly with the official {currentConfig.name} API and link your real profile immediately with 0 redirect steps!
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    {currentConfig.name} User Access Token
+                  </label>
+                  <input
+                    type="password"
+                    placeholder={`Paste real ${currentConfig.name} access token...`}
+                    value={tokenInput}
+                    onChange={(e) => setTokenInput(e.target.value)}
+                    required
+                    disabled={isConnecting}
+                    style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'monospace', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                  <button
+                    type="button"
+                    className="btn-logout"
+                    onClick={() => setConnectModalPlatform(null)}
+                    disabled={isConnecting}
+                    style={{ padding: '8px 16px', margin: 0, fontSize: '13px' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={isConnecting}
+                    style={{ padding: '8px 20px', fontSize: '13px', background: currentConfig.color }}
+                  >
+                    {isConnecting ? 'Verifying with Official API...' : `Verify & Connect Real ${currentConfig.name}`}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* TAB 3: Instant Demo Mockup */}
+            {activeConnectTab === 'instant' && (
+              <form onSubmit={handleInstantConnect} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ background: 'rgba(234, 179, 8, 0.08)', border: '1px solid rgba(234, 179, 8, 0.2)', padding: '12px 14px', borderRadius: '10px', fontSize: '13px', color: 'var(--text)', lineHeight: 1.5 }}>
+                  <strong>Offline Workspace Mode:</strong> Creates a simulated testing channel without talking to live social network servers.
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    Mockup Account Handle
                   </label>
                   <input
                     type="text"
@@ -497,72 +652,10 @@ export default function Dashboard() {
                     disabled={isConnecting}
                     style={{ padding: '8px 20px', fontSize: '13px', background: currentConfig.color }}
                   >
-                    {isConnecting ? 'Connecting...' : `⚡ Connect ${currentConfig.name} Instantly`}
+                    {isConnecting ? 'Connecting...' : `Create Demo Channel`}
                   </button>
                 </div>
               </form>
-            )}
-
-            {/* TAB 2: Official Developer OAuth */}
-            {activeConnectTab === 'oauth' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ background: 'rgba(234, 179, 8, 0.08)', border: '1px solid rgba(234, 179, 8, 0.2)', padding: '12px 14px', borderRadius: '10px', fontSize: '13px', color: 'var(--text)', lineHeight: 1.5 }}>
-                  <strong>Developer Redirect URI:</strong> Ensure this exact URI is whitelisted in your {currentConfig.name} Developer Portal under <em>Redirect URIs</em> to prevent <code>400 URI mismatch</code> errors.
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                    Registered Redirect URI for Developer Console
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="text"
-                      readOnly
-                      value={resolvedRedirectUri}
-                      style={{ width: '100%', background: 'rgba(0, 0, 0, 0.3)', fontFamily: 'monospace', fontSize: '12px', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleCopyUri}
-                      style={{
-                        background: copiedUri ? '#10b981' : 'var(--primary, #6366f1)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '0 14px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      {copiedUri ? '✓ Copied' : 'Copy URI'}
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
-                  <button
-                    type="button"
-                    className="btn-logout"
-                    onClick={() => setConnectModalPlatform(null)}
-                    disabled={isConnecting}
-                    style={{ padding: '8px 16px', margin: 0, fontSize: '13px' }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    onClick={handleOfficialOAuth}
-                    disabled={isConnecting}
-                    style={{ padding: '8px 20px', fontSize: '13px', background: currentConfig.color }}
-                  >
-                    {isConnecting ? 'Redirecting...' : `Continue to Official ${currentConfig.name} Login →`}
-                  </button>
-                </div>
-              </div>
             )}
 
             {/* TAB 3: Direct Instagram Login */}

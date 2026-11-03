@@ -44,6 +44,7 @@ export const accountsAPI = {
   linkedinAuth: (params) => api.get('/accounts/linkedin', { params }),
   connectFacebook: (data) => api.post('/accounts/connect-facebook', data),
   connectInstagramPrivate: (data) => api.post('/accounts/connect-instagram-private', data),
+  connectToken: (data) => api.post('/accounts/connect-token', data),
   connectDemo: (data) => api.post('/accounts/connect-demo', data),
 };
 export const postsAPI = {

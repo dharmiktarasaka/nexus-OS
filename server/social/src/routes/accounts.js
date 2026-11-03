@@ -105,6 +105,122 @@ router.post('/connect-demo', protect, async (req, res) => {
   }
 });
 
+// Direct real account access token connection (connects live real accounts by verifying with the official API)
+router.post('/connect-token', protect, async (req, res) => {
+  try {
+    const { platform, accessToken } = req.body;
+    const userId = req.user?._id;
+    if (!platform || !accessToken) {
+      return res.status(400).json({ message: 'Platform and Access Token are required' });
+    }
+
+    const cleanToken = String(accessToken).trim();
+
+    if (platform === 'pinterest') {
+      const pinterestBaseUrl = process.env.PINTEREST_USE_SANDBOX === 'true' ? 'https://api-sandbox.pinterest.com/v5' : 'https://api.pinterest.com/v5';
+      const userRes = await axios.get(`${pinterestBaseUrl}/user_account`, {
+        headers: { 'Authorization': `Bearer ${cleanToken}` }
+      });
+      const pinterestUser = userRes.data;
+      const username = pinterestUser.username || 'pinterest_user';
+      const avatar = pinterestUser.profile_image || null;
+
+      const account = await Account.findOneAndUpdate(
+        { platformUserId: username, platform: 'pinterest' },
+        {
+          user: userId,
+          platform: 'pinterest',
+          platformUserId: username,
+          name: `@${username}`,
+          avatar,
+          accessToken: cleanToken,
+        },
+        { upsert: true, new: true }
+      );
+      return res.json({ success: true, message: `Real Pinterest account @${username} connected successfully!`, account });
+    }
+
+    if (platform === 'linkedin') {
+      const userRes = await axios.get('https://api.linkedin.com/v2/userinfo', {
+        headers: { 'Authorization': `Bearer ${cleanToken}` }
+      });
+      const linkedinUser = userRes.data;
+      const name = linkedinUser.name || `${linkedinUser.given_name || ''} ${linkedinUser.family_name || ''}`.trim() || 'LinkedIn User';
+      const platformUserId = linkedinUser.sub || `linkedin_${Date.now()}`;
+      const avatar = linkedinUser.picture || null;
+
+      const account = await Account.findOneAndUpdate(
+        { platformUserId, platform: 'linkedin' },
+        {
+          user: userId,
+          platform: 'linkedin',
+          platformUserId,
+          name,
+          avatar,
+          accessToken: cleanToken,
+        },
+        { upsert: true, new: true }
+      );
+      return res.json({ success: true, message: `Real LinkedIn account "${name}" connected successfully!`, account });
+    }
+
+    if (platform === 'facebook') {
+      const pagesRes = await axios.get('https://graph.facebook.com/v21.0/me/accounts', {
+        params: {
+          fields: 'name,access_token,picture,instagram_business_account',
+          access_token: cleanToken
+        },
+      });
+
+      if (!pagesRes.data.data || pagesRes.data.data.length === 0) {
+        const meRes = await axios.get('https://graph.facebook.com/v21.0/me?fields=id,name,picture', {
+          params: { access_token: cleanToken }
+        });
+        const fbUser = meRes.data;
+        const account = await Account.findOneAndUpdate(
+          { platformUserId: fbUser.id, platform: 'facebook' },
+          {
+            user: userId,
+            platform: 'facebook',
+            platformUserId: fbUser.id,
+            name: fbUser.name,
+            avatar: fbUser.picture?.data?.url || null,
+            accessToken: cleanToken,
+          },
+          { upsert: true, new: true }
+        );
+        return res.json({ success: true, message: `Real Facebook profile "${fbUser.name}" connected!`, account });
+      }
+
+      let firstAccount = null;
+      for (const page of pagesRes.data.data) {
+        const acc = await Account.findOneAndUpdate(
+          { platformUserId: page.id, platform: 'facebook' },
+          {
+            user: userId,
+            platform: 'facebook',
+            platformUserId: page.id,
+            name: page.name,
+            avatar: page.picture?.data?.url,
+            accessToken: page.access_token,
+            pageId: page.id,
+            instagramBusinessAccountId: page.instagram_business_account?.id,
+          },
+          { upsert: true, new: true }
+        );
+        if (!firstAccount) firstAccount = acc;
+      }
+      return res.json({ success: true, message: `Real Facebook Pages connected successfully!`, account: firstAccount });
+    }
+
+    return res.status(400).json({ message: `Direct token connection for ${platform} is not supported. Please use official OAuth login.` });
+  } catch (err) {
+    console.error('[connect-token error]', err.response?.data || err.message);
+    const detail = err.response?.data?.message || err.response?.data?.error?.message || err.message;
+    res.status(400).json({ message: `Official API Verification Failed: ${detail}` });
+  }
+});
+
 router.delete('/:id', protect, async (req, res) => {
   try {
     const account = await Account.findOneAndDelete({
@@ -392,8 +508,8 @@ router.get('/facebook', protect, async (req, res) => {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const userId = req.user?._id;
 
-    if (!process.env.FACEBOOK_APP_ID || req.query.mode === 'demo') {
-      console.log('[Facebook Connect] Workspace Mode: Connecting Facebook page for user', userId);
+    if (req.query.mode === 'demo') {
+      console.log('[Facebook Connect] Workspace Demo Mode: Connecting Facebook page for user', userId);
       await Account.findOneAndUpdate(
         { platformUserId: 'facebook_' + (userId ? userId.toString().slice(-6) : 'hq'), platform: 'facebook' },
         {
@@ -410,9 +526,20 @@ router.get('/facebook', protect, async (req, res) => {
       return res.json({ url: `${clientUrl}/apps/social?connected=facebook` });
     }
 
-    const redirectUri = getSanitizedRedirectUri(req, 'facebook');
+    const appId = cleanEnvValue(process.env.FACEBOOK_APP_ID);
+    if (!appId) {
+      return res.status(400).json({ message: 'Facebook App ID is not configured. Please add FACEBOOK_APP_ID in server/social/.env or use Direct Access Token.' });
+    }
+
+    const redirectUri = req.query.redirect_uri || getSanitizedRedirectUri(req, 'facebook');
     const stateToken = jwt.sign({ userId: userId.toString() }, jwtSecret, { expiresIn: '15m' });
-    const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${process.env.FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateToken}&scope=pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish,pages_show_list,business_management`;
+    const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateToken}&scope=pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish,pages_show_list,business_management`;
+    res.json({ url, redirectUri });
+  } catch (err) {
+    console.error('Facebook auth initiate error:', err.message);
+    res.status(500).json({ message: 'Failed to initiate Facebook connection' });
+  }
+});
     res.json({ url, redirectUri });
   } catch (err) {
     console.error('Facebook auth initiate error:', err.message);
@@ -544,8 +671,8 @@ router.get('/pinterest', protect, async (req, res) => {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const userId = req.user?._id;
 
-    if (!process.env.PINTEREST_CLIENT_ID || req.query.mode === 'demo') {
-      console.log('[Pinterest Connect] Workspace Mode: Connecting Pinterest account for user', userId);
+    if (req.query.mode === 'demo') {
+      console.log('[Pinterest Connect] Workspace Demo Mode: Connecting Pinterest account for user', userId);
       await Account.findOneAndUpdate(
         { platformUserId: 'pinterest_' + (userId ? userId.toString().slice(-6) : 'pins'), platform: 'pinterest' },
         {
@@ -561,9 +688,20 @@ router.get('/pinterest', protect, async (req, res) => {
       return res.json({ url: `${clientUrl}/apps/social?connected=pinterest` });
     }
 
-    const redirectUri = getSanitizedRedirectUri(req, 'pinterest');
+    const clientId = cleanEnvValue(process.env.PINTEREST_CLIENT_ID);
+    if (!clientId) {
+      return res.status(400).json({ message: 'Pinterest Client ID is not configured. Please add PINTEREST_CLIENT_ID in server/social/.env or use Direct Access Token.' });
+    }
+
+    const redirectUri = req.query.redirect_uri || getSanitizedRedirectUri(req, 'pinterest');
     const stateToken = jwt.sign({ userId: userId.toString() }, jwtSecret, { expiresIn: '15m' });
-    const url = `https://www.pinterest.com/oauth/?client_id=${process.env.PINTEREST_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=boards:read,boards:write,pins:read,pins:write,user_accounts:read&state=${stateToken}`;
+    const url = `https://www.pinterest.com/oauth/?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=boards:read,boards:write,pins:read,pins:write,user_accounts:read&state=${stateToken}`;
+    res.json({ url, redirectUri });
+  } catch (err) {
+    console.error('Pinterest auth initiate error:', err.message);
+    res.status(500).json({ message: 'Failed to initiate Pinterest connection' });
+  }
+});
     res.json({ url, redirectUri });
   } catch (err) {
     console.error('Pinterest auth initiate error:', err.message);
@@ -656,8 +794,8 @@ router.get('/tumblr', protect, async (req, res) => {
   try {
     const userId = req.user?._id;
 
-    if (!process.env.TUMBLR_CONSUMER_KEY || req.query.mode === 'demo') {
-      console.log('[Tumblr Connect] Workspace Mode: Connecting Tumblr blog for user', userId);
+    if (req.query.mode === 'demo') {
+      console.log('[Tumblr Connect] Workspace Demo Mode: Connecting Tumblr blog for user', userId);
       await Account.findOneAndUpdate(
         { platformUserId: 'tumblr_' + (userId ? userId.toString().slice(-6) : 'blog'), platform: 'tumblr' },
         {
@@ -675,13 +813,21 @@ router.get('/tumblr', protect, async (req, res) => {
       return res.json({ url: `${clientUrl}/apps/social?connected=tumblr` });
     }
 
-    const callbackUrl = getSanitizedRedirectUri(req, 'tumblr');
+    const consumerKey = cleanEnvValue(process.env.TUMBLR_CONSUMER_KEY);
+    const consumerSecret = cleanEnvValue(process.env.TUMBLR_CONSUMER_SECRET);
+    if (!consumerKey || !consumerSecret) {
+      return res.status(400).json({ message: 'Tumblr Consumer credentials are not configured in server/social/.env.' });
+    }
+
+    const callbackUrl = req.query.redirect_uri || getSanitizedRedirectUri(req, 'tumblr');
     const url = 'https://www.tumblr.com/oauth/request_token';
     const authHeader = buildAuthorizationHeader(
       'POST',
       url,
       { oauth_callback: callbackUrl },
-      process.env.TUMBLR_CONSUMER_KEY,
+      consumerKey,
+      consumerSecret
+    );
       process.env.TUMBLR_CONSUMER_SECRET
     );
 
@@ -820,8 +966,8 @@ router.get('/linkedin', protect, async (req, res) => {
     const userId = req.user?._id;
     const clientId = cleanEnvValue(process.env.LINKEDIN_CLIENT_ID);
 
-    if (!clientId || req.query.mode === 'demo') {
-      console.log('[LinkedIn Connect] Workspace Mode: Connecting LinkedIn profile for user', userId);
+    if (req.query.mode === 'demo') {
+      console.log('[LinkedIn Connect] Workspace Demo Mode: Connecting LinkedIn profile for user', userId);
       await Account.findOneAndUpdate(
         { platformUserId: 'linkedin_' + (userId ? userId.toString().slice(-6) : 'corp'), platform: 'linkedin' },
         {
@@ -837,9 +983,15 @@ router.get('/linkedin', protect, async (req, res) => {
       return res.json({ url: `${clientUrl}/apps/social?connected=linkedin` });
     }
 
-    const redirectUri = getSanitizedRedirectUri(req, 'linkedin');
+    if (!clientId) {
+      return res.status(400).json({ message: 'LinkedIn Client ID is not configured. Please add LINKEDIN_CLIENT_ID in server/social/.env or use Direct Access Token.' });
+    }
+
+    const redirectUri = req.query.redirect_uri || getSanitizedRedirectUri(req, 'linkedin');
     const stateToken = jwt.sign({ userId: userId.toString() }, jwtSecret, { expiresIn: '15m' });
     const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateToken}&scope=openid%20profile%20w_member_social`;
+    res.json({ url, redirectUri });
+  } catch (error) {
     res.json({ url, redirectUri });
   } catch (error) {
     console.error('LinkedIn auth initiate error:', error.message);
