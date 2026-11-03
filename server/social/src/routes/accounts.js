@@ -9,40 +9,43 @@ import { buildAuthorizationHeader } from '../utils/oauth1.js';
 
 const router = Router();
 
-let clientUrl = (process.env.CLIENT_URL || 'http://localhost:5180').replace(/[\r\n\s\t]/g, '').trim();
-if (!clientUrl.startsWith('http://') && !clientUrl.startsWith('https://')) {
-  clientUrl = 'http://localhost:5180';
-}
-clientUrl = clientUrl.replace(/\/$/, '');
-
 // Clean & Redirect helpers for all OAuth platforms
 const cleanEnvValue = (val) => val ? String(val).replace(/[\r\n\s\t]/g, '').replace(/^["']|["']$/g, '').trim() : '';
 
-const getSanitizedRedirectUri = (req, platform) => {
-  // 1. Check platform-specific environment override
+export const sanitizeUrl = (url) => {
+  if (!url) return '';
+  let str = String(url).trim().replace(/[\r\n\t]/g, '');
+  str = str.replace(/^["']|["']$/g, '');
+  // Strip all duplicated or leading protocols (e.g. https://https://, http://https://)
+  str = str.replace(/^(https?:\/\/)+/i, '');
+  const isLocal = str.includes('localhost') || str.includes('127.0.0.1');
+  const protocol = isLocal ? 'http://' : 'https://';
+  str = str.replace(/127\.0\.0\.1/g, 'localhost');
+  str = str.replace(/:5003/g, ':5000');
+  str = str.replace(/\/+$/, '');
+  return `${protocol}${str}`;
+};
+
+let clientUrl = sanitizeUrl(cleanEnvValue(process.env.CLIENT_URL) || 'http://localhost:5180');
+
+export const getSanitizedRedirectUri = (req, platform) => {
+  // 1. Platform-specific environment override
   const envKey = `${platform.toUpperCase()}_REDIRECT_URI`;
   const envUri = cleanEnvValue(process.env[envKey]);
-  if (envUri) return envUri;
+  if (envUri) return sanitizeUrl(envUri);
 
-  // 2. Check general BACKEND_URL, API_URL, or RENDER_EXTERNAL_URL
+  // 2. BACKEND_URL, API_URL, or RENDER_EXTERNAL_URL
   const backendUrl = cleanEnvValue(process.env.BACKEND_URL || process.env.API_URL || process.env.RENDER_EXTERNAL_URL);
   if (backendUrl) {
-    return `${backendUrl.replace(/\/+$/, '')}/api/accounts/${platform}/callback`;
+    const base = sanitizeUrl(backendUrl);
+    return `${base}/api/accounts/${platform}/callback`;
   }
 
-  // 3. Fallback: On local dev, port 5003 is internal. The public gateway entry point is port 5000.
-  let host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost:5000';
-  if (host.includes('5003')) {
-    host = host.replace('5003', '5000');
-  }
-  // Standardize 127.0.0.1 to localhost for OAuth platforms (Pinterest/Google/LinkedIn reject bare IP 127.0.0.1)
-  if (host.includes('127.0.0.1')) {
-    host = host.replace('127.0.0.1', 'localhost');
-  }
-  const isLocal = host.includes('localhost');
-  const protoHeader = req.headers['x-forwarded-proto'];
-  const protocol = isLocal ? 'http' : (protoHeader === 'https' || req.secure ? 'https' : 'http');
-  return `${protocol}://${host}/api/accounts/${platform}/callback`;
+  // 3. Fallback: Host from request headers
+  let host = (req && req.headers ? (req.headers['x-forwarded-host'] || req.get('host')) : '') || 'localhost:5000';
+  host = host.replace(/^(https?:\/\/)+/i, '');
+  const base = sanitizeUrl(host);
+  return `${base}/api/accounts/${platform}/callback`;
 };
 
 router.get('/', protect, async (req, res) => {
@@ -531,8 +534,8 @@ router.get('/facebook', protect, async (req, res) => {
       return res.status(400).json({ message: 'Facebook App ID is not configured. Please add FACEBOOK_APP_ID in server/social/.env or use Direct Access Token.' });
     }
 
-    const redirectUri = req.query.redirect_uri || getSanitizedRedirectUri(req, 'facebook');
-    const stateToken = jwt.sign({ userId: userId.toString() }, jwtSecret, { expiresIn: '15m' });
+    const redirectUri = sanitizeUrl(req.query.redirect_uri || getSanitizedRedirectUri(req, 'facebook'));
+    const stateToken = jwt.sign({ userId: userId.toString(), redirectUri }, jwtSecret, { expiresIn: '15m' });
     const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateToken}&scope=pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish,pages_show_list,business_management`;
     res.json({ url, redirectUri });
   } catch (err) {
@@ -544,17 +547,19 @@ router.get('/facebook', protect, async (req, res) => {
 router.get('/facebook/callback', async (req, res) => {
   const { code, state } = req.query;
   let userId;
+  let storedRedirectUri;
   try {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const decoded = jwt.verify(state, jwtSecret);
     userId = decoded.userId;
+    storedRedirectUri = decoded.redirectUri;
   } catch (err) {
     console.error('Facebook state verification failed:', err.message);
     return res.redirect(`${clientUrl}/apps/social?error=facebook_auth_failed&details=Invalid%20state%20parameter`);
   }
 
   try {
-    const redirectUri = getSanitizedRedirectUri(req, 'facebook');
+    const redirectUri = storedRedirectUri ? sanitizeUrl(storedRedirectUri) : getSanitizedRedirectUri(req, 'facebook');
     const tokenRes = await axios.get('https://graph.facebook.com/v21.0/oauth/access_token', {
       params: {
         client_id: process.env.FACEBOOK_APP_ID,
@@ -650,8 +655,8 @@ router.get('/instagram', protect, async (req, res) => {
       return res.json({ url: `${clientUrl}/apps/social?connected=instagram` });
     }
 
-    const redirectUri = getSanitizedRedirectUri(req, 'instagram');
-    const stateToken = jwt.sign({ userId: userId.toString() }, jwtSecret, { expiresIn: '15m' });
+    const redirectUri = sanitizeUrl(req.query.redirect_uri || getSanitizedRedirectUri(req, 'instagram'));
+    const stateToken = jwt.sign({ userId: userId.toString(), redirectUri }, jwtSecret, { expiresIn: '15m' });
     const url = `https://api.instagram.com/oauth/authorize?client_id=${process.env.INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=instagram_business_basic,instagram_business_content_publish&response_type=code&state=${stateToken}`;
     res.json({ url, redirectUri });
   } catch (err) {
@@ -687,8 +692,8 @@ router.get('/pinterest', protect, async (req, res) => {
       return res.status(400).json({ message: 'Pinterest Client ID is not configured. Please add PINTEREST_CLIENT_ID in server/social/.env or use Direct Access Token.' });
     }
 
-    const redirectUri = req.query.redirect_uri || getSanitizedRedirectUri(req, 'pinterest');
-    const stateToken = jwt.sign({ userId: userId.toString() }, jwtSecret, { expiresIn: '15m' });
+    const redirectUri = sanitizeUrl(req.query.redirect_uri || getSanitizedRedirectUri(req, 'pinterest'));
+    const stateToken = jwt.sign({ userId: userId.toString(), redirectUri }, jwtSecret, { expiresIn: '15m' });
     const url = `https://www.pinterest.com/oauth/?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=boards:read,boards:write,pins:read,pins:write,user_accounts:read&state=${stateToken}`;
     res.json({ url, redirectUri });
   } catch (err) {
@@ -700,17 +705,19 @@ router.get('/pinterest', protect, async (req, res) => {
 router.get('/pinterest/callback', async (req, res) => {
   const { code, state } = req.query;
   let userId;
+  let storedRedirectUri;
   try {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const decoded = jwt.verify(state, jwtSecret);
     userId = decoded.userId;
+    storedRedirectUri = decoded.redirectUri;
   } catch (err) {
     console.error('Pinterest state verification failed:', err.message);
     return res.redirect(`${clientUrl}/apps/social?error=pinterest_auth_failed&details=Invalid%20state%20parameter`);
   }
 
   try {
-    const redirectUri = getSanitizedRedirectUri(req, 'pinterest');
+    const redirectUri = storedRedirectUri ? sanitizeUrl(storedRedirectUri) : getSanitizedRedirectUri(req, 'pinterest');
     const pinterestBaseUrl = process.env.PINTEREST_USE_SANDBOX === 'true' ? 'https://api-sandbox.pinterest.com/v5' : 'https://api.pinterest.com/v5';
     // Exchange authorization code for access token
     const tokenRes = await axios.post(`${pinterestBaseUrl}/oauth/token`,
@@ -807,7 +814,7 @@ router.get('/tumblr', protect, async (req, res) => {
       return res.status(400).json({ message: 'Tumblr Consumer credentials are not configured in server/social/.env.' });
     }
 
-    const callbackUrl = req.query.redirect_uri || getSanitizedRedirectUri(req, 'tumblr');
+    const callbackUrl = sanitizeUrl(req.query.redirect_uri || getSanitizedRedirectUri(req, 'tumblr'));
     const url = 'https://www.tumblr.com/oauth/request_token';
     const authHeader = buildAuthorizationHeader(
       'POST',
@@ -973,8 +980,8 @@ router.get('/linkedin', protect, async (req, res) => {
       return res.status(400).json({ message: 'LinkedIn Client ID is not configured. Please add LINKEDIN_CLIENT_ID in server/social/.env or use Direct Access Token.' });
     }
 
-    const redirectUri = req.query.redirect_uri || getSanitizedRedirectUri(req, 'linkedin');
-    const stateToken = jwt.sign({ userId: userId.toString() }, jwtSecret, { expiresIn: '15m' });
+    const redirectUri = sanitizeUrl(req.query.redirect_uri || getSanitizedRedirectUri(req, 'linkedin'));
+    const stateToken = jwt.sign({ userId: userId.toString(), redirectUri }, jwtSecret, { expiresIn: '15m' });
     const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateToken}&scope=openid%20profile%20w_member_social`;
     res.json({ url, redirectUri });
   } catch (error) {
@@ -987,17 +994,19 @@ router.get('/linkedin', protect, async (req, res) => {
 router.get('/linkedin/callback', async (req, res) => {
   const { code, state } = req.query;
   let userId;
+  let storedRedirectUri;
   try {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const decoded = jwt.verify(state, jwtSecret);
     userId = decoded.userId;
+    storedRedirectUri = decoded.redirectUri;
   } catch (err) {
     console.error('LinkedIn state verification failed:', err.message);
     return res.redirect(`${clientUrl}/apps/social?error=linkedin_auth_failed&details=Invalid%20state%20parameter`);
   }
 
   try {
-    const redirectUri = getSanitizedRedirectUri(req, 'linkedin');
+    const redirectUri = storedRedirectUri ? sanitizeUrl(storedRedirectUri) : getSanitizedRedirectUri(req, 'linkedin');
     const clientId = cleanEnvValue(process.env.LINKEDIN_CLIENT_ID);
     const clientSecret = cleanEnvValue(process.env.LINKEDIN_CLIENT_SECRET);
 

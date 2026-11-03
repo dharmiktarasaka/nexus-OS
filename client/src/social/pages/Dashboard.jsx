@@ -184,7 +184,7 @@ export default function Dashboard() {
     if (!config || !config.authFunc) return;
     setIsConnecting(true);
     try {
-      const res = await config.authFunc();
+      const res = await config.authFunc({ redirect_uri: resolvedRedirectUri });
       if (res.data?.url) {
         window.location.href = res.data.url;
       } else {
@@ -198,10 +198,7 @@ export default function Dashboard() {
   };
 
   const handleCopyUri = () => {
-    const config = PLATFORM_CONFIG[connectModalPlatform] || {};
-    const origin = window.location.origin.includes('5180') ? 'http://localhost:5000' : window.location.origin;
-    const uri = `${origin}${config.callbackPath || ''}`;
-    navigator.clipboard.writeText(uri).then(() => {
+    navigator.clipboard.writeText(resolvedRedirectUri).then(() => {
       setCopiedUri(true);
       setTimeout(() => setCopiedUri(false), 2500);
       toast.success('Redirect URI copied to clipboard!');
@@ -267,8 +264,14 @@ export default function Dashboard() {
   };
 
   const currentConfig = connectModalPlatform ? PLATFORM_CONFIG[connectModalPlatform] || {} : {};
-  const origin = typeof window !== 'undefined' && window.location.origin.includes('5180') ? 'http://localhost:5000' : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000');
-  const resolvedRedirectUri = `${origin}${currentConfig.callbackPath || ''}`;
+  const rawBackendBase = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '') ||
+    (typeof window !== 'undefined' && (window.location.origin.includes('localhost') || window.location.origin.includes('5180'))
+      ? 'http://localhost:5000'
+      : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000'));
+  let cleanBackendBase = rawBackendBase.replace(/^(https?:\/\/)+/i, '');
+  const isLocalBackend = cleanBackendBase.includes('localhost') || cleanBackendBase.includes('127.0.0.1');
+  cleanBackendBase = `${isLocalBackend ? 'http://' : 'https://'}${cleanBackendBase.replace(/\/+$/, '')}`;
+  const resolvedRedirectUri = `${cleanBackendBase}${currentConfig.callbackPath || ''}`;
 
   return (
     <div className="dashboard">
