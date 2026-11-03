@@ -173,6 +173,23 @@ class ApiClient {
         return { success: true, businesses: stored } as unknown as T;
       }
 
+      if (endpoint.includes('/draft') || options.method === 'PUT') {
+        const id = endpoint.split('/')[2];
+        let partial: any = {};
+        try { partial = options.body ? JSON.parse(String(options.body)) : {}; } catch {}
+        const stored = this.getLocalBusinesses();
+        const idx = stored.findIndex((b) => b.id === id);
+        let updated: any = null;
+        if (idx >= 0) {
+          stored[idx] = { ...stored[idx], ...partial, updatedAt: new Date().toISOString() };
+          updated = stored[idx];
+          localStorage.setItem('stratiq_local_businesses', JSON.stringify(stored));
+        } else {
+          updated = { id, ...partial };
+        }
+        return { success: true, business: updated, autosavedAt: new Date().toISOString() } as unknown as T;
+      }
+
       if (endpoint.startsWith('/businesses/') && options.method === 'PATCH') {
         const id = endpoint.split('/')[2];
         let partial: any = {};

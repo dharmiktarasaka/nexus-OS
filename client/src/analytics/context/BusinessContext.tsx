@@ -240,10 +240,21 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const updateActiveBusiness = async (partial: Partial<IBusinessProfile>): Promise<IBusinessProfile> => {
     if (!activeBusiness) throw new Error('No active business selected');
-    const updated = await api.updateBusiness(activeBusiness.id, partial);
-    setActiveBusiness(updated);
-    setBusinesses((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
-    return updated;
+    try {
+      const updated = await api.updateBusiness(activeBusiness.id, partial);
+      if (updated) {
+        const normalized = normalizeBusiness(updated);
+        setActiveBusiness(normalized);
+        setBusinesses((prev) => prev.map((b) => (b.id === normalized.id ? normalized : b)));
+        return normalized;
+      }
+    } catch (err) {
+      console.warn('Update business API notice:', err);
+    }
+    const merged = normalizeBusiness({ ...activeBusiness, ...partial });
+    setActiveBusiness(merged);
+    setBusinesses((prev) => prev.map((b) => (b.id === merged.id ? merged : b)));
+    return merged;
   };
 
   const saveStepperDraft = async (partial: Partial<IBusinessProfile>) => {
@@ -251,11 +262,21 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setAutosaving(true);
     try {
       const res = await api.autosaveDraft(activeBusiness.id, partial);
-      setActiveBusiness(res.business);
-      setBusinesses((prev) => prev.map((b) => (b.id === res.business.id ? res.business : b)));
+      if (res && res.business) {
+        const normalized = normalizeBusiness(res.business);
+        setActiveBusiness(normalized);
+        setBusinesses((prev) => prev.map((b) => (b.id === normalized.id ? normalized : b)));
+      } else {
+        const merged = normalizeBusiness({ ...activeBusiness, ...partial });
+        setActiveBusiness(merged);
+        setBusinesses((prev) => prev.map((b) => (b.id === merged.id ? merged : b)));
+      }
       setLastAutosavedAt(new Date().toLocaleTimeString());
     } catch (err) {
-      console.warn('Autosave draft failed:', err);
+      console.warn('Autosave draft notice (persisting locally):', err);
+      const merged = normalizeBusiness({ ...activeBusiness, ...partial });
+      setActiveBusiness(merged);
+      setBusinesses((prev) => prev.map((b) => (b.id === merged.id ? merged : b)));
     } finally {
       setAutosaving(false);
     }

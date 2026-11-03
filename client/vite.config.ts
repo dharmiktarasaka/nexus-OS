@@ -519,6 +519,67 @@ export default defineConfig({
                     updatedAt: new Date().toISOString()
                   }
                 };
+              } else if (url.includes('/draft') || req.method === 'PUT') {
+                payload = {
+                  success: true,
+                  offline: true,
+                  business: {
+                    id: 'biz_' + Date.now(),
+                    ownerId: 'usr_default',
+                    isDraft: true,
+                    currentStep: 1,
+                    completionPercentage: 20,
+                    identity: {
+                      businessName: 'Apex Strategic Enterprise',
+                      industry: 'Software & Technology',
+                      country: 'United States',
+                      businessModel: 'b2b',
+                      businessStage: 'growing',
+                      targetMarkets: ['Domestic']
+                    },
+                    productsServices: {
+                      mainOfferings: 'Enterprise AI & Strategy Consulting Platform',
+                      pricingModel: 'Subscription',
+                      usp: 'Autonomous enterprise workflows',
+                      competitiveAdvantages: ['Proprietary AI engine'],
+                      customerProblemsSolved: 'Streamlines cross-departmental operations'
+                    },
+                    targetAudience: {
+                      idealCustomerProfile: 'B2B SMBs & Enterprises',
+                      segments: ['Technology', 'Services'],
+                      painPoints: ['Manual overhead', 'Disconnected data silos']
+                    },
+                    salesMarketing: {
+                      primaryChannels: ['Word of mouth & referrals', 'Social media (Instagram, TikTok, FB)'],
+                      leadGenMethods: ['Inbound referrals'],
+                      marketingChallenges: []
+                    },
+                    financials: {
+                      monthlyRevenue: '$10,000 - $25,000',
+                      annualRevenue: '$150,000 - $300,000',
+                      cashFlowSituation: 'positive'
+                    },
+                    operations: {
+                      toolsAndSoftware: ['Slack', 'CRM'],
+                      operationalBottlenecks: []
+                    },
+                    competition: {
+                      mainCompetitors: [],
+                      marketOpportunities: []
+                    },
+                    challenges: {
+                      biggestProblems: ['Need more customers & leads'],
+                      shortTermGoals30To90Days: ['Get 10+ new regular clients'],
+                      longTermGoals1To3Years: ['Scale annual recurring revenue'],
+                      biggestRisks: []
+                    },
+                    scores: { finance: 85, market: 82, operations: 88, people: 80 },
+                    overallScore: 84,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                  },
+                  autosavedAt: new Date().toISOString()
+                };
               } else if (url.includes('/businesses')) {
                 payload = {
                   success: true,
