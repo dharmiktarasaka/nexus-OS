@@ -1,21 +1,25 @@
 import axios from 'axios';
 
-// Primary axios instance using relative /api/admin (intercepted by Vite proxy)
+// Support production Vercel deployment with dynamic backend API URL
+const rawApiUrl = (import.meta.env.VITE_API_URL || import.meta.env.VITE_ADMIN_API_URL || import.meta.env.VITE_BACKEND_URL || '').replace(/\/+$/, '');
+const adminBaseUrl = rawApiUrl ? `${rawApiUrl}/api/admin` : '/api/admin';
+
+// Primary axios instance (points to production backend in Vercel or relative proxy in local dev)
 const api = axios.create({
-  baseURL: '/api/admin',
+  baseURL: adminBaseUrl,
   headers: {
     'Content-Type': 'application/json'
   },
-  timeout: 10000
+  timeout: 15000
 });
 
-// Secondary fallback direct instance if Vite proxy is unreachable or failing
+// Secondary fallback direct instance if primary route times out or fails
 const directApi = axios.create({
-  baseURL: 'http://localhost:5050/api/admin',
+  baseURL: rawApiUrl ? `${rawApiUrl}/api/admin` : 'http://localhost:5050/api/admin',
   headers: {
     'Content-Type': 'application/json'
   },
-  timeout: 10000
+  timeout: 15000
 });
 
 // Attach Admin Token to requests

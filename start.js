@@ -114,7 +114,8 @@ if (fs.existsSync(socialServerPath)) {
     MONGODB_URI: UNIFIED_MONGODB_URI,
     JWT_SECRET: process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026',
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
-    CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5180'
+    CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5180',
+    BACKEND_URL: process.env.BACKEND_URL || (isProduction ? '' : `http://localhost:${GATEWAY_PORT}`)
   });
 }
 
@@ -213,7 +214,14 @@ const gateway = http.createServer((req, res) => {
   }
 
   // Forward request to internal target service
-  const forwardHeaders = { ...req.headers, host: `127.0.0.1:${targetPort}` };
+  const clientHost = req.headers['x-forwarded-host'] || req.headers.host || `localhost:${GATEWAY_PORT}`;
+  const clientProto = req.headers['x-forwarded-proto'] || (req.connection?.encrypted ? 'https' : 'http');
+  const forwardHeaders = { 
+    ...req.headers, 
+    host: `127.0.0.1:${targetPort}`,
+    'x-forwarded-host': clientHost,
+    'x-forwarded-proto': clientProto
+  };
   
   const proxyReq = http.request({
     hostname: '127.0.0.1',

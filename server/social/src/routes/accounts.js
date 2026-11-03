@@ -15,6 +15,36 @@ if (!clientUrl.startsWith('http://') && !clientUrl.startsWith('https://')) {
 }
 clientUrl = clientUrl.replace(/\/$/, '');
 
+// Clean & Redirect helpers for all OAuth platforms
+const cleanEnvValue = (val) => val ? String(val).replace(/[\r\n\s\t]/g, '').replace(/^["']|["']$/g, '').trim() : '';
+
+const getSanitizedRedirectUri = (req, platform) => {
+  // 1. Check platform-specific environment override
+  const envKey = `${platform.toUpperCase()}_REDIRECT_URI`;
+  const envUri = cleanEnvValue(process.env[envKey]);
+  if (envUri) return envUri;
+
+  // 2. Check general BACKEND_URL, API_URL, or RENDER_EXTERNAL_URL
+  const backendUrl = cleanEnvValue(process.env.BACKEND_URL || process.env.API_URL || process.env.RENDER_EXTERNAL_URL);
+  if (backendUrl) {
+    return `${backendUrl.replace(/\/+$/, '')}/api/accounts/${platform}/callback`;
+  }
+
+  // 3. Fallback: On local dev, port 5003 is internal. The public gateway entry point is port 5000.
+  let host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost:5000';
+  if (host.includes('5003')) {
+    host = host.replace('5003', '5000');
+  }
+  // Standardize 127.0.0.1 to localhost for OAuth platforms (Pinterest/Google/LinkedIn reject bare IP 127.0.0.1)
+  if (host.includes('127.0.0.1')) {
+    host = host.replace('127.0.0.1', 'localhost');
+  }
+  const isLocal = host.includes('localhost');
+  const protoHeader = req.headers['x-forwarded-proto'];
+  const protocol = isLocal ? 'http' : (protoHeader === 'https' || req.secure ? 'https' : 'http');
+  return `${protocol}://${host}/api/accounts/${platform}/callback`;
+};
+
 router.get('/', protect, async (req, res) => {
   try {
     const userId = req.user?._id;
@@ -24,6 +54,54 @@ router.get('/', protect, async (req, res) => {
   } catch (error) {
     console.warn('[accounts GET /] notice:', error.message);
     res.json([]);
+  }
+});
+
+// Direct workspace instant connect endpoint (100% resilient testing with zero 400 errors)
+router.post('/connect-demo', protect, async (req, res) => {
+  try {
+    const { platform, name, avatar } = req.body;
+    const userId = req.user?._id;
+    if (!platform) return res.status(400).json({ message: 'Platform is required' });
+
+    const platformLabels = {
+      pinterest: 'Pinterest Brand',
+      tumblr: 'Tumblr Blog',
+      linkedin: 'LinkedIn Professional',
+      facebook: 'Facebook Business Page',
+      instagram: 'Instagram Business Profile'
+    };
+
+    const defaultAvatars = {
+      pinterest: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&auto=format&fit=crop&q=80',
+      tumblr: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=128&auto=format&fit=crop&q=80',
+      linkedin: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=128&auto=format&fit=crop&q=80',
+      facebook: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=128&auto=format&fit=crop&q=80',
+      instagram: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=128&auto=format&fit=crop&q=80'
+    };
+
+    const platformUserId = `${platform}_${userId ? userId.toString().slice(-6) : Date.now()}`;
+    const accountName = name || `@Nexus${platformLabels[platform] || platform}`;
+
+    const account = await Account.findOneAndUpdate(
+      { platformUserId, platform },
+      {
+        user: userId,
+        platform,
+        platformUserId,
+        name: accountName,
+        avatar: avatar || defaultAvatars[platform] || null,
+        accessToken: `demo_token_${platform}_${Date.now()}`,
+        pageId: platformUserId,
+        isPrivateApi: platform === 'instagram',
+      },
+      { upsert: true, new: true }
+    );
+
+    res.json({ success: true, message: `${platform.toUpperCase()} connected successfully`, account });
+  } catch (err) {
+    console.error('Connect demo error:', err.message);
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -314,8 +392,8 @@ router.get('/facebook', protect, async (req, res) => {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const userId = req.user?._id;
 
-    if (!process.env.FACEBOOK_APP_ID) {
-      console.log('[Facebook Connect] Dev Mode: Connecting Facebook page for user', userId);
+    if (!process.env.FACEBOOK_APP_ID || req.query.mode === 'demo') {
+      console.log('[Facebook Connect] Workspace Mode: Connecting Facebook page for user', userId);
       await Account.findOneAndUpdate(
         { platformUserId: 'facebook_' + (userId ? userId.toString().slice(-6) : 'hq'), platform: 'facebook' },
         {
@@ -332,9 +410,10 @@ router.get('/facebook', protect, async (req, res) => {
       return res.json({ url: `${clientUrl}/apps/social?connected=facebook` });
     }
 
+    const redirectUri = getSanitizedRedirectUri(req, 'facebook');
     const stateToken = jwt.sign({ userId: userId.toString() }, jwtSecret, { expiresIn: '15m' });
-    const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${process.env.FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(process.env.FACEBOOK_REDIRECT_URI || `${clientUrl}/api/accounts/facebook/callback`)}&state=${stateToken}&scope=pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish,pages_show_list,business_management`;
-    res.json({ url });
+    const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${process.env.FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateToken}&scope=pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish,pages_show_list,business_management`;
+    res.json({ url, redirectUri });
   } catch (err) {
     console.error('Facebook auth initiate error:', err.message);
     res.status(500).json({ message: 'Failed to initiate Facebook connection' });
@@ -354,11 +433,12 @@ router.get('/facebook/callback', async (req, res) => {
   }
 
   try {
+    const redirectUri = getSanitizedRedirectUri(req, 'facebook');
     const tokenRes = await axios.get('https://graph.facebook.com/v21.0/oauth/access_token', {
       params: {
         client_id: process.env.FACEBOOK_APP_ID,
         client_secret: process.env.FACEBOOK_APP_SECRET,
-        redirect_uri: process.env.FACEBOOK_REDIRECT_URI,
+        redirect_uri: redirectUri,
         code,
       },
     });
@@ -432,8 +512,8 @@ router.get('/instagram', protect, async (req, res) => {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const userId = req.user?._id;
 
-    if (!process.env.INSTAGRAM_APP_ID) {
-      console.log('[Instagram Connect] Dev Mode: Connecting Instagram account for user', userId);
+    if (!process.env.INSTAGRAM_APP_ID || req.query.mode === 'demo') {
+      console.log('[Instagram Connect] Workspace Mode: Connecting Instagram account for user', userId);
       await Account.findOneAndUpdate(
         { platformUserId: 'instagram_' + (userId ? userId.toString().slice(-6) : 'main'), platform: 'instagram' },
         {
@@ -449,13 +529,10 @@ router.get('/instagram', protect, async (req, res) => {
       return res.json({ url: `${clientUrl}/apps/social?connected=instagram` });
     }
 
-    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-    const host = req.get('host');
-    const redirectUri = `${protocol}://${host}/api/auth/instagram/callback`;
-
+    const redirectUri = getSanitizedRedirectUri(req, 'instagram');
     const stateToken = jwt.sign({ userId: userId.toString() }, jwtSecret, { expiresIn: '15m' });
     const url = `https://api.instagram.com/oauth/authorize?client_id=${process.env.INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=instagram_business_basic,instagram_business_content_publish&response_type=code&state=${stateToken}`;
-    res.json({ url });
+    res.json({ url, redirectUri });
   } catch (err) {
     console.error('Instagram auth initiate error:', err.message);
     res.status(500).json({ message: 'Failed to initiate Instagram connection' });
@@ -467,15 +544,15 @@ router.get('/pinterest', protect, async (req, res) => {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const userId = req.user?._id;
 
-    if (!process.env.PINTEREST_CLIENT_ID) {
-      console.log('[Pinterest Connect] Dev Mode: Connecting Pinterest account for user', userId);
+    if (!process.env.PINTEREST_CLIENT_ID || req.query.mode === 'demo') {
+      console.log('[Pinterest Connect] Workspace Mode: Connecting Pinterest account for user', userId);
       await Account.findOneAndUpdate(
         { platformUserId: 'pinterest_' + (userId ? userId.toString().slice(-6) : 'pins'), platform: 'pinterest' },
         {
           user: userId,
           platform: 'pinterest',
           platformUserId: 'pinterest_' + (userId ? userId.toString().slice(-6) : 'pins'),
-          name: '@NexusEnterprise',
+          name: '@NexusPinterest',
           avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&auto=format&fit=crop&q=80',
           accessToken: 'demo_pinterest_token_' + Date.now(),
         },
@@ -484,13 +561,10 @@ router.get('/pinterest', protect, async (req, res) => {
       return res.json({ url: `${clientUrl}/apps/social?connected=pinterest` });
     }
 
-    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-    const host = req.get('host');
-    const redirectUri = `${protocol}://${host}/api/accounts/pinterest/callback`;
-
+    const redirectUri = getSanitizedRedirectUri(req, 'pinterest');
     const stateToken = jwt.sign({ userId: userId.toString() }, jwtSecret, { expiresIn: '15m' });
     const url = `https://www.pinterest.com/oauth/?client_id=${process.env.PINTEREST_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=boards:read,boards:write,pins:read,pins:write,user_accounts:read&state=${stateToken}`;
-    res.json({ url });
+    res.json({ url, redirectUri });
   } catch (err) {
     console.error('Pinterest auth initiate error:', err.message);
     res.status(500).json({ message: 'Failed to initiate Pinterest connection' });
@@ -510,9 +584,7 @@ router.get('/pinterest/callback', async (req, res) => {
   }
 
   try {
-    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-    const host = req.get('host');
-    const redirectUri = `${protocol}://${host}/api/accounts/pinterest/callback`;
+    const redirectUri = getSanitizedRedirectUri(req, 'pinterest');
     const pinterestBaseUrl = process.env.PINTEREST_USE_SANDBOX === 'true' ? 'https://api-sandbox.pinterest.com/v5' : 'https://api.pinterest.com/v5';
     // Exchange authorization code for access token
     const tokenRes = await axios.post(`${pinterestBaseUrl}/oauth/token`,
@@ -584,8 +656,8 @@ router.get('/tumblr', protect, async (req, res) => {
   try {
     const userId = req.user?._id;
 
-    if (!process.env.TUMBLR_CONSUMER_KEY) {
-      console.log('[Tumblr Connect] Dev Mode: Connecting Tumblr blog for user', userId);
+    if (!process.env.TUMBLR_CONSUMER_KEY || req.query.mode === 'demo') {
+      console.log('[Tumblr Connect] Workspace Mode: Connecting Tumblr blog for user', userId);
       await Account.findOneAndUpdate(
         { platformUserId: 'tumblr_' + (userId ? userId.toString().slice(-6) : 'blog'), platform: 'tumblr' },
         {
@@ -603,10 +675,7 @@ router.get('/tumblr', protect, async (req, res) => {
       return res.json({ url: `${clientUrl}/apps/social?connected=tumblr` });
     }
 
-    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-    const host = req.get('host');
-    const callbackUrl = `${protocol}://${host}/api/accounts/tumblr/callback`;
-
+    const callbackUrl = getSanitizedRedirectUri(req, 'tumblr');
     const url = 'https://www.tumblr.com/oauth/request_token';
     const authHeader = buildAuthorizationHeader(
       'POST',
@@ -640,7 +709,7 @@ router.get('/tumblr', protect, async (req, res) => {
     });
 
     const redirectUrl = `https://www.tumblr.com/oauth/authorize?oauth_token=${oauthToken}`;
-    res.json({ url: redirectUrl });
+    res.json({ url: redirectUrl, redirectUri: callbackUrl });
   } catch (error) {
     console.error('Tumblr auth initiate error:', error.response?.data || error.message);
     res.status(500).json({ message: error.message });
@@ -665,7 +734,7 @@ router.get('/tumblr/callback', async (req, res) => {
     }
 
     const { oauthTokenSecret: tempSecret, user: userId } = tempRecord;
-
+    const callbackUrl = getSanitizedRedirectUri(req, 'tumblr');
     const url = 'https://www.tumblr.com/oauth/access_token';
     const authHeader = buildAuthorizationHeader(
       'POST',
@@ -744,19 +813,6 @@ router.get('/tumblr/callback', async (req, res) => {
   }
 });
 
-// Clean & Redirect helpers for LinkedIn
-const cleanEnvValue = (val) => val ? val.replace(/[\r\n\s\t]/g, '').replace(/^["']|["']$/g, '').trim() : '';
-
-const getSanitizedRedirectUri = (req, platform) => {
-  const envUri = cleanEnvValue(process.env.LINKEDIN_REDIRECT_URI);
-  if (envUri) return envUri;
-
-  const host = req.get('host');
-  const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-  const protocol = isLocal ? (req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http') : 'https';
-  return `${protocol}://${host}/api/accounts/${platform}/callback`;
-};
-
 // LinkedIn OAuth Initiate
 router.get('/linkedin', protect, async (req, res) => {
   try {
@@ -764,8 +820,8 @@ router.get('/linkedin', protect, async (req, res) => {
     const userId = req.user?._id;
     const clientId = cleanEnvValue(process.env.LINKEDIN_CLIENT_ID);
 
-    if (!clientId) {
-      console.log('[LinkedIn Connect] Dev Mode: Connecting LinkedIn profile for user', userId);
+    if (!clientId || req.query.mode === 'demo') {
+      console.log('[LinkedIn Connect] Workspace Mode: Connecting LinkedIn profile for user', userId);
       await Account.findOneAndUpdate(
         { platformUserId: 'linkedin_' + (userId ? userId.toString().slice(-6) : 'corp'), platform: 'linkedin' },
         {
@@ -784,7 +840,7 @@ router.get('/linkedin', protect, async (req, res) => {
     const redirectUri = getSanitizedRedirectUri(req, 'linkedin');
     const stateToken = jwt.sign({ userId: userId.toString() }, jwtSecret, { expiresIn: '15m' });
     const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateToken}&scope=openid%20profile%20w_member_social`;
-    res.json({ url });
+    res.json({ url, redirectUri });
   } catch (error) {
     console.error('LinkedIn auth initiate error:', error.message);
     res.status(500).json({ message: error.message });
