@@ -9,16 +9,18 @@
     "start": "node scripts/free_ports.js && node start.js",
     "dev:all": "node scripts/free_ports.js && node start.js",
     "free-ports": "node scripts/free_ports.js",
-    "install:backend": "npm --prefix server install && npm --prefix server/crm install && npm --prefix server/website install && npm --prefix server/social install",
+    "install:backend": "npm --prefix server install && npm --prefix server/crm install && npm --prefix server/website install && npm --prefix server/social install && npm --prefix server/analytics install && npm --prefix server/analytics run build",
     "db:setup": "node server/crm/organize_database.cjs",
     "server": "node scripts/free_ports.js && node server/src/index.js",
     "crm:server": "node server/crm/server.js",
     "website:server": "node server/website/index.js",
     "social:server": "node server/social/src/index.js",
+    "analytics:server": "node server/analytics/dist/index.js",
     "client": "npm --prefix client run dev",
     "admin": "npm --prefix admin run dev",
     "admin:preview": "npm --prefix admin run preview",
     "build": "npm --prefix client run build",
+    "build:analytics": "npm --prefix server/analytics run build",
     "build:admin": "npm --prefix admin run build"
   }
 }

@@ -268,7 +268,10 @@ export default function Dashboard() {
     (typeof window !== 'undefined' && (window.location.origin.includes('localhost') || window.location.origin.includes('5180'))
       ? 'http://localhost:5000'
       : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000'));
-  let cleanBackendBase = rawBackendBase.replace(/^(https?:\/\/)+/i, '');
+  let cleanBackendBase = rawBackendBase;
+  while (/^https?:\/\//i.test(cleanBackendBase)) {
+    cleanBackendBase = cleanBackendBase.replace(/^https?:\/\//i, '');
+  }
   const isLocalBackend = cleanBackendBase.includes('localhost') || cleanBackendBase.includes('127.0.0.1');
   cleanBackendBase = `${isLocalBackend ? 'http://' : 'https://'}${cleanBackendBase.replace(/\/+$/, '')}`;
   const resolvedRedirectUri = `${cleanBackendBase}${currentConfig.callbackPath || ''}`;

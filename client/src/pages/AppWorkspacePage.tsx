@@ -6,6 +6,7 @@ import { SocialHub } from '../components/workspace/SocialHub';
 import { SocialApp } from '../social/SocialApp';
 import { WebsiteHub } from '../components/workspace/WebsiteHub';
 import { AnalyticsHub } from '../components/workspace/AnalyticsHub';
+import { AnalyticsApp } from '../analytics/AnalyticsApp';
 import { api, AppModule } from '../services/api';
 import { useWorkspace } from '../context/WorkspaceContext';
 
@@ -99,7 +100,7 @@ export const AppWorkspacePage: React.FC = () => {
       case 'website-builder':
         return <WebsiteHub />;
       case 'analytics':
-        return <AnalyticsHub />;
+        return <AnalyticsApp />;
       default:
         return (
           <div className="p-8 text-center">

@@ -18,6 +18,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { CrmApp } from './crm/CrmApp';
 import { WebsiteApp } from './website/WebsiteApp';
 import { SocialApp } from './social/SocialApp';
+import { AnalyticsApp } from './analytics/AnalyticsApp';
 
 // Protected Route Guard
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -101,6 +102,7 @@ export const App: React.FC = () => {
                 <Route path="/apps/mediamation/*" element={<SocialApp />} />
                 <Route path="/apps/website-builder/*" element={<WebsiteApp />} />
                 <Route path="/apps/website/*" element={<WebsiteApp />} />
+                <Route path="/apps/analytics/*" element={<AnalyticsApp />} />
                 <Route path="/apps/:appSlug" element={<AppWorkspacePage />} />
                 <Route path="/apps/marketplace" element={<MarketplacePage />} />
                 <Route path="/profile" element={<ProfilePage />} />
@@ -152,6 +154,16 @@ export const App: React.FC = () => {
                 <Route path="/website/*" element={<DynamicWebsiteRedirect />} />
                 <Route path="/new" element={<Navigate to="/apps/website-builder/new" replace />} />
                 <Route path="/editor/*" element={<DynamicWebsiteEditorRedirect />} />
+
+                {/* Direct Business Analytics Convenience Redirects */}
+                <Route path="/analytics" element={<Navigate to="/apps/analytics" replace />} />
+                <Route path="/analytics/*" element={<Navigate to="/apps/analytics" replace />} />
+                <Route path="/stepper" element={<Navigate to="/apps/analytics/stepper" replace />} />
+                <Route path="/swot" element={<Navigate to="/apps/analytics/swot" replace />} />
+                <Route path="/pros-cons" element={<Navigate to="/apps/analytics/pros-cons" replace />} />
+                <Route path="/growth" element={<Navigate to="/apps/analytics/growth" replace />} />
+                <Route path="/actions" element={<Navigate to="/apps/analytics/actions" replace />} />
+                <Route path="/reports" element={<Navigate to="/apps/analytics/reports" replace />} />
               </Route>
 
               {/* Catch-all redirect */}

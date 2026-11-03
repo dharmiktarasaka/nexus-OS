@@ -17,7 +17,9 @@ export const sanitizeUrl = (url) => {
   let str = String(url).trim().replace(/[\r\n\t]/g, '');
   str = str.replace(/^["']|["']$/g, '');
   // Strip all duplicated or leading protocols (e.g. https://https://, http://https://)
-  str = str.replace(/^(https?:\/\/)+/i, '');
+  while (/^https?:\/\//i.test(str)) {
+    str = str.replace(/^https?:\/\//i, '');
+  }
   const isLocal = str.includes('localhost') || str.includes('127.0.0.1');
   const protocol = isLocal ? 'http://' : 'https://';
   str = str.replace(/127\.0\.0\.1/g, 'localhost');

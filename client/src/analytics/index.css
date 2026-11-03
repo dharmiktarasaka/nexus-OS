@@ -1,0 +1,27 @@
+.analytics-app-scope {
+  --bg-dark: #090D16;
+  --surface-dark: #0F172A;
+  --surface-dark-card: #141E33;
+  --surface-border: #1E293B;
+  --accent-blue: #3B82F6;
+  --accent-emerald: #10B981;
+}
+
+/* Print Styles for Executive Business Reports */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .report-page-break {
+    page-break-before: always;
+  }
+  .report-surface {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+  }
+}

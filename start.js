@@ -47,7 +47,7 @@ console.log('===============================================================');
 
 // Clean up any stale/orphaned processes holding ports on Windows
 if (!isProduction) {
-  [5000, 5001, 5002, 5003, 5050, 5180, 5182].forEach(p => freePort(p));
+  [5000, 5001, 5002, 5003, 5004, 5050, 5180, 5182].forEach(p => freePort(p));
 }
 
 let isShuttingDown = false;
@@ -128,6 +128,17 @@ if (fs.existsSync(socialServerPath)) {
   });
 }
 
+// 3c. Start Business Analytics (STRATIQ) Backend Server (Fixed Internal Port 5004)
+const analyticsServerPath = path.join(__dirname, 'server', 'analytics');
+if (fs.existsSync(analyticsServerPath)) {
+  startProcess('Analytics:5004', 'node', ['dist/index.js'], analyticsServerPath, '33', {
+    PORT: '5004',
+    MONGODB_URI: UNIFIED_MONGODB_URI,
+    CENTRAL_MONGODB_URI: UNIFIED_MONGODB_URI,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY || ''
+  });
+}
+
 // 4. Start Client Vite Dev Server (Only in local development)
 if (!isProduction) {
   const clientPath = path.join(__dirname, 'client');
@@ -175,7 +186,9 @@ const gateway = http.createServer((req, res) => {
       services: {
         central: 'http://127.0.0.1:5050',
         crm: 'http://127.0.0.1:5001',
-        website: 'http://127.0.0.1:5002'
+        website: 'http://127.0.0.1:5002',
+        social: 'http://127.0.0.1:5003',
+        analytics: 'http://127.0.0.1:5004'
       },
       timestamp: new Date().toISOString()
     }));
@@ -217,6 +230,15 @@ const gateway = http.createServer((req, res) => {
   ) {
     targetPort = 5003;
     targetPath = urlPath.replace(/^\/social-api/, '/api');
+  } else if (
+    urlPath.startsWith('/analytics-api') ||
+    urlPath.startsWith('/api/businesses') ||
+    urlPath.startsWith('/api/analyses') ||
+    urlPath.startsWith('/api/conversations') ||
+    urlPath.startsWith('/api/actions')
+  ) {
+    targetPort = 5004;
+    targetPath = urlPath.replace(/^\/analytics-api/, '/api');
   } else {
     targetPort = 5050;
     targetPath = urlPath;

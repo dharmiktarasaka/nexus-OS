@@ -422,6 +422,11 @@ export default defineConfig({
           });
         }
       },
+      '/analytics-api': {
+        target: 'http://localhost:5004',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/analytics-api/, '/api'),
+      },
       '/api': {
         target: 'http://localhost:5050',
         changeOrigin: true,

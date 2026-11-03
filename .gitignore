@@ -6,6 +6,7 @@ node_modules/
 dist/
 dist-ssr/
 *.local
+!server/analytics/dist/
 
 # Environment Variables
 .env
