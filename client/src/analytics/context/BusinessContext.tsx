@@ -22,6 +22,65 @@ interface BusinessContextType {
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
+const normalizeBusiness = (biz: any): IBusinessProfile => {
+  if (!biz) return biz;
+  return {
+    ...biz,
+    identity: {
+      businessName: '',
+      industry: 'Software & Technology',
+      description: '',
+      country: 'United States',
+      targetMarkets: ['Domestic'],
+      businessModel: 'b2b',
+      businessStage: 'growing',
+      ...(biz.identity || {})
+    },
+    productsServices: {
+      mainOfferings: '',
+      pricingModel: 'Fixed',
+      usp: '',
+      competitiveAdvantages: [],
+      customerProblemsSolved: '',
+      ...(biz.productsServices || {})
+    },
+    targetAudience: {
+      idealCustomerProfile: '',
+      segments: [],
+      painPoints: [],
+      ...(biz.targetAudience || {})
+    },
+    salesMarketing: {
+      primaryChannels: ['Word of mouth & referrals'],
+      leadGenMethods: [],
+      marketingChallenges: [],
+      ...(biz.salesMarketing || {})
+    },
+    financials: {
+      monthlyRevenue: '$5,000 - $10,000',
+      cashFlowSituation: 'positive',
+      ...(biz.financials || {})
+    },
+    operations: {
+      toolsAndSoftware: [],
+      operationalBottlenecks: [],
+      ...(biz.operations || {})
+    },
+    competition: {
+      mainCompetitors: [],
+      marketOpportunities: [],
+      ...(biz.competition || {})
+    },
+    challenges: {
+      biggestProblems: ['Need more customers & leads'],
+      shortTermGoals30To90Days: ['Get 10+ new regular clients'],
+      longTermGoals1To3Years: [],
+      biggestRisks: [],
+      ...(biz.challenges || {})
+    }
+  };
+};
+
 export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [businesses, setBusinesses] = useState<IBusinessProfile[]>([]);
@@ -60,12 +119,13 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setLoading(true);
     try {
       const list = await api.getBusinesses();
-      setBusinesses(list);
-      if (list.length > 0) {
+      const normalizedList = list.map(normalizeBusiness);
+      setBusinesses(normalizedList);
+      if (normalizedList.length > 0) {
         // Find existing stored selected id or default to first
         const savedId = localStorage.getItem('active_business_id');
-        const found = list.find((b) => b.id === savedId) || list[0];
-        setActiveBusiness(found);
+        const found = normalizedList.find((b) => b.id === savedId) || normalizedList[0];
+        setActiveBusiness(normalizeBusiness(found));
         await loadDataForBusiness(found.id);
       } else {
         setActiveBusiness(null);
@@ -85,7 +145,8 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const selectBusiness = async (id: string) => {
     const found = businesses.find((b) => b.id === id);
     if (found) {
-      setActiveBusiness(found);
+      const normalized = normalizeBusiness(found);
+      setActiveBusiness(normalized);
       localStorage.setItem('active_business_id', id);
       await loadDataForBusiness(id);
     }
@@ -105,19 +166,20 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       });
       if (created) {
-        setBusinesses((prev) => [created, ...prev.filter((b) => b.id !== created.id)]);
-        setActiveBusiness(created);
-        localStorage.setItem('active_business_id', created.id);
+        const normalized = normalizeBusiness(created);
+        setBusinesses((prev) => [normalized, ...prev.filter((b) => b.id !== normalized.id)]);
+        setActiveBusiness(normalized);
+        localStorage.setItem('active_business_id', normalized.id);
         setLatestAnalysis(null);
         setReports([]);
         setActionItems([]);
-        return created;
+        return normalized;
       }
     } catch (err) {
       console.warn('Backend unavailable, using resilient local business profile:', err);
     }
 
-    const fallback = {
+    const fallback = normalizeBusiness({
       id: 'biz_' + Date.now(),
       ownerId: user?.uid || 'usr_default',
       isDraft: true,
@@ -145,7 +207,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         painPoints: []
       },
       salesMarketing: {
-        primaryChannels: [],
+        primaryChannels: ['Word of mouth & referrals'],
         leadGenMethods: [],
         marketingChallenges: []
       },
@@ -160,15 +222,16 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         mainCompetitors: [],
         marketOpportunities: []
       },
-      challengesGoals: {
-        biggestChallenges: [],
-        goalsNext6Months: [],
-        desiredOutcome: 'Scale revenue and streamline execution'
+      challenges: {
+        biggestProblems: ['Need more customers & leads'],
+        shortTermGoals30To90Days: ['Get 10+ new regular clients'],
+        longTermGoals1To3Years: [],
+        biggestRisks: []
       },
       aiAnalysisRequested: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    } as unknown as IBusinessProfile;
+    });
     setBusinesses((prev) => [fallback, ...prev]);
     setActiveBusiness(fallback);
     localStorage.setItem('active_business_id', fallback.id);

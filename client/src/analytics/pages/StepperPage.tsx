@@ -69,6 +69,62 @@ const COMMON_GOALS = [
   { label: '🚀 Launch a new product or location', text: 'Expand our service offerings or open an online store / second spot' }
 ];
 
+const ensureBusinessShape = (biz: any): IBusinessProfile => {
+  return {
+    id: biz?.id || 'biz_' + Date.now(),
+    ownerId: biz?.ownerId || biz?.ownerUid || 'usr_default',
+    isDraft: biz?.isDraft !== undefined ? biz.isDraft : true,
+    currentStep: biz?.currentStep || 1,
+    completionPercentage: biz?.completionPercentage || 20,
+    identity: {
+      businessName: biz?.identity?.businessName || '',
+      industry: biz?.identity?.industry || 'Bakery / Coffee Shop',
+      description: biz?.identity?.description || '',
+      country: biz?.identity?.country || 'United States',
+      targetMarkets: biz?.identity?.targetMarkets || ['Domestic'],
+      businessModel: biz?.identity?.businessModel || 'b2c',
+      businessStage: biz?.identity?.businessStage || 'startup'
+    },
+    productsServices: {
+      mainOfferings: biz?.productsServices?.mainOfferings || '',
+      pricingModel: biz?.productsServices?.pricingModel || 'Fixed',
+      usp: biz?.productsServices?.usp || '',
+      competitiveAdvantages: biz?.productsServices?.competitiveAdvantages || [],
+      customerProblemsSolved: biz?.productsServices?.customerProblemsSolved || ''
+    },
+    targetAudience: {
+      idealCustomerProfile: biz?.targetAudience?.idealCustomerProfile || '',
+      segments: biz?.targetAudience?.segments || [],
+      painPoints: biz?.targetAudience?.painPoints || []
+    },
+    salesMarketing: {
+      primaryChannels: biz?.salesMarketing?.primaryChannels || ['Word of mouth & referrals'],
+      leadGenMethods: biz?.salesMarketing?.leadGenMethods || [],
+      marketingChallenges: biz?.salesMarketing?.marketingChallenges || []
+    },
+    financials: {
+      monthlyRevenue: biz?.financials?.monthlyRevenue || '$5,000 - $10,000',
+      cashFlowSituation: biz?.financials?.cashFlowSituation || 'positive'
+    },
+    operations: {
+      toolsAndSoftware: biz?.operations?.toolsAndSoftware || [],
+      operationalBottlenecks: biz?.operations?.operationalBottlenecks || []
+    },
+    competition: {
+      mainCompetitors: biz?.competition?.mainCompetitors || [],
+      marketOpportunities: biz?.competition?.marketOpportunities || []
+    },
+    challenges: {
+      biggestProblems: biz?.challenges?.biggestProblems || ['Need more customers & leads'],
+      shortTermGoals30To90Days: biz?.challenges?.shortTermGoals30To90Days || ['Get 10+ new regular clients'],
+      longTermGoals1To3Years: biz?.challenges?.longTermGoals1To3Years || [],
+      biggestRisks: biz?.challenges?.biggestRisks || []
+    },
+    createdAt: biz?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  } as unknown as IBusinessProfile;
+};
+
 export const StepperPage: React.FC = () => {
   const { activeBusiness, saveStepperDraft, createNewBusiness } = useBusiness();
   const navigate = useNavigate();
@@ -81,17 +137,18 @@ export const StepperPage: React.FC = () => {
 
   useEffect(() => {
     if (activeBusiness) {
-      setFormData(activeBusiness);
+      setFormData(ensureBusinessShape(activeBusiness));
       if (activeBusiness.currentStep && activeBusiness.currentStep <= 5) {
         setCurrentStep(activeBusiness.currentStep);
       }
     } else {
       createNewBusiness('My Enterprise')
         .then((biz) => {
-          if (biz) setFormData(biz);
+          if (biz) setFormData(ensureBusinessShape(biz));
         })
         .catch((err) => {
           console.warn('Fallback to local business profile for stepper:', err);
+          setFormData(ensureBusinessShape({ identity: { businessName: 'My Enterprise' } }));
         });
     }
   }, [activeBusiness]);
@@ -107,11 +164,11 @@ export const StepperPage: React.FC = () => {
   const handleNext = async () => {
     // Basic validation
     if (currentStep === 1) {
-      if (!formData.identity.businessName.trim()) {
+      if (!formData.identity?.businessName?.trim()) {
         setErrorMsg('Please enter your business name.');
         return;
       }
-      if (!formData.productsServices.mainOfferings.trim()) {
+      if (!formData.productsServices?.mainOfferings?.trim()) {
         setErrorMsg('Please enter what your business does or sells.');
         return;
       }
@@ -147,17 +204,17 @@ export const StepperPage: React.FC = () => {
   };
 
   const toggleMarketingChannel = (channel: string) => {
-    const current = formData.salesMarketing.primaryChannels || [];
+    const current = formData.salesMarketing?.primaryChannels || [];
     let updated: string[];
     if (current.includes(channel)) {
       updated = current.filter((c) => c !== channel);
     } else {
       updated = [...current, channel];
     }
-    setFormData({
+    setFormData(ensureBusinessShape({
       ...formData,
       salesMarketing: { ...formData.salesMarketing, primaryChannels: updated }
-    });
+    }));
   };
 
   const handleFinalSubmit = async () => {
@@ -166,9 +223,9 @@ export const StepperPage: React.FC = () => {
     setErrorMsg(null);
     try {
       // Synchronize secondary fields for backwards compatibility with reporting engines
-      const monthly = formData.financials.monthlyRevenue || '$5,000 - $10,000';
+      const monthly = formData.financials?.monthlyRevenue || '$5,000 - $10,000';
       const annualEst =
-        formData.financials.annualRevenue ||
+        formData.financials?.annualRevenue ||
         (monthly.includes('50,000+')
           ? '$600,000+'
           : monthly.includes('20,000')
@@ -177,18 +234,18 @@ export const StepperPage: React.FC = () => {
           ? '$60,000 - $240,000'
           : '$10,000 - $50,000');
 
-      const primaryProblem = formData.challenges.biggestProblems[0] || 'Need more customers and predictable sales';
-      const primaryGoal = formData.challenges.shortTermGoals30To90Days[0] || 'Grow revenue and simplify daily operations';
+      const primaryProblem = formData.challenges?.biggestProblems?.[0] || 'Need more customers and predictable sales';
+      const primaryGoal = formData.challenges?.shortTermGoals30To90Days?.[0] || 'Grow revenue and simplify daily operations';
 
-      const finalProfile: IBusinessProfile = {
+      const finalProfile: IBusinessProfile = ensureBusinessShape({
         ...formData,
         isDraft: false,
         completionPercentage: 100,
         currentStep: 5,
         identity: {
           ...formData.identity,
-          description: formData.productsServices.mainOfferings,
-          industry: formData.identity.industry || formData.productsServices.mainOfferings
+          description: formData.productsServices?.mainOfferings || '',
+          industry: formData.identity?.industry || formData.productsServices?.mainOfferings || 'General Business'
         },
         financials: {
           ...formData.financials,
@@ -204,7 +261,7 @@ export const StepperPage: React.FC = () => {
           shortTermGoals30To90Days: [primaryGoal],
           aiAdvisorFocusAreas: [primaryProblem, primaryGoal]
         }
-      };
+      });
 
       await saveStepperDraft(finalProfile);
 
@@ -353,13 +410,13 @@ export const StepperPage: React.FC = () => {
                 </label>
                 <textarea
                   rows={2}
-                  value={formData.productsServices.mainOfferings}
+                  value={formData.productsServices?.mainOfferings || ''}
                   onChange={(e) =>
-                    setFormData({
+                    setFormData(ensureBusinessShape({
                       ...formData,
                       productsServices: { ...formData.productsServices, mainOfferings: e.target.value },
                       identity: { ...formData.identity, description: e.target.value, industry: formData.identity.industry || e.target.value }
-                    })
+                    }))
                   }
                   placeholder="e.g. We bake artisan sourdough breads and sell fresh pastries to local families, cafes, and farmer's markets."
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
@@ -377,13 +434,17 @@ export const StepperPage: React.FC = () => {
                         key={ind}
                         type="button"
                         onClick={() => {
-                          const currentVal = formData.productsServices.mainOfferings;
+                          const currentVal = formData.productsServices?.mainOfferings || '';
                           setFormData({
                             ...formData,
                             identity: { ...formData.identity, industry: ind },
                             productsServices: {
-                              ...formData.productsServices,
-                              mainOfferings: currentVal ? `${currentVal} (${ind})` : ind
+                              ...(formData.productsServices || {}),
+                              mainOfferings: currentVal ? `${currentVal} (${ind})` : ind,
+                              pricingModel: formData.productsServices?.pricingModel || 'Fixed',
+                              usp: formData.productsServices?.usp || '',
+                              competitiveAdvantages: formData.productsServices?.competitiveAdvantages || [],
+                              customerProblemsSolved: formData.productsServices?.customerProblemsSolved || ''
                             }
                           });
                         }}
@@ -599,12 +660,12 @@ export const StepperPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value={formData.productsServices.usp}
+                  value={formData.productsServices?.usp || ''}
                   onChange={(e) =>
-                    setFormData({
+                    setFormData(ensureBusinessShape({
                       ...formData,
                       productsServices: { ...formData.productsServices, usp: e.target.value }
-                    })
+                    }))
                   }
                   placeholder="e.g. We respond in under 30 minutes, 100% organic local ingredients, friendlier service, 20% cheaper prices"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
@@ -622,10 +683,10 @@ export const StepperPage: React.FC = () => {
                       key={chip}
                       type="button"
                       onClick={() =>
-                        setFormData({
+                        setFormData(ensureBusinessShape({
                           ...formData,
                           productsServices: { ...formData.productsServices, usp: chip }
-                        })
+                        }))
                       }
                       className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700/60 transition-colors"
                     >
@@ -895,14 +956,14 @@ export const StepperPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
                 <span className="text-[10px] uppercase font-bold text-blue-400">1. Business & Stage</span>
-                <p className="text-sm font-bold text-white">{formData.identity.businessName}</p>
-                <p className="text-xs text-slate-300 line-clamp-2">{formData.productsServices.mainOfferings || 'Not specified'}</p>
+                <p className="text-sm font-bold text-white">{formData.identity?.businessName || 'My Enterprise'}</p>
+                <p className="text-xs text-slate-300 line-clamp-2">{formData.productsServices?.mainOfferings || 'Not specified'}</p>
                 <div className="pt-1 flex items-center gap-2 text-[11px] text-slate-400">
                   <span className="capitalize px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                    {formData.identity.businessStage} stage
+                    {formData.identity?.businessStage || 'startup'} stage
                   </span>
                   <span className="uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                    {formData.identity.businessModel}
+                    {formData.identity?.businessModel || 'b2b'}
                   </span>
                 </div>
               </div>
@@ -910,12 +971,12 @@ export const StepperPage: React.FC = () => {
               <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
                 <span className="text-[10px] uppercase font-bold text-indigo-400">2. Customers & Advantage</span>
                 <p className="text-xs text-slate-300">
-                  <strong className="text-white">Target:</strong> {formData.targetAudience.idealCustomerProfile || 'General audience'}
+                  <strong className="text-white">Target:</strong> {formData.targetAudience?.idealCustomerProfile || 'General audience'}
                 </p>
                 <p className="text-xs text-slate-300">
-                  <strong className="text-white">What makes you special:</strong> {formData.productsServices.usp || 'Quality product / service'}
+                  <strong className="text-white">What makes you special:</strong> {formData.productsServices?.usp || 'Quality product / service'}
                 </p>
-                {formData.salesMarketing.primaryChannels?.length > 0 && (
+                {formData.salesMarketing?.primaryChannels && formData.salesMarketing.primaryChannels.length > 0 && (
                   <p className="text-[11px] text-slate-400 pt-0.5">
                     Channels: {formData.salesMarketing.primaryChannels.join(', ')}
                   </p>
@@ -924,19 +985,19 @@ export const StepperPage: React.FC = () => {
 
               <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
                 <span className="text-[10px] uppercase font-bold text-emerald-400">3. Money & Health</span>
-                <p className="text-sm font-bold text-white">{formData.financials.monthlyRevenue || '$5,000 - $10,000 / month'}</p>
+                <p className="text-sm font-bold text-white">{formData.financials?.monthlyRevenue || '$5,000 - $10,000 / month'}</p>
                 <p className="text-xs text-slate-300 capitalize">
-                  Cash Flow: <span className="text-emerald-400 font-semibold">{formData.financials.cashFlowSituation || 'Positive'}</span>
+                  Cash Flow: <span className="text-emerald-400 font-semibold">{formData.financials?.cashFlowSituation || 'Positive'}</span>
                 </p>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
                 <span className="text-[10px] uppercase font-bold text-rose-400">4. Priority Focus</span>
                 <p className="text-xs text-slate-300">
-                  <strong className="text-white">Main Problem:</strong> {formData.challenges.biggestProblems[0] || 'Need steady leads and sales'}
+                  <strong className="text-white">Main Problem:</strong> {formData.challenges?.biggestProblems?.[0] || 'Need steady leads and sales'}
                 </p>
                 <p className="text-xs text-slate-300">
-                  <strong className="text-white">Next Goal:</strong> {formData.challenges.shortTermGoals30To90Days[0] || 'Grow revenue and simplify operations'}
+                  <strong className="text-white">Next Goal:</strong> {formData.challenges?.shortTermGoals30To90Days?.[0] || 'Grow revenue and simplify operations'}
                 </p>
               </div>
             </div>
