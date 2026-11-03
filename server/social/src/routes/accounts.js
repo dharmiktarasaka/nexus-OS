@@ -540,12 +540,6 @@ router.get('/facebook', protect, async (req, res) => {
     res.status(500).json({ message: 'Failed to initiate Facebook connection' });
   }
 });
-    res.json({ url, redirectUri });
-  } catch (err) {
-    console.error('Facebook auth initiate error:', err.message);
-    res.status(500).json({ message: 'Failed to initiate Facebook connection' });
-  }
-});
 
 router.get('/facebook/callback', async (req, res) => {
   const { code, state } = req.query;
@@ -702,12 +696,6 @@ router.get('/pinterest', protect, async (req, res) => {
     res.status(500).json({ message: 'Failed to initiate Pinterest connection' });
   }
 });
-    res.json({ url, redirectUri });
-  } catch (err) {
-    console.error('Pinterest auth initiate error:', err.message);
-    res.status(500).json({ message: 'Failed to initiate Pinterest connection' });
-  }
-});
 
 router.get('/pinterest/callback', async (req, res) => {
   const { code, state } = req.query;
@@ -827,8 +815,6 @@ router.get('/tumblr', protect, async (req, res) => {
       { oauth_callback: callbackUrl },
       consumerKey,
       consumerSecret
-    );
-      process.env.TUMBLR_CONSUMER_SECRET
     );
 
     const resToken = await axios.post(url, new URLSearchParams({ oauth_callback: callbackUrl }), {
@@ -990,8 +976,6 @@ router.get('/linkedin', protect, async (req, res) => {
     const redirectUri = req.query.redirect_uri || getSanitizedRedirectUri(req, 'linkedin');
     const stateToken = jwt.sign({ userId: userId.toString() }, jwtSecret, { expiresIn: '15m' });
     const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateToken}&scope=openid%20profile%20w_member_social`;
-    res.json({ url, redirectUri });
-  } catch (error) {
     res.json({ url, redirectUri });
   } catch (error) {
     console.error('LinkedIn auth initiate error:', error.message);

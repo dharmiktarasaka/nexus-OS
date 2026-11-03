@@ -50,6 +50,7 @@ if (!isProduction) {
   [5000, 5001, 5002, 5003, 5050, 5180, 5182].forEach(p => freePort(p));
 }
 
+let isShuttingDown = false;
 const processes = [];
 
 function startProcess(name, cmd, args, cwd, colorCode, extraEnv = {}) {
@@ -75,6 +76,14 @@ function startProcess(name, cmd, args, cwd, colorCode, extraEnv = {}) {
 
   proc.on('close', (code) => {
     console.log(`${prefix}Process exited with code ${code}`);
+    if (code !== 0 && !isShuttingDown) {
+      console.log(`${prefix}Auto-restarting in 2.5 seconds...`);
+      setTimeout(() => {
+        if (!isShuttingDown) {
+          startProcess(name, cmd, args, cwd, colorCode, extraEnv);
+        }
+      }, 2500);
+    }
   });
 
   processes.push(proc);
@@ -269,6 +278,7 @@ gateway.listen(GATEWAY_PORT, '0.0.0.0', () => {
 
 // Graceful shutdown on Ctrl+C or kill signal
 function shutdown() {
+  isShuttingDown = true;
   console.log('\n🛑 Shutting down all Nexus OS services...');
   try { gateway.close(); } catch (e) {}
   processes.forEach(p => {
