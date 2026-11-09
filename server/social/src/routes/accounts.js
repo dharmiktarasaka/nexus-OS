@@ -880,6 +880,7 @@ const TumblrTemp = mongoose.models.TumblrTemp || mongoose.model('TumblrTemp', Tu
 
 // Tumblr OAuth 1.0a Initiate
 router.get('/tumblr', protect, async (req, res) => {
+  let callbackUrl = '';
   try {
     const userId = req.user?._id || req.user?.id || req.user?.uid || 'nexus_master_user';
     const clientOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null) || clientUrl;
@@ -909,7 +910,7 @@ router.get('/tumblr', protect, async (req, res) => {
       return res.status(400).json({ message: 'Tumblr Consumer credentials are not configured in server/social/.env.' });
     }
 
-    const callbackUrl = sanitizeUrl(req.query.redirect_uri || getSanitizedRedirectUri(req, 'tumblr'));
+    callbackUrl = sanitizeUrl(req.query.redirect_uri || getSanitizedRedirectUri(req, 'tumblr'));
     const url = 'https://www.tumblr.com/oauth/request_token';
     const authHeader = buildAuthorizationHeader(
       'POST',
@@ -952,8 +953,17 @@ router.get('/tumblr', protect, async (req, res) => {
     console.log(`[Tumblr OAuth] Initiated successfully for user ${userId}. Redirecting to ${redirectUrl}`);
     res.json({ url: redirectUrl, redirectUri: callbackUrl });
   } catch (error) {
-    console.error('Tumblr auth initiate error:', error.response?.data || error.message);
-    res.status(500).json({ message: error.message });
+    const errData = error.response?.data;
+    const tumblrMsg = typeof errData === 'string' ? errData : (errData?.message || error.message);
+    console.error('Tumblr auth initiate error:', tumblrMsg);
+
+    if (typeof errData === 'string' && errData.includes('Disallowed oauth_callback')) {
+      return res.status(400).json({
+        message: `Tumblr rejected callback: "${callbackUrl}". Go to your Tumblr Developer Portal (tumblr.com/oauth/apps), click your app, and update the "Default callback URL" to "${callbackUrl}". Note: Tumblr OAuth 1.0a allows only one Default callback URL per app.`
+      });
+    }
+
+    res.status(400).json({ message: `Tumblr Error: ${tumblrMsg}` });
   }
 });
 

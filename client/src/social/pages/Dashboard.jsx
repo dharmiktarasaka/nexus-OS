@@ -561,12 +561,54 @@ export default function Dashboard() {
                   </div>
 
                   <p className="connect-hint-text">
-                    LinkedIn requires this exact URL to be added in your{' '}
-                    <a href={currentConfig.docs} target="_blank" rel="noreferrer" style={{ fontWeight: 700, textDecoration: 'underline' }}>
-                      {currentConfig.name} Developer Portal
-                    </a>{' '}
-                    under <strong>Auth &gt; OAuth 2.0 settings &gt; Authorized redirect URLs for your app</strong>.
+                    {connectModalPlatform === 'tumblr' ? (
+                      <>
+                        Tumblr OAuth 1.0a requires this exact URL to be set as the <strong>Default callback URL</strong> in your{' '}
+                        <a href={currentConfig.docs} target="_blank" rel="noreferrer" style={{ fontWeight: 700, textDecoration: 'underline' }}>
+                          Tumblr Application Settings
+                        </a>
+                        . <em>Note: Tumblr allows only one Default callback URL per app. If you switch between Localhost and Render, update it in your Tumblr console.</em>
+                      </>
+                    ) : connectModalPlatform === 'linkedin' ? (
+                      <>
+                        LinkedIn requires this exact URL to be added in your{' '}
+                        <a href={currentConfig.docs} target="_blank" rel="noreferrer" style={{ fontWeight: 700, textDecoration: 'underline' }}>
+                          LinkedIn Developer Portal
+                        </a>{' '}
+                        under <strong>Auth &gt; OAuth 2.0 settings &gt; Authorized redirect URLs for your app</strong>.
+                      </>
+                    ) : connectModalPlatform === 'pinterest' ? (
+                      <>
+                        Pinterest requires this exact URL to be added in your{' '}
+                        <a href={currentConfig.docs} target="_blank" rel="noreferrer" style={{ fontWeight: 700, textDecoration: 'underline' }}>
+                          Pinterest Developer Portal
+                        </a>{' '}
+                        under <strong>Redirect URIs</strong>.
+                      </>
+                    ) : (
+                      <>
+                        This exact URL must be registered as an authorized redirect URI in your{' '}
+                        <a href={currentConfig.docs} target="_blank" rel="noreferrer" style={{ fontWeight: 700, textDecoration: 'underline' }}>
+                          {currentConfig.name} Developer Portal
+                        </a>.
+                      </>
+                    )}
                   </p>
+
+                  {connectModalPlatform === 'tumblr' && (customRedirectUri || resolvedRedirectUri).includes('onrender.com') && (
+                    <div style={{
+                      marginTop: '10px',
+                      padding: '10px 14px',
+                      background: 'rgba(234, 179, 8, 0.12)',
+                      border: '1px solid rgba(234, 179, 8, 0.35)',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      color: '#fef08a',
+                      lineHeight: '1.5'
+                    }}>
+                      ⚡ <strong>Important for Render:</strong> If your Tumblr App still has <code>http://localhost:5000...</code> saved as its Default callback URL, Tumblr will reject the Render URL with a <code>400 Disallowed oauth_callback</code> error. Update the <strong>Default callback URL</strong> in your <a href="https://www.tumblr.com/oauth/apps" target="_blank" rel="noreferrer" style={{ color: '#fff', textDecoration: 'underline', fontWeight: 700 }}>Tumblr App Console</a> to this Render URL, or select <strong>Port 5000 (Gateway)</strong> when testing locally.
+                    </div>
+                  )}
                 </div>
 
                 <div className="connect-modal-actions">
