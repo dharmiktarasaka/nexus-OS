@@ -218,6 +218,76 @@ router.post('/connect-token', protect, async (req, res) => {
       return res.json({ success: true, message: `Real Facebook Pages connected successfully!`, account: firstAccount });
     }
 
+    if (platform === 'tumblr') {
+      const consumerKey = cleanEnvValue(process.env.TUMBLR_CONSUMER_KEY);
+      const consumerSecret = cleanEnvValue(process.env.TUMBLR_CONSUMER_SECRET);
+      if (!consumerKey || !consumerSecret) {
+        return res.status(400).json({ message: 'Tumblr Consumer credentials are not configured on server.' });
+      }
+
+      let userToken = cleanToken;
+      let userSecret = req.body.tokenSecret ? String(req.body.tokenSecret).trim() : '';
+
+      if (!userSecret && userToken.includes(':')) {
+        const parts = userToken.split(':');
+        userToken = parts[0].trim();
+        userSecret = parts.slice(1).join(':').trim();
+      }
+
+      if (!userToken || !userSecret) {
+        return res.status(400).json({ 
+          message: 'Tumblr requires both Access Token and Token Secret. Format: "oauth_token:oauth_token_secret" or provide tokenSecret in request.' 
+        });
+      }
+
+      // Verify token with Tumblr API
+      const userInfoUrl = 'https://api.tumblr.com/v2/user/info';
+      const infoAuthHeader = buildAuthorizationHeader(
+        'GET',
+        userInfoUrl,
+        {},
+        consumerKey,
+        consumerSecret,
+        userToken,
+        userSecret
+      );
+
+      const infoRes = await axios.get(userInfoUrl, {
+        headers: { 'Authorization': infoAuthHeader }
+      });
+
+      const tumblrUser = infoRes.data?.response?.user;
+      if (!tumblrUser || !tumblrUser.blogs || tumblrUser.blogs.length === 0) {
+        return res.status(400).json({ message: 'No Tumblr blogs found associated with this account token.' });
+      }
+
+      let firstAccount = null;
+      for (const blog of tumblrUser.blogs) {
+        const blogAvatar = `https://api.tumblr.com/v2/blog/${blog.name}.tumblr.com/avatar/128`;
+        const acc = await Account.findOneAndUpdate(
+          { platformUserId: blog.name, platform: 'tumblr' },
+          {
+            user: userId,
+            platform: 'tumblr',
+            platformUserId: blog.name,
+            name: blog.title || blog.name,
+            avatar: blogAvatar,
+            accessToken: userToken,
+            tokenSecret: userSecret,
+            pageId: blog.name,
+          },
+          { upsert: true, new: true }
+        );
+        if (!firstAccount) firstAccount = acc;
+      }
+
+      return res.json({
+        success: true,
+        message: `Real Tumblr blog "${firstAccount.name}" connected successfully!`,
+        account: firstAccount
+      });
+    }
+
     return res.status(400).json({ message: `Direct token connection for ${platform} is not supported. Please use official OAuth login.` });
   } catch (err) {
     console.error('[connect-token error]', err.response?.data || err.message);
@@ -777,7 +847,8 @@ router.get('/pinterest/callback', async (req, res) => {
 const TumblrTempSchema = new mongoose.Schema({
   oauthToken: { type: String, required: true, unique: true },
   oauthTokenSecret: { type: String, required: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  user: { type: mongoose.Schema.Types.Mixed, required: true },
+  callbackUrl: { type: String },
 }, { timestamps: true });
 
 // Auto-delete after 15 minutes to save space
@@ -842,12 +913,17 @@ router.get('/tumblr', protect, async (req, res) => {
       return res.status(400).json({ message: 'Failed to request token from Tumblr' });
     }
 
-    // Save temporary secret to associate with oauthToken in callback
-    await TumblrTemp.create({
-      oauthToken,
-      oauthTokenSecret,
-      user: userId,
-    });
+    // Save temporary secret and callbackUrl to associate with oauthToken in callback
+    await TumblrTemp.findOneAndUpdate(
+      { oauthToken },
+      {
+        oauthToken,
+        oauthTokenSecret,
+        user: userId,
+        callbackUrl,
+      },
+      { upsert: true, new: true }
+    );
 
     const redirectUrl = `https://www.tumblr.com/oauth/authorize?oauth_token=${oauthToken}`;
     res.json({ url: redirectUrl, redirectUri: callbackUrl });
@@ -875,16 +951,19 @@ router.get('/tumblr/callback', async (req, res) => {
     }
 
     const { oauthTokenSecret: tempSecret, user: userId } = tempRecord;
-    const callbackUrl = getSanitizedRedirectUri(req, 'tumblr');
+    const consumerKey = cleanEnvValue(process.env.TUMBLR_CONSUMER_KEY);
+    const consumerSecret = cleanEnvValue(process.env.TUMBLR_CONSUMER_SECRET);
+
     const url = 'https://www.tumblr.com/oauth/access_token';
     const authHeader = buildAuthorizationHeader(
       'POST',
       url,
       { oauth_verifier },
-      process.env.TUMBLR_CONSUMER_KEY,
-      process.env.TUMBLR_CONSUMER_SECRET,
+      consumerKey,
+      consumerSecret,
       oauth_token,
-      tempSecret
+      tempSecret,
+      oauth_verifier
     );
 
     const resToken = await axios.post(url, new URLSearchParams({ oauth_verifier }), {
@@ -909,8 +988,8 @@ router.get('/tumblr/callback', async (req, res) => {
       'GET',
       userInfoUrl,
       {},
-      process.env.TUMBLR_CONSUMER_KEY,
-      process.env.TUMBLR_CONSUMER_SECRET,
+      consumerKey,
+      consumerSecret,
       accessToken,
       tokenSecret
     );
@@ -921,13 +1000,14 @@ router.get('/tumblr/callback', async (req, res) => {
       }
     });
 
-    const user = infoRes.data.response.user;
+    const user = infoRes.data?.response?.user;
     if (!user || !user.blogs || user.blogs.length === 0) {
       console.error('No blogs found in Tumblr user info:', infoRes.data);
       return res.redirect(`${clientUrl}/apps/social?error=no_blogs_found`);
     }
 
     for (const blog of user.blogs) {
+      const blogAvatar = `https://api.tumblr.com/v2/blog/${blog.name}.tumblr.com/avatar/128`;
       await Account.findOneAndUpdate(
         { platformUserId: blog.name, platform: 'tumblr' },
         {
@@ -935,7 +1015,7 @@ router.get('/tumblr/callback', async (req, res) => {
           platform: 'tumblr',
           platformUserId: blog.name,
           name: blog.title || blog.name,
-          avatar: `https://api.tumblr.com/v2/blog/${blog.name}.tumblr.com/avatar/64`,
+          avatar: blogAvatar,
           accessToken: accessToken,
           tokenSecret: tokenSecret,
           pageId: blog.name,

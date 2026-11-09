@@ -604,46 +604,56 @@ export const publishToTumblr = async (post, account) => {
   try {
     console.log(`[Tumblr] Publishing post ${post._id}`);
     
-    // Check if we have media
-    if (!post.media || post.media.length === 0) {
-      throw new Error('Tumblr photo post requires at least one image.');
-    }
-
-    // Resolve public URL for each media item
-    // (Uploads local images to tmpfiles.org if on localhost/127.0.0.1)
-    const mediaUrls = [];
-    for (const file of post.media) {
-      const publicUrl = await getPublicUrl(file.url);
-      mediaUrls.push(publicUrl);
-    }
-
-    const blogIdentifier = account.pageId; // this is the blog name, e.g. "myblog"
+    const blogIdentifier = account.pageId || account.platformUserId; // this is the blog name, e.g. "myblog"
     const url = `https://api.tumblr.com/v2/blog/${blogIdentifier}/post`;
 
-    // Construct the request parameters
-    const requestParams = {
-      type: 'photo',
-      caption: (post.content || '').replace(/\r?\n/g, '<br>'),
-      format: 'html',
-    };
+    let requestParams = {};
 
-    // If single image
-    if (mediaUrls.length === 1) {
-      requestParams.source = mediaUrls[0];
+    // Check if we have media
+    if (post.media && post.media.length > 0) {
+      // Resolve public URL for each media item
+      // (Uploads local images to tmpfiles.org if on localhost/127.0.0.1)
+      const mediaUrls = [];
+      for (const file of post.media) {
+        const publicUrl = await getPublicUrl(file.url);
+        mediaUrls.push(publicUrl);
+      }
+
+      requestParams = {
+        type: 'photo',
+        caption: (post.content || '').replace(/\r?\n/g, '<br>'),
+        format: 'html',
+      };
+
+      if (mediaUrls.length === 1) {
+        requestParams.source = mediaUrls[0];
+      } else {
+        mediaUrls.forEach((urlStr, index) => {
+          requestParams[`source[${index}]`] = urlStr;
+        });
+      }
     } else {
-      // For photoset, use source[0], source[1] etc.
-      mediaUrls.forEach((urlStr, index) => {
-        requestParams[`source[${index}]`] = urlStr;
-      });
+      // Tumblr native text post
+      requestParams = {
+        type: 'text',
+        body: (post.content || '').replace(/\r?\n/g, '<br>'),
+        format: 'html',
+      };
+      if (post.title) {
+        requestParams.title = post.title;
+      }
     }
+
+    const consumerKey = (process.env.TUMBLR_CONSUMER_KEY || '').trim().replace(/^['"]|['"]$/g, '');
+    const consumerSecret = (process.env.TUMBLR_CONSUMER_SECRET || '').trim().replace(/^['"]|['"]$/g, '');
 
     // Build the Authorization Header
     const authHeader = buildAuthorizationHeader(
       'POST',
       url,
       requestParams,
-      process.env.TUMBLR_CONSUMER_KEY,
-      process.env.TUMBLR_CONSUMER_SECRET,
+      consumerKey,
+      consumerSecret,
       account.accessToken,
       account.tokenSecret
     );

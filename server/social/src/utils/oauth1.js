@@ -36,7 +36,7 @@ export const getOAuth1Signature = (method, url, oauthParams, requestParams, cons
   return signature;
 };
 
-export const buildAuthorizationHeader = (method, url, requestParams, consumerKey, consumerSecret, token = '', tokenSecret = '', verifier = '') => {
+export const buildAuthorizationHeader = (method, url, requestParams = {}, consumerKey, consumerSecret, token = '', tokenSecret = '', verifier = '') => {
   const oauthParams = {
     oauth_consumer_key: consumerKey,
     oauth_nonce: crypto.randomBytes(16).toString('hex'),
@@ -47,12 +47,24 @@ export const buildAuthorizationHeader = (method, url, requestParams, consumerKey
   
   if (token) oauthParams.oauth_token = token;
   if (verifier) oauthParams.oauth_verifier = verifier;
+
+  // Extract any oauth_* protocol parameters from requestParams into oauthParams
+  // (e.g. oauth_callback, oauth_verifier) so they are placed in the OAuth header
+  const cleanRequestParams = {};
+  for (const [key, val] of Object.entries(requestParams || {})) {
+    if (key.startsWith('oauth_')) {
+      oauthParams[key] = val;
+    } else {
+      cleanRequestParams[key] = val;
+    }
+  }
   
-  const signature = getOAuth1Signature(method, url, oauthParams, requestParams, consumerSecret, tokenSecret);
+  const signature = getOAuth1Signature(method, url, oauthParams, cleanRequestParams, consumerSecret, tokenSecret);
   
   oauthParams.oauth_signature = signature;
   
   const headerParts = Object.keys(oauthParams)
+    .sort()
     .map((key) => `${percentEncode(key)}="${percentEncode(oauthParams[key])}"`)
     .join(', ');
     

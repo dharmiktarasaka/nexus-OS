@@ -586,11 +586,11 @@ export default function Dashboard() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                    {currentConfig.name} User Access Token
+                    {currentConfig.name} User Access Token {connectModalPlatform === 'tumblr' ? '(Token:Secret)' : ''}
                   </label>
                   <input
                     type="password"
-                    placeholder={`Paste real ${currentConfig.name} access token...`}
+                    placeholder={connectModalPlatform === 'tumblr' ? 'oauth_token:oauth_token_secret' : `Paste real ${currentConfig.name} access token...`}
                     value={tokenInput}
                     onChange={(e) => setTokenInput(e.target.value)}
                     required
