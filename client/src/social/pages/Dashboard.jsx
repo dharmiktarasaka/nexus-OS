@@ -424,13 +424,13 @@ export default function Dashboard() {
       {/* Unified Multi-Platform Connection Modal */}
       {connectModalPlatform && (
         <div className="modal-overlay" onClick={() => setConnectModalPlatform(null)}>
-          <div className="modal-content card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px' }}>
+          <div className="modal-content connect-platform-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '24px' }}>{currentConfig.icon}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '28px', lineHeight: 1 }}>{currentConfig.icon}</span>
                 <div>
-                  <h3 style={{ margin: 0 }}>Connect {currentConfig.name}</h3>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <h3 className="connect-modal-title">Connect {currentConfig.name}</h3>
+                  <span className="connect-modal-subtitle">
                     Nexus OS Social Publishing Hub
                   </span>
                 </div>
@@ -439,74 +439,38 @@ export default function Dashboard() {
             </div>
 
             {/* Connection Method Tabs */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px', flexWrap: 'wrap' }}>
+            <div className="connect-modal-tabs">
               <button
                 type="button"
+                className={`connect-tab-btn ${activeConnectTab === 'oauth' ? 'active' : ''}`}
                 onClick={() => setActiveConnectTab('oauth')}
-                style={{
-                  background: activeConnectTab === 'oauth' ? (currentConfig.color || 'var(--primary, #6366f1)') : 'rgba(255, 255, 255, 0.05)',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
+                style={activeConnectTab === 'oauth' ? { background: currentConfig.color || '#4f46e5' } : {}}
               >
                 🌐 Official Login (OAuth)
               </button>
               <button
                 type="button"
+                className={`connect-tab-btn ${activeConnectTab === 'token' ? 'active' : ''}`}
                 onClick={() => setActiveConnectTab('token')}
-                style={{
-                  background: activeConnectTab === 'token' ? (currentConfig.color || 'var(--primary, #6366f1)') : 'rgba(255, 255, 255, 0.05)',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
+                style={activeConnectTab === 'token' ? { background: currentConfig.color || '#4f46e5' } : {}}
               >
                 🔑 Access Token Connect
               </button>
               {connectModalPlatform === 'instagram' && (
                 <button
                   type="button"
+                  className={`connect-tab-btn ${activeConnectTab === 'credentials' ? 'active' : ''}`}
                   onClick={() => setActiveConnectTab('credentials')}
-                  style={{
-                    background: activeConnectTab === 'credentials' ? 'var(--ig)' : 'rgba(255, 255, 255, 0.05)',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    fontSize: '13px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
+                  style={activeConnectTab === 'credentials' ? { background: 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)' } : {}}
                 >
                   📸 Instagram Login
                 </button>
               )}
               <button
                 type="button"
+                className={`connect-tab-btn ${activeConnectTab === 'instant' ? 'active' : ''}`}
                 onClick={() => setActiveConnectTab('instant')}
-                style={{
-                  background: activeConnectTab === 'instant' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                  color: activeConnectTab === 'instant' ? '#fff' : 'var(--text-secondary)',
-                  border: 'none',
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
+                style={activeConnectTab === 'instant' ? { background: '#6366f1' } : {}}
               >
                 ⚡ Offline Demo
               </button>
@@ -514,13 +478,13 @@ export default function Dashboard() {
 
             {/* TAB 1: Official Developer OAuth */}
             {activeConnectTab === 'oauth' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '12px 14px', borderRadius: '10px', fontSize: '13px', color: 'var(--text)', lineHeight: 1.5 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="connect-notice-banner notice-oauth">
                   <strong>Connect Your Real Account:</strong> Clicking the button below opens the official <strong>{currentConfig.name}</strong> authorization window. Log in with your actual {currentConfig.name} profile and approve access to link your live handle, real avatar, and boards.
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  <label className="connect-modal-label">
                     Registered Redirect URI for {currentConfig.name} Developer App
                   </label>
                   <div style={{ display: 'flex', gap: '8px' }}>
@@ -528,19 +492,20 @@ export default function Dashboard() {
                       type="text"
                       readOnly
                       value={resolvedRedirectUri}
-                      style={{ width: '100%', background: 'rgba(0, 0, 0, 0.3)', fontFamily: 'monospace', fontSize: '12px', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)' }}
+                      className="connect-modal-input"
+                      style={{ fontFamily: 'monospace', fontSize: '12px' }}
                     />
                     <button
                       type="button"
                       onClick={handleCopyUri}
                       style={{
-                        background: copiedUri ? '#10b981' : (currentConfig.color || 'var(--primary, #6366f1)'),
+                        background: copiedUri ? '#10b981' : (currentConfig.color || '#6366f1'),
                         color: '#fff',
                         border: 'none',
-                        borderRadius: '8px',
-                        padding: '0 14px',
-                        fontSize: '12px',
-                        fontWeight: '600',
+                        borderRadius: '9px',
+                        padding: '0 16px',
+                        fontSize: '12.5px',
+                        fontWeight: '700',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
                         transition: 'all 0.2s',
@@ -549,27 +514,26 @@ export default function Dashboard() {
                       {copiedUri ? '✓ Copied' : 'Copy URI'}
                     </button>
                   </div>
-                  <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--text-secondary)' }}>
-                    Add this exact URL in your <a href={currentConfig.docs} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>{currentConfig.name} Developer Portal</a> under <em>Redirect URIs</em>.
+                  <p className="connect-hint-text">
+                    Add this exact URL in your <a href={currentConfig.docs} target="_blank" rel="noreferrer">{currentConfig.name} Developer Portal</a> under <em>Redirect URIs</em>.
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                <div className="connect-modal-actions">
                   <button
                     type="button"
-                    className="btn-logout"
+                    className="connect-btn-cancel"
                     onClick={() => setConnectModalPlatform(null)}
                     disabled={isConnecting}
-                    style={{ padding: '8px 16px', margin: 0, fontSize: '13px' }}
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
-                    className="btn-primary"
+                    className="connect-btn-submit"
                     onClick={handleOfficialOAuth}
                     disabled={isConnecting}
-                    style={{ padding: '8px 20px', fontSize: '13px', background: currentConfig.color }}
+                    style={{ background: currentConfig.color || '#4f46e5' }}
                   >
                     {isConnecting ? 'Opening Login...' : `Log in with Real ${currentConfig.name} →`}
                   </button>
@@ -579,13 +543,13 @@ export default function Dashboard() {
 
             {/* TAB 2: Direct Real Access Token Connect */}
             {activeConnectTab === 'token' && (
-              <form onSubmit={handleTokenConnect} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '12px 14px', borderRadius: '10px', fontSize: '13px', color: 'var(--text)', lineHeight: 1.5 }}>
-                  <strong>Direct Live API Verification:</strong> In your <a href={currentConfig.docs} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>{currentConfig.name} Developer Console</a>, generate an <strong>Access Token</strong> and paste it below. We will verify it directly with the official {currentConfig.name} API and link your real profile immediately with 0 redirect steps!
+              <form onSubmit={handleTokenConnect} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="connect-notice-banner notice-token">
+                  <strong>Direct Live API Verification:</strong> In your <a href={currentConfig.docs} target="_blank" rel="noreferrer">{currentConfig.name} Developer Console</a>, generate an <strong>Access Token</strong> and paste it below. We will verify it directly with the official {currentConfig.name} API and link your real profile immediately with 0 redirect steps!
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  <label className="connect-modal-label">
                     {currentConfig.name} User Access Token {connectModalPlatform === 'tumblr' ? '(Token:Secret)' : ''}
                   </label>
                   <input
@@ -595,25 +559,30 @@ export default function Dashboard() {
                     onChange={(e) => setTokenInput(e.target.value)}
                     required
                     disabled={isConnecting}
-                    style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'monospace', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)' }}
+                    className="connect-modal-input"
+                    style={{ fontFamily: 'monospace' }}
                   />
+                  {connectModalPlatform === 'tumblr' && (
+                    <p className="connect-hint-text">
+                      Format: <code>oauth_token:oauth_token_secret</code> from your Tumblr App credentials or developer console.
+                    </p>
+                  )}
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                <div className="connect-modal-actions">
                   <button
                     type="button"
-                    className="btn-logout"
+                    className="connect-btn-cancel"
                     onClick={() => setConnectModalPlatform(null)}
                     disabled={isConnecting}
-                    style={{ padding: '8px 16px', margin: 0, fontSize: '13px' }}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="btn-primary"
+                    className="connect-btn-submit"
                     disabled={isConnecting}
-                    style={{ padding: '8px 20px', fontSize: '13px', background: currentConfig.color }}
+                    style={{ background: currentConfig.color || '#4f46e5' }}
                   >
                     {isConnecting ? 'Verifying with Official API...' : `Verify & Connect Real ${currentConfig.name}`}
                   </button>
@@ -623,13 +592,13 @@ export default function Dashboard() {
 
             {/* TAB 3: Instant Demo Mockup */}
             {activeConnectTab === 'instant' && (
-              <form onSubmit={handleInstantConnect} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ background: 'rgba(234, 179, 8, 0.08)', border: '1px solid rgba(234, 179, 8, 0.2)', padding: '12px 14px', borderRadius: '10px', fontSize: '13px', color: 'var(--text)', lineHeight: 1.5 }}>
+              <form onSubmit={handleInstantConnect} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="connect-notice-banner notice-demo">
                   <strong>Offline Workspace Mode:</strong> Creates a simulated testing channel without talking to live social network servers.
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  <label className="connect-modal-label">
                     Mockup Account Handle
                   </label>
                   <input
@@ -638,25 +607,24 @@ export default function Dashboard() {
                     value={customHandle}
                     onChange={(e) => setCustomHandle(e.target.value)}
                     disabled={isConnecting}
-                    style={{ width: '100%', boxSizing: 'border-box' }}
+                    className="connect-modal-input"
                   />
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                <div className="connect-modal-actions">
                   <button
                     type="button"
-                    className="btn-logout"
+                    className="connect-btn-cancel"
                     onClick={() => setConnectModalPlatform(null)}
                     disabled={isConnecting}
-                    style={{ padding: '8px 16px', margin: 0, fontSize: '13px' }}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="btn-primary"
+                    className="connect-btn-submit"
                     disabled={isConnecting}
-                    style={{ padding: '8px 20px', fontSize: '13px', background: currentConfig.color }}
+                    style={{ background: currentConfig.color || '#4f46e5' }}
                   >
                     {isConnecting ? 'Connecting...' : `Create Demo Channel`}
                   </button>
@@ -664,12 +632,12 @@ export default function Dashboard() {
               </form>
             )}
 
-            {/* TAB 3: Direct Instagram Login */}
+            {/* TAB 4: Direct Instagram Login */}
             {activeConnectTab === 'credentials' && connectModalPlatform === 'instagram' && (
-              <form onSubmit={handlePrivateInstaSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <form onSubmit={handlePrivateInstaSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {instaStep === 1 ? (
                   <>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0, lineHeight: 1.4 }}>
+                    <p className="connect-hint-text" style={{ fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
                       Connect directly using your Instagram username and password. No Meta developer setup required.
                     </p>
                     <input
@@ -679,6 +647,7 @@ export default function Dashboard() {
                       onChange={(e) => setInstaUsername(e.target.value)}
                       required
                       disabled={connectingInsta}
+                      className="connect-modal-input"
                     />
                     <input
                       type="password"
@@ -687,22 +656,22 @@ export default function Dashboard() {
                       onChange={(e) => setInstaPassword(e.target.value)}
                       required
                       disabled={connectingInsta}
+                      className="connect-modal-input"
                     />
-                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                    <div className="connect-modal-actions">
                       <button
                         type="button"
-                        className="btn-logout"
+                        className="connect-btn-cancel"
                         onClick={() => setConnectModalPlatform(null)}
                         disabled={connectingInsta}
-                        style={{ padding: '8px 16px', margin: 0, fontSize: '13px' }}
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        className="btn-primary"
+                        className="connect-btn-submit"
                         disabled={connectingInsta}
-                        style={{ padding: '8px 20px', fontSize: '13px', background: 'var(--ig)' }}
+                        style={{ background: 'var(--ig)' }}
                       >
                         {connectingInsta ? 'Connecting...' : 'Connect Profile'}
                       </button>
@@ -710,7 +679,7 @@ export default function Dashboard() {
                   </>
                 ) : (
                   <>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0, lineHeight: 1.4 }}>
+                    <p className="connect-hint-text" style={{ fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
                       Security check: Please enter the verification code sent to your email or SMS.
                     </p>
                     <input
@@ -720,22 +689,22 @@ export default function Dashboard() {
                       onChange={(e) => setInstaCode(e.target.value)}
                       required
                       disabled={connectingInsta}
+                      className="connect-modal-input"
                     />
-                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                    <div className="connect-modal-actions">
                       <button
                         type="button"
-                        className="btn-logout"
+                        className="connect-btn-cancel"
                         onClick={() => { setInstaStep(1); setInstaCode(''); }}
                         disabled={connectingInsta}
-                        style={{ padding: '8px 16px', margin: 0, fontSize: '13px' }}
                       >
                         Back
                       </button>
                       <button
                         type="submit"
-                        className="btn-primary"
+                        className="connect-btn-submit"
                         disabled={connectingInsta}
-                        style={{ padding: '8px 20px', fontSize: '13px' }}
+                        style={{ background: 'var(--ig)' }}
                       >
                         {connectingInsta ? 'Verifying...' : 'Verify Code'}
                       </button>
