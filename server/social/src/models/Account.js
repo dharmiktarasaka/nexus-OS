@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { encrypt, decrypt } from '../utils/crypto.js';
 
 const accountSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  user: { type: mongoose.Schema.Types.Mixed, ref: 'User', required: true },
   platform: { type: String, enum: ['instagram', 'facebook', 'pinterest', 'tumblr', 'linkedin'], required: true },
   platformUserId: { type: String },
   name: { type: String },

@@ -52,9 +52,13 @@ export const getSanitizedRedirectUri = (req, platform) => {
 
 router.get('/', protect, async (req, res) => {
   try {
-    const userId = req.user?._id;
-    if (!userId) return res.json([]);
-    const accounts = await Account.find({ user: userId });
+    const rawId = req.user?._id || req.user?.id || req.user?.uid;
+    if (!rawId) return res.json([]);
+    const queries = [{ user: rawId }, { user: String(rawId) }];
+    if (mongoose.Types.ObjectId.isValid(rawId)) {
+      queries.push({ user: new mongoose.Types.ObjectId(String(rawId)) });
+    }
+    const accounts = await Account.find({ $or: queries });
     res.json(accounts || []);
   } catch (error) {
     console.warn('[accounts GET /] notice:', error.message);
@@ -849,6 +853,7 @@ const TumblrTempSchema = new mongoose.Schema({
   oauthTokenSecret: { type: String, required: true },
   user: { type: mongoose.Schema.Types.Mixed, required: true },
   callbackUrl: { type: String },
+  clientOrigin: { type: String },
 }, { timestamps: true });
 
 // Auto-delete after 15 minutes to save space
@@ -860,7 +865,8 @@ const TumblrTemp = mongoose.models.TumblrTemp || mongoose.model('TumblrTemp', Tu
 // Tumblr OAuth 1.0a Initiate
 router.get('/tumblr', protect, async (req, res) => {
   try {
-    const userId = req.user?._id;
+    const userId = req.user?._id || req.user?.id || req.user?.uid || 'nexus_master_user';
+    const clientOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null) || clientUrl;
 
     if (req.query.mode === 'demo') {
       console.log('[Tumblr Connect] Workspace Demo Mode: Connecting Tumblr blog for user', userId);
@@ -876,9 +882,9 @@ router.get('/tumblr', protect, async (req, res) => {
           tokenSecret: 'demo_tumblr_secret_' + Date.now(),
           pageId: 'nexus-blog',
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true }
       );
-      return res.json({ url: `${clientUrl}/apps/social?connected=tumblr` });
+      return res.json({ url: `${clientOrigin}/apps/social?connected=tumblr` });
     }
 
     const consumerKey = cleanEnvValue(process.env.TUMBLR_CONSUMER_KEY);
@@ -921,11 +927,13 @@ router.get('/tumblr', protect, async (req, res) => {
         oauthTokenSecret,
         user: userId,
         callbackUrl,
+        clientOrigin,
       },
       { upsert: true, new: true }
     );
 
     const redirectUrl = `https://www.tumblr.com/oauth/authorize?oauth_token=${oauthToken}`;
+    console.log(`[Tumblr OAuth] Initiated successfully for user ${userId}. Redirecting to ${redirectUrl}`);
     res.json({ url: redirectUrl, redirectUri: callbackUrl });
   } catch (error) {
     console.error('Tumblr auth initiate error:', error.response?.data || error.message);
@@ -942,6 +950,8 @@ router.get('/tumblr/callback', async (req, res) => {
     return res.redirect(`${clientUrl}/apps/social?error=tumblr_auth_failed`);
   }
 
+  let returnClientUrl = clientUrl;
+
   try {
     // Retrieve the temporary secret and user ID
     const tempRecord = await TumblrTemp.findOne({ oauthToken: oauth_token });
@@ -951,6 +961,10 @@ router.get('/tumblr/callback', async (req, res) => {
     }
 
     const { oauthTokenSecret: tempSecret, user: userId } = tempRecord;
+    if (tempRecord.clientOrigin) {
+      returnClientUrl = sanitizeUrl(tempRecord.clientOrigin);
+    }
+
     const consumerKey = cleanEnvValue(process.env.TUMBLR_CONSUMER_KEY);
     const consumerSecret = cleanEnvValue(process.env.TUMBLR_CONSUMER_SECRET);
 
@@ -979,7 +993,7 @@ router.get('/tumblr/callback', async (req, res) => {
 
     if (!accessToken || !tokenSecret) {
       console.error('Missing tokens in Tumblr access token exchange:', resToken.data);
-      return res.redirect(`${clientUrl}/apps/social?error=tumblr_auth_failed`);
+      return res.redirect(`${returnClientUrl}/apps/social?error=tumblr_auth_failed`);
     }
 
     // Fetch user info to save blog(s)
@@ -1000,37 +1014,40 @@ router.get('/tumblr/callback', async (req, res) => {
       }
     });
 
-    const user = infoRes.data?.response?.user;
-    if (!user || !user.blogs || user.blogs.length === 0) {
+    const tumblrUser = infoRes.data?.response?.user;
+    if (!tumblrUser || !tumblrUser.blogs || tumblrUser.blogs.length === 0) {
       console.error('No blogs found in Tumblr user info:', infoRes.data);
-      return res.redirect(`${clientUrl}/apps/social?error=no_blogs_found`);
+      return res.redirect(`${returnClientUrl}/apps/social?error=no_blogs_found`);
     }
 
-    for (const blog of user.blogs) {
+    for (const blog of tumblrUser.blogs) {
       const blogAvatar = `https://api.tumblr.com/v2/blog/${blog.name}.tumblr.com/avatar/128`;
+      const accountData = {
+        user: userId,
+        platform: 'tumblr',
+        platformUserId: blog.name,
+        name: blog.title || blog.name,
+        avatar: blogAvatar,
+        accessToken: accessToken,
+        tokenSecret: tokenSecret,
+        pageId: blog.name,
+      };
+
       await Account.findOneAndUpdate(
         { platformUserId: blog.name, platform: 'tumblr' },
-        {
-          user: userId,
-          platform: 'tumblr',
-          platformUserId: blog.name,
-          name: blog.title || blog.name,
-          avatar: blogAvatar,
-          accessToken: accessToken,
-          tokenSecret: tokenSecret,
-          pageId: blog.name,
-        },
-        { upsert: true, new: true }
+        accountData,
+        { upsert: true, new: true, setDefaultsOnInsert: true }
       );
+      console.log(`[Tumblr Callback] Successfully connected live blog: "${blog.name}" for user ${userId}`);
     }
 
     // Clean up temporary record
     await TumblrTemp.deleteOne({ _id: tempRecord._id });
 
-    res.redirect(`${clientUrl}/apps/social?connected=tumblr`);
+    res.redirect(`${returnClientUrl}/apps/social?connected=tumblr`);
   } catch (error) {
     console.error('Tumblr callback error:', error.response?.data || error.message);
-    res.redirect(`${clientUrl}/apps/social?error=tumblr_auth_failed`);
+    res.redirect(`${returnClientUrl}/apps/social?error=tumblr_auth_failed`);
   }
 });
 
