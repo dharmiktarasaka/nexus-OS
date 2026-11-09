@@ -280,17 +280,19 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/social-api/, '/api'),
         secure: false,
         configure: (proxy) => {
-          proxy.on('error', (_err, req, res) => {
+          proxy.on('error', (err, req, res) => {
             if (res && !res.headersSent && typeof res.writeHead === 'function') {
-              res.writeHead(200, { 'Content-Type': 'application/json' });
               const url = req.url || '';
-              if (url.includes('/accounts/facebook') || url.includes('/accounts/instagram') || url.includes('/accounts/pinterest') || url.includes('/accounts/tumblr') || url.includes('/accounts/linkedin')) {
-                res.end(JSON.stringify({ url: '/apps/social?connected=demo' }));
-              } else if (url.includes('/accounts')) {
-                res.end(JSON.stringify([]));
+              if (url.includes('/accounts/')) {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                  message: 'Social Media backend service (port 5003) is not responding. Please make sure the backend is running with "npm run dev" or "npm run social:server".'
+                }));
               } else if (url.includes('/posts')) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify([]));
               } else {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true, offline: true }));
               }
             }

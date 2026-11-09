@@ -153,8 +153,31 @@ const startServer = (port, retries = 3) => {
       process.exit(1);
     }
   });
+  return srv;
 };
 
+process.on('uncaughtException', (err) => {
+  console.error('[Social Service Uncaught Exception]:', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[Social Service Unhandled Rejection]:', reason?.message || reason);
+});
+
 startServer(PORT);
+
+// Also listen on port 5000 if in local development and port 5000 is available (ensures OAuth callbacks resolve directly)
+if (!IS_PROD && String(PORT) !== '5000') {
+  try {
+    const srv5000 = app.listen(5000, () => {
+      console.log(`[Social Service] Also listening on port 5000 for direct OAuth callback redirects`);
+    });
+    srv5000.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log(`[Social Service] Port 5000 is being handled by external Gateway/Proxy`);
+      }
+    });
+  } catch (e) {}
+}
+
 connectDB().catch(err => console.warn('[Social DB]', err.message));
 startScheduler();

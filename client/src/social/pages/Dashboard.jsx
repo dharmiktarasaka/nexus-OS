@@ -100,8 +100,12 @@ export default function Dashboard() {
     } else if (searchParams.get('connected') === 'tumblr') {
       toast.success('Tumblr account connected successfully!');
       refreshAccounts();
+      accountsAPI.list().then(res => {
+        if (res.data) setAccounts(res.data);
+      }).catch(() => {});
     } else if (searchParams.get('error') === 'tumblr_auth_failed') {
-      toast.error('Failed to connect Tumblr account.');
+      const details = searchParams.get('details');
+      toast.error(details ? `Failed to connect Tumblr: ${details}` : 'Failed to connect Tumblr account.');
     } else if (searchParams.get('connected') === 'linkedin') {
       toast.success('LinkedIn account connected successfully!');
       refreshAccounts();
@@ -185,10 +189,13 @@ export default function Dashboard() {
     setIsConnecting(true);
     try {
       const res = await config.authFunc({ redirect_uri: resolvedRedirectUri });
-      if (res.data?.url) {
-        window.location.href = res.data.url;
+      const targetUrl = res.data?.url;
+      if (targetUrl && (targetUrl.startsWith('https://') || targetUrl.startsWith('http://')) && !targetUrl.includes('connected=demo')) {
+        window.location.href = targetUrl;
+      } else if (targetUrl && targetUrl.includes('connected=demo')) {
+        toast.error(`Social backend service (port 5003) is offline. Please start it using 'npm run dev'.`);
       } else {
-        toast.error('Did not receive an authorization URL from the server.');
+        toast.error(res.data?.message || `Did not receive an authorization URL from ${config.name}.`);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || `Failed to initiate official ${config.name} login.`);
@@ -533,7 +540,7 @@ export default function Dashboard() {
                     className="connect-btn-submit"
                     onClick={handleOfficialOAuth}
                     disabled={isConnecting}
-                    style={{ background: currentConfig.color || '#4f46e5' }}
+                    style={{ background: currentConfig.color === '#35465c' ? 'linear-gradient(135deg, #001935 0%, #35465c 100%)' : (currentConfig.color || '#4f46e5') }}
                   >
                     {isConnecting ? 'Opening Login...' : `Log in with Real ${currentConfig.name} →`}
                   </button>
@@ -582,7 +589,7 @@ export default function Dashboard() {
                     type="submit"
                     className="connect-btn-submit"
                     disabled={isConnecting}
-                    style={{ background: currentConfig.color || '#4f46e5' }}
+                    style={{ background: currentConfig.color === '#35465c' ? 'linear-gradient(135deg, #001935 0%, #35465c 100%)' : (currentConfig.color || '#4f46e5') }}
                   >
                     {isConnecting ? 'Verifying with Official API...' : `Verify & Connect Real ${currentConfig.name}`}
                   </button>
