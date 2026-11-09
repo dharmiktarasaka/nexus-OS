@@ -336,35 +336,12 @@ export default function Dashboard() {
             </ul>
           )}
           <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
-            <button
-              className="btn-primary"
-              style={{ background: '#1877f2' }}
-              onClick={() => openConnectModal('facebook')}
-            >
-              + Connect Facebook
-            </button>
-
-            <button
-              className="btn-primary"
-              style={{ background: 'var(--ig)' }}
-              onClick={() => openConnectModal('instagram')}
-            >
-              + Connect Instagram
-            </button>
-
             <button 
               className="btn-primary" 
               style={{ background: '#bd081c' }} 
               onClick={() => openConnectModal('pinterest')}
             >
               + Connect Pinterest
-            </button>
-            <button 
-              className="btn-primary" 
-              style={{ background: '#35465c' }} 
-              onClick={() => openConnectModal('tumblr')}
-            >
-              + Connect Tumblr
             </button>
             <button 
               className="btn-primary" 
@@ -389,7 +366,7 @@ export default function Dashboard() {
                 <ol>
                   <li><strong>Instant Workspace Connect:</strong> Connect any profile immediately with 0 configuration. Full posting and scheduling ready!</li>
                   <li><strong>Official OAuth:</strong> Add the displayed Redirect URI into your developer console for official tokens.</li>
-                  <li><strong>Instagram:</strong> Switch to the "Instagram Login" tab to connect directly with your credentials.</li>
+                  <li><strong>Access Token Connect:</strong> Generate an Access Token in your developer portal and paste it to connect directly.</li>
                 </ol>
               </div>
             )}
