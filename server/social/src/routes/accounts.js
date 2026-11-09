@@ -61,18 +61,34 @@ router.get('/', protect, async (req, res) => {
       }
     }
     
-    // In development mode, also include workspace/dev accounts so connected accounts are never lost
+    // In development mode, include all known active workspace/dev user accounts
     if (process.env.NODE_ENV !== 'production') {
       queries.push({ user: '660000000000000000000001' });
       queries.push({ user: new mongoose.Types.ObjectId('660000000000000000000001') });
+      queries.push({ user: '6ae9944d9126ce4882459027' });
+      queries.push({ user: new mongoose.Types.ObjectId('6ae9944d9126ce4882459027') });
+      queries.push({ user: '6af1a7ef68cecd6b98119437' });
+      queries.push({ user: new mongoose.Types.ObjectId('6af1a7ef68cecd6b98119437') });
       queries.push({ user: 'nexus_master_user' });
     }
 
     let accounts = await Account.find(queries.length ? { $or: queries } : {});
     
-    // Fallback in dev: If no accounts matched specifically for this user id, return all accounts in the database
-    if ((!accounts || accounts.length === 0) && process.env.NODE_ENV !== 'production') {
-      accounts = await Account.find({});
+    // In development mode: Ensure all accounts in the database are visible to the developer/admin
+    if (process.env.NODE_ENV !== 'production') {
+      const allAccounts = await Account.find({});
+      if (allAccounts && allAccounts.length > 0) {
+        const seen = new Set();
+        const merged = [];
+        for (const acc of [...accounts, ...allAccounts]) {
+          const key = `${acc.platform}:${acc.platformUserId}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            merged.push(acc);
+          }
+        }
+        return res.json(merged);
+      }
     }
 
     res.json(accounts || []);

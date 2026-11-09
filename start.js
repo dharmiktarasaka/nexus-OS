@@ -37,7 +37,7 @@ if (fs.existsSync(rootEnvPath) && typeof process.loadEnvFile === 'function') {
 
 const UNIFIED_MONGODB_URI = process.env.MONGODB_URI || process.env.CENTRAL_MONGODB_URI || '';
 
-const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.PORT) || Boolean(process.env.RENDER) || Boolean(process.env.RAILWAY_ENVIRONMENT);
+const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.RENDER) || Boolean(process.env.RAILWAY_ENVIRONMENT);
 const GATEWAY_PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : (isProduction ? 10000 : 5000);
 
 console.log('===============================================================');

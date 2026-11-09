@@ -334,5 +334,5 @@ app.listen(PORT, async () => {
   const connected = await connectDB();
   if (connected) {
     await migrateFileProjectsToMongo();
-  
+  }
 });
