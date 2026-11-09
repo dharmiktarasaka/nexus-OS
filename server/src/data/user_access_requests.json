@@ -12,5 +12,19 @@
     "lastRequestedAt": "2026-11-09T10:55:50.469Z",
     "reviewedAt": "2026-11-03T06:50:15.941Z",
     "reviewedBy": "dharmik.tarasaka@gmail.com"
+  },
+  {
+    "_id": "rec_1794227928827",
+    "uid": "SwlGLXTFtSMnqTacvkXx5pceVd42",
+    "email": "dharmik.tarasaka@gmail.com",
+    "displayName": "Dharmik",
+    "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocJDeDkJKCaTv2g7la6r3yjcKFyFB3gQA25FgrjGfG1_LwJtng=s96-c",
+    "provider": "google",
+    "status": "APPROVED",
+    "role": "ADMIN",
+    "requestedAt": "2026-11-09T12:38:48.824Z",
+    "lastRequestedAt": "2026-11-09T12:38:48.858Z",
+    "reviewedAt": "2026-11-09T12:38:48.824Z",
+    "reviewedBy": "SYSTEM"
   }
 ]
