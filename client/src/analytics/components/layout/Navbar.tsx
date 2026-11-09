@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.js';
 import { useBusiness } from '../../context/BusinessContext.js';
 import {
@@ -12,7 +12,8 @@ import {
   Zap,
   CheckCircle2,
   Settings,
-  ShieldCheck
+  ShieldCheck,
+  ArrowLeft
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -29,21 +30,21 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="h-16 border-b border-slate-800 bg-[#0B0F19]/90 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-6 flex items-center justify-between">
+    <header className="h-16 border-b border-slate-200/80 bg-white/95 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-6 flex items-center justify-between shadow-xs">
       {/* Brand & Active Business Selector */}
       <div className="flex items-center gap-4 lg:gap-8">
         <div
           onClick={() => navigate('/apps/analytics/dashboard')}
           className="flex items-center gap-2.5 cursor-pointer group"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-emerald-500 flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div className="hidden sm:block">
-            <div className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
-              STRATIQ <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">AI ADVISOR</span>
+            <div className="text-sm font-extrabold tracking-tight text-slate-900 flex items-center gap-1.5">
+              STRATIQ <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">AI ADVISOR</span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">Business Growth & Strategy</p>
+            <p className="text-[11px] text-slate-500 font-medium">Business Growth & Strategy</p>
           </div>
         </div>
 
@@ -52,18 +53,18 @@ export const Navbar: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700/80 hover:border-slate-600 text-xs font-medium text-slate-200 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200/80 hover:border-slate-300 text-xs font-semibold text-slate-700 transition-colors"
             >
-              <Building2 className="w-3.5 h-3.5 text-blue-400" />
+              <Building2 className="w-3.5 h-3.5 text-blue-600" />
               <span className="max-w-[140px] truncate">
                 {activeBusiness ? activeBusiness.identity.businessName : 'Select Business'}
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
             </button>
 
             {dropdownOpen && (
-              <div className="absolute left-0 mt-2 w-64 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl p-2 z-50">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-2 py-1">
+              <div className="absolute left-0 mt-2 w-64 rounded-xl bg-white border border-slate-200 shadow-xl p-2 z-50">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">
                   Your Businesses
                 </div>
                 <div className="max-h-52 overflow-y-auto space-y-1 my-1">
@@ -76,20 +77,20 @@ export const Navbar: React.FC = () => {
                       }}
                       className={`w-full text-left px-2.5 py-2 rounded-lg text-xs flex items-center justify-between transition-colors ${
                         activeBusiness?.id === b.id
-                          ? 'bg-blue-600/20 text-blue-400 font-semibold'
-                          : 'text-slate-300 hover:bg-slate-800'
+                          ? 'bg-blue-50 text-blue-700 font-bold'
+                          : 'text-slate-700 hover:bg-slate-100'
                       }`}
                     >
                       <span className="truncate">{b.identity.businessName}</span>
-                      {activeBusiness?.id === b.id && <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />}
+                      {activeBusiness?.id === b.id && <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />}
                     </button>
                   ))}
                 </div>
 
-                <div className="pt-2 border-t border-slate-800">
+                <div className="pt-2 border-t border-slate-100">
                   <button
                     onClick={handleCreateNew}
-                    className="w-full text-left px-2.5 py-2 rounded-lg text-xs font-medium text-emerald-400 hover:bg-emerald-500/10 flex items-center gap-2 transition-colors"
+                    className="w-full text-left px-2.5 py-2 rounded-lg text-xs font-semibold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 transition-colors"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Add Another Business</span>
@@ -103,6 +104,16 @@ export const Navbar: React.FC = () => {
 
       {/* Right Controls */}
       <div className="flex items-center gap-3">
+        {/* Platform Return Link */}
+        <NavLink
+          to="/"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition-colors border border-slate-200"
+          title="Return to Nexus Platform Dashboard"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Platform</span>
+        </NavLink>
+
         {/* Analyze My Business Primary CTA */}
         <button
           onClick={() => navigate('/apps/analytics/stepper')}
@@ -117,36 +128,36 @@ export const Navbar: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-slate-800/80 transition-colors"
+              className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
             >
               {user.photoURL ? (
                 <img
                   src={user.photoURL}
                   alt={user.displayName || user.email || 'User'}
-                  className="w-8 h-8 rounded-full border border-blue-500/40 object-cover"
+                  className="w-8 h-8 rounded-full border border-blue-300 object-cover"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-blue-400">
+                <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-xs font-bold text-blue-700">
                   {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
                 </div>
               )}
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-500 hidden sm:block" />
             </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl p-2 z-50">
-                <div className="px-3 py-2 border-b border-slate-800 mb-1">
-                  <p className="text-xs font-semibold text-white truncate">{user.displayName || user.email?.split('@')[0] || 'User'}</p>
-                  <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+              <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white border border-slate-200 shadow-xl p-2 z-50">
+                <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                  <p className="text-xs font-bold text-slate-900 truncate">{user.displayName || user.email?.split('@')[0] || 'User'}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
                 </div>
                 <button
                   onClick={() => {
                     setUserMenuOpen(false);
                     navigate('/apps/analytics/settings');
                   }}
-                  className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-300 hover:bg-slate-800 flex items-center gap-2 transition-colors"
+                  className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-colors font-medium"
                 >
-                  <Settings className="w-3.5 h-3.5 text-slate-400" />
+                  <Settings className="w-3.5 h-3.5 text-slate-500" />
                   <span>Settings & Privacy</span>
                 </button>
                 <button
@@ -155,7 +166,7 @@ export const Navbar: React.FC = () => {
                     logout();
                     navigate('/login');
                   }}
-                  className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition-colors"
+                  className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors font-medium"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Sign Out</span>
@@ -166,7 +177,7 @@ export const Navbar: React.FC = () => {
         ) : (
           <button
             onClick={() => navigate('/login')}
-            className="text-xs font-semibold text-slate-300 hover:text-white px-3 py-2"
+            className="text-xs font-semibold text-slate-700 hover:text-slate-900 px-3 py-2"
           >
             Sign In
           </button>

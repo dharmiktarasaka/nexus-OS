@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }));
 
       // 3. Mediamation Social Media Platform Token
-      localStorage.setItem('token', crmToken);
+      localStorage.setItem('token', centralToken);
 
       // 4. Website Builder Mock / Firebase Auth Session
       localStorage.setItem('mock_auth_user', JSON.stringify({
@@ -299,30 +299,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
 
     // Completely clear all stored user tokens and private cached states
-    const keysToRemove = [
-      'nexus_current_user',
-      'nexus_auth_user',
-      'crm_token',
-      'crm_user',
-      'auth_token',
-      'studio_auth_token',
-      'stratiq_user',
-      'token',
-      'mock_auth_user',
-      'lead_cache',
-      'pulse_user',
-      'pulse_auth_user',
-      'pulse_offline_projects'
-    ];
-    keysToRemove.forEach(k => localStorage.removeItem(k));
-
     try {
+      const theme = localStorage.getItem('nexus_theme');
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const key = localStorage.key(i);
-        if (key && (key.startsWith('pulse_offline_projects_') || key.startsWith('crm_') || key.startsWith('cached_'))) {
+        if (key && key !== 'nexus_theme') {
           localStorage.removeItem(key);
         }
       }
+      if (theme) localStorage.setItem('nexus_theme', theme);
     } catch (e) {}
 
     try {

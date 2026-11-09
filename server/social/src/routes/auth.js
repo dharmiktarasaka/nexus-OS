@@ -193,9 +193,9 @@ router.get('/instagram/callback', async (req, res) => {
 
     const { id, username } = profileRes.data;
 
-    // Save as Account in Database
+    // Save as Account in Database strictly isolated by authenticated user
     await Account.findOneAndUpdate(
-      { platformUserId: id, platform: 'instagram' },
+      { user: userId, platformUserId: id, platform: 'instagram' },
       {
         user: userId,
         platform: 'instagram',
@@ -205,7 +205,7 @@ router.get('/instagram/callback', async (req, res) => {
         tokenExpiresAt: tokenExpiresAt,
         instagramBusinessId: id,
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
     res.redirect(`${clientUrl}/apps/social?connected=instagram`);

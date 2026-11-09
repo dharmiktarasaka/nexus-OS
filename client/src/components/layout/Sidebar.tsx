@@ -88,6 +88,8 @@ export const Sidebar: React.FC = () => {
     }
   ];
 
+  const isCollapsed = sidebarCollapsed && !mobileSidebarOpen;
+
   return (
     <>
       {/* Mobile Drawer Backdrop */}
@@ -106,16 +108,23 @@ export const Sidebar: React.FC = () => {
         }`}
       >
         {/* Brand Header */}
-        <div className="h-16 px-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80">
+        <div
+          className={`h-16 flex items-center border-b border-slate-100 dark:border-slate-800/80 relative transition-all ${
+            isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
+          }`}
+        >
           <NavLink
             to="/"
             onClick={() => setMobileSidebarOpen(false)}
-            className="flex items-center gap-3 overflow-hidden"
+            title={isCollapsed ? 'NEXUS OS Platform' : undefined}
+            className={`flex items-center gap-3 overflow-hidden ${
+              isCollapsed ? 'justify-center' : ''
+            }`}
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 shrink-0 hover:scale-105 transition-transform">
               <Command className="w-5 h-5" />
             </div>
-            {(!sidebarCollapsed || mobileSidebarOpen) && (
+            {!isCollapsed && (
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white truncate">
                   NEXUS OS
@@ -127,29 +136,37 @@ export const Sidebar: React.FC = () => {
             )}
           </NavLink>
 
-          <div className="flex items-center gap-1">
-            {/* Desktop Collapse Toggle */}
+          {/* Desktop Collapse Toggle */}
+          {!isCollapsed ? (
             <button
               onClick={toggleSidebar}
-              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="hidden md:flex w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white items-center justify-center transition-colors shadow-2xs cursor-pointer"
+              title="Collapse sidebar"
+              className="hidden md:flex w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white items-center justify-center transition-colors shadow-2xs cursor-pointer shrink-0"
             >
-              {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              <ChevronLeft className="w-4 h-4" />
             </button>
-
-            {/* Mobile Close Button */}
+          ) : (
             <button
-              onClick={() => setMobileSidebarOpen(false)}
-              className="md:hidden w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white flex items-center justify-center cursor-pointer"
-              aria-label="Close mobile navigation"
+              onClick={toggleSidebar}
+              title="Expand sidebar"
+              className="absolute -right-3.5 top-1/2 -translate-y-1/2 z-30 hidden md:flex w-7 h-7 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-white items-center justify-center shadow-md transition-all hover:scale-110 cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
-          </div>
+          )}
+
+          {/* Mobile Close Button */}
+          <button
+            onClick={() => setMobileSidebarOpen(false)}
+            className="md:hidden w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white flex items-center justify-center cursor-pointer"
+            aria-label="Close mobile navigation"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Active Workspace Banner */}
-        {(!sidebarCollapsed || mobileSidebarOpen) && (
+        {!isCollapsed && (
           <div className="p-3 mx-3 mt-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center justify-center shrink-0">
@@ -169,10 +186,10 @@ export const Sidebar: React.FC = () => {
         )}
 
         {/* Navigation Scroll Area */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        <div className={`flex-1 overflow-y-auto py-4 ${isCollapsed ? 'px-2 space-y-4' : 'px-3 space-y-6'}`}>
           {/* Section A: Main Dashboard */}
           <div>
-            {(!sidebarCollapsed || mobileSidebarOpen) && (
+            {!isCollapsed && (
               <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 Main Dashboard
               </p>
@@ -186,20 +203,24 @@ export const Sidebar: React.FC = () => {
                     key={item.path}
                     to={item.path}
                     onClick={() => setMobileSidebarOpen(false)}
-                    title={sidebarCollapsed ? item.name : undefined}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
+                    title={isCollapsed ? item.name : undefined}
+                    className={`flex items-center transition-all group ${
+                      isCollapsed
+                        ? 'w-10 h-10 mx-auto justify-center rounded-xl'
+                        : 'gap-3 px-3 py-2 rounded-xl text-xs font-semibold'
+                    } ${
                       isActive
                         ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 shadow-xs'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
-                    } ${sidebarCollapsed && !mobileSidebarOpen ? 'justify-center' : ''}`}
+                    }`}
                   >
-                    <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-105 ${
+                    <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
                       isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'
                     }`} />
-                    {(!sidebarCollapsed || mobileSidebarOpen) && (
+                    {!isCollapsed && (
                       <span className="truncate flex-1">{item.name}</span>
                     )}
-                    {(!sidebarCollapsed || mobileSidebarOpen) && item.badge && (
+                    {!isCollapsed && item.badge && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                         {item.badge}
                       </span>
@@ -210,9 +231,14 @@ export const Sidebar: React.FC = () => {
             </nav>
           </div>
 
+          {/* Section Divider when collapsed */}
+          {isCollapsed && (
+            <div className="w-8 h-px bg-slate-200 dark:bg-slate-800 mx-auto my-2" />
+          )}
+
           {/* Section B: Business Applications */}
           <div>
-            {(!sidebarCollapsed || mobileSidebarOpen) && (
+            {!isCollapsed && (
               <div className="flex items-center justify-between px-3 mb-2">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   Business Applications
@@ -229,20 +255,24 @@ export const Sidebar: React.FC = () => {
                     key={app.id}
                     to={app.path}
                     onClick={() => setMobileSidebarOpen(false)}
-                    title={sidebarCollapsed ? app.name : undefined}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
+                    title={isCollapsed ? app.name : undefined}
+                    className={`flex items-center transition-all group ${
+                      isCollapsed
+                        ? 'w-10 h-10 mx-auto justify-center rounded-xl'
+                        : 'gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold'
+                    } ${
                       isActive
                         ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
                         : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
-                    } ${sidebarCollapsed && !mobileSidebarOpen ? 'justify-center' : ''}`}
+                    }`}
                   >
                     <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
                       isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'
                     }`} />
-                    {(!sidebarCollapsed || mobileSidebarOpen) && (
+                    {!isCollapsed && (
                       <span className="truncate flex-1">{app.name}</span>
                     )}
-                    {(!sidebarCollapsed || mobileSidebarOpen) && (
+                    {!isCollapsed && (
                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide ${
                         isActive ? 'bg-white/20 text-white' : app.badgeColor
                       }`}>
@@ -261,14 +291,17 @@ export const Sidebar: React.FC = () => {
           <NavLink
             to="/profile"
             onClick={() => setMobileSidebarOpen(false)}
-            className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
+            title={isCollapsed ? (user?.displayName || 'Executive User') : undefined}
+            className={`flex items-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group ${
+              isCollapsed ? 'justify-center p-1.5' : 'gap-3 p-2'
+            }`}
           >
             <img
               src={user?.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'}
               alt={user?.displayName || 'Executive'}
               className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"
             />
-            {(!sidebarCollapsed || mobileSidebarOpen) && (
+            {!isCollapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
                   {user?.displayName || 'Executive User'}

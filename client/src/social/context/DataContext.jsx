@@ -12,6 +12,9 @@ export function DataProvider({ children }) {
   const [loadingData, setLoadingData] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
 
+  // Track the current user ID to detect user switches immediately
+  const currentUserIdRef = useRef(user?._id);
+
   // Prevent concurrent fetches
   const fetchingRef = useRef(false);
 
@@ -25,28 +28,38 @@ export function DataProvider({ children }) {
         accountsAPI.list(),
         postsAPI.list({}),
       ]);
-      setAccounts(accRes.data);
-      setPosts(postRes.data);
+      setAccounts(Array.isArray(accRes.data) ? accRes.data : []);
+      setPosts(Array.isArray(postRes.data) ? postRes.data : []);
       setDataLoaded(true);
     } catch (err) {
       console.error('[DataContext] Failed to load data:', err.message);
+      setAccounts([]);
+      setPosts([]);
     } finally {
       setLoadingData(false);
       fetchingRef.current = false;
     }
   }, []);
 
-  // Load once when user logs in. Reset when they log out.
+  // Isolate data on user change or logout
   useEffect(() => {
-    if (user) {
-      if (!dataLoaded) fetchAll();
-    } else {
-      // User logged out — clear cache so next login starts fresh
+    const currentId = user?._id;
+    if (currentId !== currentUserIdRef.current) {
+      // User switched or logged out — immediately purge previous in-memory state
+      currentUserIdRef.current = currentId;
       setAccounts([]);
       setPosts([]);
       setDataLoaded(false);
     }
-  }, [user, dataLoaded, fetchAll]);
+
+    if (currentId) {
+      fetchAll();
+    } else {
+      setAccounts([]);
+      setPosts([]);
+      setDataLoaded(false);
+    }
+  }, [user?._id, fetchAll]);
 
   // Expose a manual refresh so pages can request a re-fetch after mutations
   const refresh = useCallback(() => {

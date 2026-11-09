@@ -22,7 +22,7 @@ export const AnalyticsApp: React.FC = () => {
   return (
     <AuthProvider>
       <BusinessProvider>
-        <div className="analytics-app-scope w-full h-full flex flex-col flex-1 min-h-0 overflow-hidden bg-[#090D16]">
+        <div className="analytics-app-scope w-full h-full flex flex-col flex-1 min-h-0 overflow-hidden bg-slate-50 text-slate-900">
           <AppLayout>
             <Routes>
               <Route index element={<DashboardPage />} />

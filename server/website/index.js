@@ -20,30 +20,29 @@ const {
 
 const jwt = require('jsonwebtoken');
 
-// Helper to strictly resolve authenticated user on every request
+const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
+const CRM_JWT_SECRET = process.env.CRM_JWT_SECRET || 'Tarasaka_supersecrectKey$2028';
+
+// Helper to strictly resolve authenticated user on every request via cryptographic verification
 function resolveUser(req) {
   let userId = null;
   let userEmail = null;
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
-    const token = req.headers.authorization.split(' ')[1];
-    try {
-      const decoded = jwt.decode(token);
-      if (decoded) {
-        userId = decoded.uid || decoded.id || decoded._id || decoded.sub || null;
-        userEmail = decoded.email || null;
+    const token = req.headers.authorization.split(' ')[1]?.trim();
+    if (token) {
+      const secrets = [JWT_SECRET, CRM_JWT_SECRET];
+      for (const secret of secrets) {
+        try {
+          const decoded = jwt.verify(token, secret);
+          if (decoded) {
+            userId = decoded.uid || decoded.id || decoded._id || decoded.sub || null;
+            userEmail = decoded.email || null;
+            break;
+          }
+        } catch (e) {}
       }
-    } catch (e) {}
-  }
-
-  if (!userId && req.headers['x-user-id']) {
-    userId = req.headers['x-user-id'];
-  }
-  if (!userEmail && req.headers['x-user-email']) {
-    userEmail = req.headers['x-user-email'];
-  }
-  if (!userId && req.query.userId) {
-    userId = req.query.userId;
+    }
   }
 
   if (userId) userId = String(userId).trim();

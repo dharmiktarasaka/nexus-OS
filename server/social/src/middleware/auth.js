@@ -16,207 +16,100 @@ function suspensionResponse(res, user) {
   });
 }
 
-const DEFAULT_DEV_USER = {
-  _id: new mongoose.Types.ObjectId('660000000000000000000001'),
-  name: 'Nexus Executive',
-  email: 'admin@nexus.io',
-  role: 'admin',
-  isCurrentlySuspended: () => false
-};
-
 // ── protect ──────────────────────────────────────────────────────────────────
 export const protect = async (req, res, next) => {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {
-    if (process.env.NODE_ENV !== 'production') {
-      req.user = DEFAULT_DEV_USER;
-      return next();
-    }
-    return res.status(401).json({ message: 'Not authorized' });
+    return res.status(401).json({ message: 'Not authorized: Authentication Bearer token required' });
   }
 
-  const token = header.split(' ')[1];
-
-  try {
-    const decodedToken = await verifyFirebaseIdToken(token);
-    if (decodedToken && decodedToken.uid) {
-      let user = null;
-      try {
-        if (mongoose.connection.readyState === 1) {
-          user = await User.findOne({ $or: [{ firebaseUid: decodedToken.uid }, { email: decodedToken.email?.toLowerCase() }] });
-          if (!user && decodedToken.email) {
-            user = await User.create({
-              firebaseUid: decodedToken.uid,
-              name: decodedToken.name || decodedToken.email.split('@')[0],
-              email: decodedToken.email.toLowerCase(),
-              role: 'user'
-            });
-          }
-        }
-      } catch (dbErr) {
-        console.warn('[Social Auth] User DB sync notice:', dbErr.message);
-      }
-
-      if (user) {
-        if (typeof user.isCurrentlySuspended === 'function' && user.isCurrentlySuspended()) {
-          return suspensionResponse(res, user);
-        }
-        User.updateOne({ _id: user._id }, { lastActivity: new Date() }).catch(() => {});
-        req.user = user;
-        return next();
-      }
-    }
-  } catch (err) {
-    // Fallback to local JWT
+  const token = header.split(' ')[1]?.trim();
+  if (!token) {
+    return res.status(401).json({ message: 'Not authorized: Token missing' });
   }
 
-  // Support bridge tokens from central Nexus OS platform
-  if (token.startsWith('crm_bridge_token_') || token.startsWith('central_token_') || token.startsWith('mock_')) {
-    try {
-      const uid = token.replace(/^(crm_bridge_token_|central_token_|mock_)/, '') || 'nexus_master_user';
-      let user = null;
-      try {
-        if (mongoose.connection.readyState === 1) {
-          user = await User.findOne({ $or: [{ firebaseUid: uid }, { email: `${uid}@nexus.io` }] });
-          if (!user) {
-            user = await User.create({
-              firebaseUid: uid,
-              name: 'Nexus Executive',
-              email: `${uid}@nexus.io`,
-              role: 'admin'
-            });
-          }
-        }
-      } catch (dbErr) {
-        console.warn('[Social Auth] Bridge DB notice:', dbErr.message);
-      }
-
-      if (!user) {
-        user = {
-          ...DEFAULT_DEV_USER,
-          name: 'Nexus Executive',
-          email: `${uid}@nexus.io`
-        };
-      }
-
-      req.user = user;
-      return next();
-    } catch (bridgeErr) {
-      console.warn('[Social Auth] Bridge token resolution notice:', bridgeErr.message);
-    }
-  }
-
-  // Support Nexus OS central JWT, CRM JWT, and standalone Mediamation JWT secrets
+  // 1. Cryptographic JWT Verification (Central Platform JWT, CRM JWT, Social JWT)
   const secrets = [
     process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026',
     process.env.CRM_JWT_SECRET || 'Tarasaka_supersecrectKey$2028',
     'super_secret_central_saas_platform_key_2026'
   ];
 
+  let verifiedDecoded = null;
   for (const secret of secrets) {
     try {
       const decoded = jwt.verify(token, secret);
-      if (decoded) {
-        const lookup = [];
-        if (decoded.id && mongoose.Types.ObjectId.isValid(decoded.id)) lookup.push({ _id: decoded.id });
-        if (decoded.uid) lookup.push({ firebaseUid: decoded.uid });
-        if (decoded.email) lookup.push({ email: decoded.email.toLowerCase() });
-
-        let user = null;
-        try {
-          if (mongoose.connection.readyState === 1 && lookup.length > 0) {
-            user = await User.findOne({ $or: lookup });
-            if (!user && (decoded.email || decoded.uid)) {
-              const userEmail = (decoded.email || `${decoded.uid || 'user'}@nexus.io`).toLowerCase();
-              user = await User.create({
-                name: decoded.name || userEmail.split('@')[0],
-                email: userEmail,
-                firebaseUid: decoded.uid || String(decoded.id || ''),
-                role: decoded.role === 'ADMIN' ? 'admin' : 'user'
-              });
-            }
-          }
-        } catch (dbErr) {
-          console.warn('[Social Auth] JWT DB notice:', dbErr.message);
-        }
-
-        if (user) {
-          if (typeof user.isCurrentlySuspended === 'function' && user.isCurrentlySuspended()) {
-            return suspensionResponse(res, user);
-          }
-          User.updateOne({ _id: user._id }, { lastActivity: new Date() }).catch(() => {});
-          req.user = user;
-          return next();
-        }
+      if (decoded && (decoded.id || decoded.uid || decoded.sub || decoded.email)) {
+        verifiedDecoded = decoded;
+        break;
       }
     } catch (e) {
-      // Try next secret
+      // Continue trying configured secrets
     }
   }
 
-  // Graceful token decoding fallback
-  try {
-    const unverified = jwt.decode(token);
-    if (unverified && (unverified.email || unverified.uid || unverified.id)) {
-      const lookup = [];
-      if (unverified.id && mongoose.Types.ObjectId.isValid(unverified.id)) lookup.push({ _id: unverified.id });
-      if (unverified.uid) lookup.push({ firebaseUid: unverified.uid });
-      if (unverified.email) lookup.push({ email: unverified.email.toLowerCase() });
-
-      let user = null;
-      try {
-        if (mongoose.connection.readyState === 1 && lookup.length > 0) {
-          user = await User.findOne({ $or: lookup });
-          if (!user) {
-            const userEmail = (unverified.email || `${unverified.uid || 'user'}@nexus.io`).toLowerCase();
-            user = await User.create({
-              name: unverified.name || userEmail.split('@')[0],
-              email: userEmail,
-              firebaseUid: unverified.uid || String(unverified.id || ''),
-              role: 'user'
-            });
-          }
-        }
-      } catch (dbErr) {
-        console.warn('[Social Auth] Decode DB notice:', dbErr.message);
-      }
-
-      if (!user) {
-        user = {
-          ...DEFAULT_DEV_USER,
-          name: unverified.name || 'Nexus User',
-          email: unverified.email || 'user@nexus.io'
+  // 2. Firebase ID Token Verification
+  if (!verifiedDecoded) {
+    try {
+      const fbUser = await verifyFirebaseIdToken(token);
+      if (fbUser && fbUser.uid) {
+        verifiedDecoded = {
+          uid: fbUser.uid,
+          id: fbUser.uid,
+          email: fbUser.email,
+          name: fbUser.name || fbUser.email?.split('@')[0]
         };
       }
-
-      req.user = user;
-      return next();
+    } catch (err) {
+      // Invalid Firebase token
     }
-  } catch (decodeErr) {
-    // ignore
   }
 
-  // Development / sandbox fallback to default admin
-  if (process.env.NODE_ENV !== 'production') {
-    let fallbackUser = null;
-    try {
-      if (mongoose.connection.readyState === 1) {
-        fallbackUser = await User.findOne();
-        if (!fallbackUser) {
-          fallbackUser = await User.create({
-            name: 'Nexus Executive',
-            email: 'admin@nexus.io',
-            role: 'admin'
-          });
-        }
+  if (!verifiedDecoded) {
+    return res.status(401).json({ message: 'Not authorized: Invalid or expired session token' });
+  }
+
+  try {
+    const lookup = [];
+    if (verifiedDecoded.id && mongoose.Types.ObjectId.isValid(verifiedDecoded.id)) {
+      lookup.push({ _id: verifiedDecoded.id });
+    }
+    if (verifiedDecoded.uid) {
+      lookup.push({ firebaseUid: verifiedDecoded.uid });
+    }
+    if (verifiedDecoded.email) {
+      lookup.push({ email: verifiedDecoded.email.toLowerCase() });
+    }
+
+    let user = null;
+    if (mongoose.connection.readyState === 1 && lookup.length > 0) {
+      user = await User.findOne({ $or: lookup });
+      if (!user && (verifiedDecoded.email || verifiedDecoded.uid)) {
+        const userEmail = (verifiedDecoded.email || `${verifiedDecoded.uid || 'user'}@nexus.io`).toLowerCase();
+        user = await User.create({
+          name: verifiedDecoded.name || userEmail.split('@')[0],
+          email: userEmail,
+          firebaseUid: verifiedDecoded.uid || String(verifiedDecoded.id || ''),
+          role: verifiedDecoded.role === 'ADMIN' ? 'admin' : 'user'
+        });
       }
-    } catch (e) {}
+    }
 
-    req.user = fallbackUser || DEFAULT_DEV_USER;
+    if (!user) {
+      return res.status(401).json({ message: 'User record could not be established from session token' });
+    }
+
+    if (typeof user.isCurrentlySuspended === 'function' && user.isCurrentlySuspended()) {
+      return suspensionResponse(res, user);
+    }
+
+    User.updateOne({ _id: user._id }, { lastActivity: new Date() }).catch(() => {});
+    req.user = user;
     return next();
+  } catch (dbErr) {
+    console.error('[Social Auth] Verification database error:', dbErr.message);
+    return res.status(500).json({ message: 'Authentication verification service error' });
   }
-
-  res.status(401).json({ message: 'Not authorized: Invalid session token' });
 };
 
 // ── adminProtect ─────────────────────────────────────────────────────────────

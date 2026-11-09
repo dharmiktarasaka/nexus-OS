@@ -9,9 +9,9 @@ const router = Router();
 router.get('/', protect, async (req, res) => {
   try {
     const userId = req.user?._id;
-    if (!userId) return res.json([]);
+    if (!userId) return res.status(401).json({ message: 'Authentication required' });
     const { status, from, to } = req.query;
-    const filter = { user: userId };
+    const filter = { user: { $in: [userId, String(userId)] } };
     if (status) filter.status = status;
     if (from || to) {
       filter.scheduledAt = {};
@@ -24,8 +24,8 @@ router.get('/', protect, async (req, res) => {
       .sort({ scheduledAt: -1 });
     res.json(posts || []);
   } catch (error) {
-    console.warn('[posts GET /] notice:', error.message);
-    res.json([]);
+    console.error('[posts GET /] error:', error.message);
+    res.status(500).json({ message: 'Failed to retrieve posts' });
   }
 });
 
@@ -43,10 +43,10 @@ router.post('/', protect, [
   try {
     const account = await Account.findOne({
       _id: req.body.accountId,
-      user: req.user._id,
+      user: { $in: [req.user._id, String(req.user._id)] },
     });
     if (!account) {
-      return res.status(404).json({ message: 'Account not found' });
+      return res.status(404).json({ message: 'Account not found or access denied' });
     }
 
     // Process media array if provided
@@ -71,10 +71,10 @@ router.post('/', protect, [
 router.put('/:id', protect, async (req, res) => {
   try {
     const { content, media, scheduledAt } = req.body;
-    const post = await Post.findOne({ _id: req.params.id, user: req.user._id });
+    const post = await Post.findOne({ _id: req.params.id, user: { $in: [req.user._id, String(req.user._id)] } });
     
     if (!post) {
-      return res.status(404).json({ message: 'Post not found' });
+      return res.status(404).json({ message: 'Post not found or access denied' });
     }
     
     if (post.status === 'published') {
@@ -104,9 +104,9 @@ router.put('/:id', protect, async (req, res) => {
 router.delete('/:id', protect, async (req, res) => {
   const post = await Post.findOneAndDelete({
     _id: req.params.id,
-    user: req.user._id,
+    user: { $in: [req.user._id, String(req.user._id)] },
   });
-  if (!post) return res.status(404).json({ message: 'Post not found' });
+  if (!post) return res.status(404).json({ message: 'Post not found or access denied' });
   res.json({ message: 'Post deleted successfully' });
 });
 

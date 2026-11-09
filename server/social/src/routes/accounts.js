@@ -53,48 +53,20 @@ export const getSanitizedRedirectUri = (req, platform) => {
 router.get('/', protect, async (req, res) => {
   try {
     const rawId = req.user?._id || req.user?.id || req.user?.uid;
-    const queries = [];
-    if (rawId) {
-      queries.push({ user: rawId }, { user: String(rawId) });
-      if (mongoose.Types.ObjectId.isValid(rawId)) {
-        queries.push({ user: new mongoose.Types.ObjectId(String(rawId)) });
-      }
-    }
-    
-    // In development mode, include all known active workspace/dev user accounts
-    if (process.env.NODE_ENV !== 'production') {
-      queries.push({ user: '660000000000000000000001' });
-      queries.push({ user: new mongoose.Types.ObjectId('660000000000000000000001') });
-      queries.push({ user: '6ae9944d9126ce4882459027' });
-      queries.push({ user: new mongoose.Types.ObjectId('6ae9944d9126ce4882459027') });
-      queries.push({ user: '6af1a7ef68cecd6b98119437' });
-      queries.push({ user: new mongoose.Types.ObjectId('6af1a7ef68cecd6b98119437') });
-      queries.push({ user: 'nexus_master_user' });
+    if (!rawId) {
+      return res.status(401).json({ message: 'Authentication required' });
     }
 
-    let accounts = await Account.find(queries.length ? { $or: queries } : {});
-    
-    // In development mode: Ensure all accounts in the database are visible to the developer/admin
-    if (process.env.NODE_ENV !== 'production') {
-      const allAccounts = await Account.find({});
-      if (allAccounts && allAccounts.length > 0) {
-        const seen = new Set();
-        const merged = [];
-        for (const acc of [...accounts, ...allAccounts]) {
-          const key = `${acc.platform}:${acc.platformUserId}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            merged.push(acc);
-          }
-        }
-        return res.json(merged);
-      }
+    const queries = [{ user: rawId }, { user: String(rawId) }];
+    if (mongoose.Types.ObjectId.isValid(rawId)) {
+      queries.push({ user: new mongoose.Types.ObjectId(String(rawId)) });
     }
 
+    const accounts = await Account.find({ $or: queries });
     res.json(accounts || []);
   } catch (error) {
-    console.warn('[accounts GET /] notice:', error.message);
-    res.json([]);
+    console.error('[accounts GET /] error:', error.message);
+    res.status(500).json({ message: 'Failed to retrieve user accounts' });
   }
 });
 
@@ -103,6 +75,7 @@ router.post('/connect-demo', protect, async (req, res) => {
   try {
     const { platform, name, avatar } = req.body;
     const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ message: 'Authentication required' });
     if (!platform) return res.status(400).json({ message: 'Platform is required' });
 
     const platformLabels = {
@@ -121,11 +94,11 @@ router.post('/connect-demo', protect, async (req, res) => {
       instagram: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=128&auto=format&fit=crop&q=80'
     };
 
-    const platformUserId = `${platform}_${userId ? userId.toString().slice(-6) : Date.now()}`;
+    const platformUserId = `${platform}_${userId.toString().slice(-6)}`;
     const accountName = name || `@Nexus${platformLabels[platform] || platform}`;
 
     const account = await Account.findOneAndUpdate(
-      { platformUserId, platform },
+      { user: userId, platformUserId, platform },
       {
         user: userId,
         platform,
@@ -136,7 +109,7 @@ router.post('/connect-demo', protect, async (req, res) => {
         pageId: platformUserId,
         isPrivateApi: platform === 'instagram',
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
     res.json({ success: true, message: `${platform.toUpperCase()} connected successfully`, account });
@@ -167,7 +140,7 @@ router.post('/connect-token', protect, async (req, res) => {
       const avatar = pinterestUser.profile_image || null;
 
       const account = await Account.findOneAndUpdate(
-        { platformUserId: username, platform: 'pinterest' },
+        { user: userId, platformUserId: username, platform: 'pinterest' },
         {
           user: userId,
           platform: 'pinterest',
@@ -176,7 +149,7 @@ router.post('/connect-token', protect, async (req, res) => {
           avatar,
           accessToken: cleanToken,
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true }
       );
       return res.json({ success: true, message: `Real Pinterest account @${username} connected successfully!`, account });
     }
@@ -191,7 +164,7 @@ router.post('/connect-token', protect, async (req, res) => {
       const avatar = linkedinUser.picture || null;
 
       const account = await Account.findOneAndUpdate(
-        { platformUserId, platform: 'linkedin' },
+        { user: userId, platformUserId, platform: 'linkedin' },
         {
           user: userId,
           platform: 'linkedin',
@@ -200,7 +173,7 @@ router.post('/connect-token', protect, async (req, res) => {
           avatar,
           accessToken: cleanToken,
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true }
       );
       return res.json({ success: true, message: `Real LinkedIn account "${name}" connected successfully!`, account });
     }
@@ -219,7 +192,7 @@ router.post('/connect-token', protect, async (req, res) => {
         });
         const fbUser = meRes.data;
         const account = await Account.findOneAndUpdate(
-          { platformUserId: fbUser.id, platform: 'facebook' },
+          { user: userId, platformUserId: fbUser.id, platform: 'facebook' },
           {
             user: userId,
             platform: 'facebook',
@@ -228,7 +201,7 @@ router.post('/connect-token', protect, async (req, res) => {
             avatar: fbUser.picture?.data?.url || null,
             accessToken: cleanToken,
           },
-          { upsert: true, new: true }
+          { upsert: true, new: true, setDefaultsOnInsert: true }
         );
         return res.json({ success: true, message: `Real Facebook profile "${fbUser.name}" connected!`, account });
       }
@@ -236,7 +209,7 @@ router.post('/connect-token', protect, async (req, res) => {
       let firstAccount = null;
       for (const page of pagesRes.data.data) {
         const acc = await Account.findOneAndUpdate(
-          { platformUserId: page.id, platform: 'facebook' },
+          { user: userId, platformUserId: page.id, platform: 'facebook' },
           {
             user: userId,
             platform: 'facebook',
@@ -247,7 +220,7 @@ router.post('/connect-token', protect, async (req, res) => {
             pageId: page.id,
             instagramBusinessAccountId: page.instagram_business_account?.id,
           },
-          { upsert: true, new: true }
+          { upsert: true, new: true, setDefaultsOnInsert: true }
         );
         if (!firstAccount) firstAccount = acc;
       }
@@ -301,7 +274,7 @@ router.post('/connect-token', protect, async (req, res) => {
       for (const blog of tumblrUser.blogs) {
         const blogAvatar = `https://api.tumblr.com/v2/blog/${blog.name}.tumblr.com/avatar/128`;
         const acc = await Account.findOneAndUpdate(
-          { platformUserId: blog.name, platform: 'tumblr' },
+          { user: userId, platformUserId: blog.name, platform: 'tumblr' },
           {
             user: userId,
             platform: 'tumblr',
@@ -312,7 +285,7 @@ router.post('/connect-token', protect, async (req, res) => {
             tokenSecret: userSecret,
             pageId: blog.name,
           },
-          { upsert: true, new: true }
+          { upsert: true, new: true, setDefaultsOnInsert: true }
         );
         if (!firstAccount) firstAccount = acc;
       }
@@ -334,12 +307,22 @@ router.post('/connect-token', protect, async (req, res) => {
 
 router.delete('/:id', protect, async (req, res) => {
   try {
+    const rawId = req.user?._id || req.user?.id || req.user?.uid;
+    if (!rawId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const userQueries = [{ user: rawId }, { user: String(rawId) }];
+    if (mongoose.Types.ObjectId.isValid(rawId)) {
+      userQueries.push({ user: new mongoose.Types.ObjectId(String(rawId)) });
+    }
+
     const account = await Account.findOneAndDelete({
       _id: req.params.id,
-      user: req.user._id,
+      $or: userQueries,
     });
-    if (!account) return res.status(404).json({ message: 'Account not found' });
-    res.json({ message: 'Account disconnected' });
+    if (!account) return res.status(404).json({ message: 'Account not found or unauthorized' });
+    res.json({ message: 'Account disconnected successfully' });
   } catch (error) {
     console.error('[accounts DELETE /:id]', error.message);
     res.status(500).json({ message: error.message });
@@ -362,7 +345,7 @@ router.post('/connect-facebook', protect, async (req, res) => {
 
     for (const page of pagesRes.data.data) {
       await Account.findOneAndUpdate(
-        { platformUserId: page.id, platform: 'facebook' },
+        { user: req.user._id, platformUserId: page.id, platform: 'facebook' },
         {
           user: req.user._id,
           platform: 'facebook',
@@ -372,12 +355,12 @@ router.post('/connect-facebook', protect, async (req, res) => {
           accessToken: page.access_token,
           pageId: page.id,
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true }
       );
 
       if (page.instagram_business_account) {
         await Account.findOneAndUpdate(
-          { platformUserId: page.instagram_business_account.id, platform: 'instagram' },
+          { user: req.user._id, platformUserId: page.instagram_business_account.id, platform: 'instagram' },
           {
             user: req.user._id,
             platform: 'instagram',
@@ -387,7 +370,7 @@ router.post('/connect-facebook', protect, async (req, res) => {
             pageId: page.id,
             instagramBusinessId: page.instagram_business_account.id,
           },
-          { upsert: true, new: true }
+          { upsert: true, new: true, setDefaultsOnInsert: true }
         );
       }
     }
@@ -488,7 +471,7 @@ router.post('/connect-instagram-private', protect, async (req, res) => {
       const finalCookies = await ig.state.serializeCookieJar();
 
       const account = await Account.findOneAndUpdate(
-        { platformUserId: username, platform: 'instagram' },
+        { user: req.user._id, platformUserId: username, platform: 'instagram' },
         {
           user: req.user._id,
           platform: 'instagram',
@@ -499,7 +482,7 @@ router.post('/connect-instagram-private', protect, async (req, res) => {
           instagramCookie: JSON.stringify(finalCookies), // Save full cookie jar as string!
           isPrivateApi: true,
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true }
       );
 
       return res.json({ status: 'success', message: 'Instagram account connected successfully', account });
@@ -522,7 +505,7 @@ router.post('/connect-instagram-private', protect, async (req, res) => {
       const finalCookies = await ig.state.serializeCookieJar();
 
       const account = await Account.findOneAndUpdate(
-        { platformUserId: username, platform: 'instagram' },
+        { user: req.user._id, platformUserId: username, platform: 'instagram' },
         {
           user: req.user._id,
           platform: 'instagram',
@@ -533,7 +516,7 @@ router.post('/connect-instagram-private', protect, async (req, res) => {
           instagramCookie: JSON.stringify(finalCookies),
           isPrivateApi: true,
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true }
       );
 
       return res.json({ status: 'success', message: 'Instagram account connected successfully', account });
@@ -581,7 +564,7 @@ router.post('/connect-instagram-private', protect, async (req, res) => {
     if (process.env.NODE_ENV !== 'production' && req.user?._id) {
       try {
         const fallbackAccount = await Account.findOneAndUpdate(
-          { platformUserId: username, platform: 'instagram' },
+          { user: req.user._id, platformUserId: username, platform: 'instagram' },
           {
             user: req.user._id,
             platform: 'instagram',
@@ -591,7 +574,7 @@ router.post('/connect-instagram-private', protect, async (req, res) => {
             instagramUsername: username,
             isPrivateApi: true,
           },
-          { upsert: true, new: true }
+          { upsert: true, new: true, setDefaultsOnInsert: true }
         );
         return res.json({
           status: 'success',
@@ -618,21 +601,22 @@ router.get('/facebook', protect, async (req, res) => {
   try {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ message: 'Authentication required' });
 
     if (req.query.mode === 'demo') {
       console.log('[Facebook Connect] Workspace Demo Mode: Connecting Facebook page for user', userId);
       await Account.findOneAndUpdate(
-        { platformUserId: 'facebook_' + (userId ? userId.toString().slice(-6) : 'hq'), platform: 'facebook' },
+        { user: userId, platformUserId: 'facebook_' + userId.toString().slice(-6), platform: 'facebook' },
         {
           user: userId,
           platform: 'facebook',
-          platformUserId: 'facebook_' + (userId ? userId.toString().slice(-6) : 'hq'),
+          platformUserId: 'facebook_' + userId.toString().slice(-6),
           name: 'Nexus Business HQ',
           avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&auto=format&fit=crop&q=80',
           accessToken: 'demo_fb_token_' + Date.now(),
-          pageId: 'facebook_page_' + (userId ? userId.toString().slice(-6) : 'hq'),
+          pageId: 'facebook_page_' + userId.toString().slice(-6),
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true }
       );
       return res.json({ url: `${clientUrl}/apps/social?connected=facebook` });
     }
@@ -700,7 +684,7 @@ router.get('/facebook/callback', async (req, res) => {
 
     for (const page of pagesRes.data.data) {
       await Account.findOneAndUpdate(
-        { platformUserId: page.id, platform: 'facebook' },
+        { user: userId, platformUserId: page.id, platform: 'facebook' },
         {
           user: userId,
           platform: 'facebook',
@@ -710,12 +694,12 @@ router.get('/facebook/callback', async (req, res) => {
           accessToken: page.access_token,
           pageId: page.id,
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true }
       );
 
       if (page.instagram_business_account) {
         await Account.findOneAndUpdate(
-          { platformUserId: page.instagram_business_account.id, platform: 'instagram' },
+          { user: userId, platformUserId: page.instagram_business_account.id, platform: 'instagram' },
           {
             user: userId,
             platform: 'instagram',
@@ -725,7 +709,7 @@ router.get('/facebook/callback', async (req, res) => {
             pageId: page.id,
             instagramBusinessId: page.instagram_business_account.id,
           },
-          { upsert: true, new: true }
+          { upsert: true, new: true, setDefaultsOnInsert: true }
         );
       }
     }
@@ -745,20 +729,21 @@ router.get('/instagram', protect, async (req, res) => {
   try {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ message: 'Authentication required' });
 
     if (!process.env.INSTAGRAM_APP_ID || req.query.mode === 'demo') {
       console.log('[Instagram Connect] Workspace Mode: Connecting Instagram account for user', userId);
       await Account.findOneAndUpdate(
-        { platformUserId: 'instagram_' + (userId ? userId.toString().slice(-6) : 'main'), platform: 'instagram' },
+        { user: userId, platformUserId: 'instagram_' + userId.toString().slice(-6), platform: 'instagram' },
         {
           user: userId,
           platform: 'instagram',
-          platformUserId: 'instagram_' + (userId ? userId.toString().slice(-6) : 'main'),
+          platformUserId: 'instagram_' + userId.toString().slice(-6),
           name: '@NexusBusiness',
           avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&auto=format&fit=crop&q=80',
           accessToken: 'demo_ig_token_' + Date.now(),
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true }
       );
       return res.json({ url: `${clientUrl}/apps/social?connected=instagram` });
     }
@@ -777,20 +762,21 @@ router.get('/pinterest', protect, async (req, res) => {
   try {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ message: 'Authentication required' });
 
     if (req.query.mode === 'demo') {
       console.log('[Pinterest Connect] Workspace Demo Mode: Connecting Pinterest account for user', userId);
       await Account.findOneAndUpdate(
-        { platformUserId: 'pinterest_' + (userId ? userId.toString().slice(-6) : 'pins'), platform: 'pinterest' },
+        { user: userId, platformUserId: 'pinterest_' + userId.toString().slice(-6), platform: 'pinterest' },
         {
           user: userId,
           platform: 'pinterest',
-          platformUserId: 'pinterest_' + (userId ? userId.toString().slice(-6) : 'pins'),
+          platformUserId: 'pinterest_' + userId.toString().slice(-6),
           name: '@NexusPinterest',
           avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&auto=format&fit=crop&q=80',
           accessToken: 'demo_pinterest_token_' + Date.now(),
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true }
       );
       return res.json({ url: `${clientUrl}/apps/social?connected=pinterest` });
     }
@@ -857,7 +843,7 @@ router.get('/pinterest/callback', async (req, res) => {
     const avatar = pinterestUser.profile_image || null;
 
     await Account.findOneAndUpdate(
-      { platformUserId, platform: 'pinterest' },
+      { user: userId, platformUserId, platform: 'pinterest' },
       {
         user: userId,
         platform: 'pinterest',
@@ -868,7 +854,7 @@ router.get('/pinterest/callback', async (req, res) => {
         refreshToken: refresh_token,
         tokenExpiresAt: new Date(Date.now() + expires_in * 1000),
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
     res.redirect(`${clientUrl}/apps/social?connected=pinterest`);
@@ -898,17 +884,18 @@ const TumblrTemp = mongoose.models.TumblrTemp || mongoose.model('TumblrTemp', Tu
 router.get('/tumblr', protect, async (req, res) => {
   let callbackUrl = '';
   try {
-    const userId = req.user?._id || req.user?.id || req.user?.uid || 'nexus_master_user';
+    const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ message: 'Authentication required' });
     const clientOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null) || clientUrl;
 
     if (req.query.mode === 'demo') {
       console.log('[Tumblr Connect] Workspace Demo Mode: Connecting Tumblr blog for user', userId);
       await Account.findOneAndUpdate(
-        { platformUserId: 'tumblr_' + (userId ? userId.toString().slice(-6) : 'blog'), platform: 'tumblr' },
+        { user: userId, platformUserId: 'tumblr_' + userId.toString().slice(-6), platform: 'tumblr' },
         {
           user: userId,
           platform: 'tumblr',
-          platformUserId: 'tumblr_' + (userId ? userId.toString().slice(-6) : 'blog'),
+          platformUserId: 'tumblr_' + userId.toString().slice(-6),
           name: 'Nexus Enterprise Blog',
           avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&auto=format&fit=crop&q=80',
           accessToken: 'demo_tumblr_token_' + Date.now(),
@@ -1101,7 +1088,12 @@ router.get('/tumblr/callback', async (req, res) => {
       return res.redirect(`${returnClientUrl}/apps/social?error=no_blogs_found`);
     }
 
-    const activeUserId = userId || (process.env.NODE_ENV !== 'production' ? '6ae9944d9126ce4882459027' : 'nexus_master_user');
+    if (!userId) {
+      console.error('No userId found in Tumblr tempRecord');
+      return res.redirect(`${returnClientUrl}/apps/social?error=tumblr_auth_failed&details=User%20identity%20missing`);
+    }
+
+    const activeUserId = userId;
 
     for (const blog of tumblrUser.blogs) {
       const blogAvatar = `https://api.tumblr.com/v2/blog/${blog.name}.tumblr.com/avatar/128`;
@@ -1117,7 +1109,7 @@ router.get('/tumblr/callback', async (req, res) => {
       };
 
       await Account.findOneAndUpdate(
-        { platformUserId: blog.name, platform: 'tumblr' },
+        { user: activeUserId, platformUserId: blog.name, platform: 'tumblr' },
         accountData,
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
@@ -1138,18 +1130,19 @@ router.get('/tumblr/callback', async (req, res) => {
 router.get('/linkedin', protect, async (req, res) => {
   try {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
-    const userId = req.user?._id || (process.env.NODE_ENV !== 'production' ? '6ae9944d9126ce4882459027' : 'nexus_master_user');
+    const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ message: 'Authentication required' });
     const clientOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null) || clientUrl;
     const clientId = cleanEnvValue(process.env.LINKEDIN_CLIENT_ID);
 
     if (req.query.mode === 'demo') {
       console.log('[LinkedIn Connect] Workspace Demo Mode: Connecting LinkedIn profile for user', userId);
       await Account.findOneAndUpdate(
-        { platformUserId: 'linkedin_' + (userId ? userId.toString().slice(-6) : 'corp'), platform: 'linkedin' },
+        { user: userId, platformUserId: 'linkedin_' + userId.toString().slice(-6), platform: 'linkedin' },
         {
           user: userId,
           platform: 'linkedin',
-          platformUserId: 'linkedin_' + (userId ? userId.toString().slice(-6) : 'corp'),
+          platformUserId: 'linkedin_' + userId.toString().slice(-6),
           name: 'Nexus Enterprise LinkedIn',
           avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&auto=format&fit=crop&q=80',
           accessToken: 'demo_linkedin_token_' + Date.now(),
@@ -1164,7 +1157,7 @@ router.get('/linkedin', protect, async (req, res) => {
     }
 
     const redirectUri = req.query.redirect_uri ? sanitizeUrl(req.query.redirect_uri) : getSanitizedRedirectUri(req, 'linkedin');
-    const stateToken = jwt.sign({ userId: (userId || '6ae9944d9126ce4882459027').toString(), redirectUri, clientOrigin }, jwtSecret, { expiresIn: '15m' });
+    const stateToken = jwt.sign({ userId: userId.toString(), redirectUri, clientOrigin }, jwtSecret, { expiresIn: '15m' });
     const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateToken}&scope=openid%20profile%20w_member_social`;
     console.log(`[LinkedIn OAuth] Initiated for user ${userId}. Target redirect URI: ${redirectUri}`);
     res.json({ url, redirectUri });
@@ -1232,10 +1225,16 @@ router.get('/linkedin/callback', async (req, res) => {
     const platformUserId = profile.sub || `linkedin_${Date.now()}`;
     const name = profile.name || `${profile.given_name || ''} ${profile.family_name || ''}`.trim() || 'LinkedIn User';
     const avatar = profile.picture || null;
-    const activeUserId = userId || (process.env.NODE_ENV !== 'production' ? '6ae9944d9126ce4882459027' : 'nexus_master_user');
+
+    if (!userId) {
+      console.error('No userId present in LinkedIn OAuth state token');
+      return res.redirect(`${returnClientUrl}/apps/social?error=linkedin_auth_failed&details=User%20identity%20missing`);
+    }
+
+    const activeUserId = userId;
 
     await Account.findOneAndUpdate(
-      { platformUserId, platform: 'linkedin' },
+      { user: activeUserId, platformUserId, platform: 'linkedin' },
       {
         user: activeUserId,
         platform: 'linkedin',

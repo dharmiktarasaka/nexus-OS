@@ -1,10 +1,120 @@
 .analytics-app-scope {
-  --bg-dark: #090D16;
-  --surface-dark: #0F172A;
-  --surface-dark-card: #141E33;
-  --surface-border: #1E293B;
-  --accent-blue: #3B82F6;
-  --accent-emerald: #10B981;
+  --bg-dark: #F8FAFC;
+  --surface-dark: #FFFFFF;
+  --surface-dark-card: #FFFFFF;
+  --surface-border: #E2E8F0;
+  --accent-blue: #2563EB;
+  --accent-emerald: #059669;
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+/* Light theme card and surface overrides across all analytics views */
+.analytics-app-scope .bg-\[\#090D16\],
+.analytics-app-scope .bg-\[\#0B0F19\],
+.analytics-app-scope .bg-\[\#0D1322\],
+.analytics-app-scope .bg-\[\#10172A\],
+.analytics-app-scope .bg-gradient-to-b.from-\[\#090D16\] {
+  background-color: #F8FAFC !important;
+  background-image: none !important;
+}
+
+.analytics-app-scope .bg-slate-900\/40,
+.analytics-app-scope .bg-slate-900\/50,
+.analytics-app-scope .bg-slate-900\/60,
+.analytics-app-scope .bg-slate-900\/80,
+.analytics-app-scope .bg-slate-900 {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #0F172A;
+}
+
+.analytics-app-scope .bg-slate-950,
+.analytics-app-scope .bg-slate-950\/40,
+.analytics-app-scope .bg-slate-950\/70,
+.analytics-app-scope .bg-slate-950\/80 {
+  background-color: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+}
+
+.analytics-app-scope .bg-slate-800,
+.analytics-app-scope .bg-slate-800\/40,
+.analytics-app-scope .bg-slate-800\/60,
+.analytics-app-scope .bg-slate-800\/80 {
+  background-color: #F1F5F9 !important;
+  border-color: #E2E8F0 !important;
+  color: #334155 !important;
+}
+
+.analytics-app-scope .border-slate-800,
+.analytics-app-scope .border-slate-800\/60,
+.analytics-app-scope .border-slate-800\/80,
+.analytics-app-scope .border-slate-700,
+.analytics-app-scope .border-slate-700\/80 {
+  border-color: #E2E8F0 !important;
+}
+
+/* Form input elements */
+.analytics-app-scope input,
+.analytics-app-scope textarea,
+.analytics-app-scope select {
+  background-color: #FFFFFF !important;
+  border-color: #CBD5E1 !important;
+  color: #0F172A !important;
+}
+
+.analytics-app-scope input::placeholder,
+.analytics-app-scope textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+.analytics-app-scope input:focus,
+.analytics-app-scope textarea:focus,
+.analytics-app-scope select:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15) !important;
+}
+
+.analytics-app-scope label {
+  color: #1E293B !important;
+}
+
+/* Typography contrast in light mode */
+.analytics-app-scope h1:not([class*="text-blue-"]):not([class*="text-emerald-"]):not([class*="text-rose-"]),
+.analytics-app-scope h2:not([class*="text-blue-"]):not([class*="text-emerald-"]):not([class*="text-rose-"]),
+.analytics-app-scope h3:not([class*="text-blue-"]):not([class*="text-emerald-"]):not([class*="text-rose-"]),
+.analytics-app-scope h4:not([class*="text-blue-"]):not([class*="text-emerald-"]):not([class*="text-rose-"]) {
+  color: #0F172A;
+}
+
+.analytics-app-scope .text-slate-100,
+.analytics-app-scope .text-slate-200 {
+  color: #1E293B;
+}
+
+.analytics-app-scope .text-slate-300 {
+  color: #475569;
+}
+
+.analytics-app-scope .text-slate-400 {
+  color: #64748B;
+}
+
+/* Ensure buttons with solid colors maintain white text */
+.analytics-app-scope button[class*="bg-blue-"],
+.analytics-app-scope button[class*="bg-gradient"],
+.analytics-app-scope button.bg-blue-600,
+.analytics-app-scope .bg-blue-600,
+.analytics-app-scope button[class*="bg-emerald-600"],
+.analytics-app-scope button[class*="bg-rose-600"] {
+  color: #FFFFFF !important;
+}
+
+.analytics-app-scope button[class*="bg-blue-"] *,
+.analytics-app-scope button[class*="bg-gradient"] *,
+.analytics-app-scope button.bg-blue-600 *,
+.analytics-app-scope .bg-blue-600 * {
+  color: #FFFFFF !important;
 }
 
 /* Print Styles for Executive Business Reports */

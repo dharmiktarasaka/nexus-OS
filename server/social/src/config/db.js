@@ -17,21 +17,31 @@ export const connectDB = async () => {
     });
     console.log(`[Social Service] MongoDB connected: ${conn.connection.host}`);
 
-    // Drop incorrect email index from the accounts collection if it exists
+    // Drop legacy/conflicting indexes from accounts collection if they exist
     try {
       const db = conn.connection.db;
       const collections = await db.listCollections({ name: 'accounts' }).toArray();
       if (collections.length > 0) {
         const indexes = await db.collection('accounts').indexes();
+        
+        // 1. Drop incorrect email index
         const hasEmailIndex = indexes.some(idx => idx.name === 'email_1');
         if (hasEmailIndex) {
           console.log('[Social Service] Found incorrect email_1 index on accounts collection. Dropping it...');
           await db.collection('accounts').dropIndex('email_1');
           console.log('[Social Service] Successfully dropped email_1 index.');
         }
+
+        // 2. Drop non-user-scoped platformUserId index to allow independent multi-user connections
+        const hasLegacyPlatformIndex = indexes.some(idx => idx.name === 'platformUserId_1_platform_1');
+        if (hasLegacyPlatformIndex) {
+          console.log('[Social Service] Dropping legacy global platformUserId_1_platform_1 index to enforce strict multi-user isolation...');
+          await db.collection('accounts').dropIndex('platformUserId_1_platform_1');
+          console.log('[Social Service] Successfully dropped legacy global platform index.');
+        }
       }
     } catch (indexError) {
-      console.warn('[Social Service] Warning: Could not drop email_1 index on accounts:', indexError.message);
+      console.warn('[Social Service] Warning: Could not manage legacy indexes on accounts:', indexError.message);
     }
   } catch (error) {
     console.warn(`[Social Service] MongoDB connection notice: ${error.message}. Running in resilient mode.`);

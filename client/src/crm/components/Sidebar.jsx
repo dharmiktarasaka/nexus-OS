@@ -140,24 +140,24 @@ export const Sidebar = ({ isOpen, onClose }) => {
       )}
 
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-40 w-64 bg-crm-navy text-white flex flex-col transition-transform duration-300 transform ${
+        className={`fixed md:static inset-y-0 left-0 z-40 w-64 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 border-r border-slate-200/80 dark:border-slate-800 flex flex-col transition-transform duration-300 transform ${
           isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-white/10 shrink-0">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-crm-lime flex items-center justify-center font-black text-white text-sm shadow-md shadow-crm-lime/20">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-sm shadow-sm shadow-indigo-600/20">
               LF
             </div>
             <div>
-              <h1 className="font-extrabold text-sm tracking-wide text-white truncate max-w-[105px]">{user?.companyName || 'LeadFlow'}</h1>
-              <span className="text-[9px] text-indigo-400 font-bold uppercase tracking-wider block">CRM Hub</span>
+              <h1 className="font-extrabold text-sm tracking-wide text-slate-900 dark:text-white truncate max-w-[105px]">{user?.companyName || 'LeadFlow'}</h1>
+              <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider block">CRM Hub</span>
             </div>
           </div>
           <NavLink
             to="/"
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white text-[11px] font-bold transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold transition-colors border border-slate-200/80 dark:border-slate-700"
             title="Return to Nexus Platform Dashboard"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -166,15 +166,15 @@ export const Sidebar = ({ isOpen, onClose }) => {
         </div>
 
         {/* User Card */}
-        <div className="p-3.5 mx-3 my-3 bg-white/5 rounded-xl border border-white/10 flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 rounded-full bg-crm-lime/20 text-crm-lime font-bold flex items-center justify-center border border-crm-lime/30 shrink-0 text-xs">
+        <div className="p-3 mx-3 my-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/60 flex items-center gap-3 shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-black flex items-center justify-center border border-indigo-200/80 dark:border-indigo-800 shrink-0 text-xs">
             {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-white truncate">{user?.name}</p>
+              <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{user?.name}</p>
             </div>
-            <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-crm-lime text-crm-navy mt-0.5">
+            <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 mt-0.5">
               {user?.role || 'User'}
             </span>
           </div>
@@ -190,8 +190,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
             className={({ isActive }) =>
               `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 group ${
                 isActive || location.pathname === getPath('/')
-                  ? 'bg-crm-lime text-white shadow-md shadow-crm-lime/20'
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`
             }
           >
@@ -214,17 +214,17 @@ export const Sidebar = ({ isOpen, onClose }) => {
               }}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 select-none ${
                 isLeadsGrabRoute
-                  ? 'bg-white/15 text-white shadow-xs'
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  ? 'bg-indigo-50 dark:bg-slate-800 text-indigo-900 dark:text-white border border-indigo-100 dark:border-slate-700 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <Sparkles className="w-4 h-4 shrink-0 text-crm-lime" />
+                <Sparkles className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
                 <span className="truncate">Leads Grab</span>
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-black tracking-wider uppercase bg-crm-lime text-crm-navy">
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-black tracking-wider uppercase bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800">
                   AI
                 </span>
                 {isLeadsGrabOpen ? (
@@ -237,7 +237,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
 
             {/* Collapsible Sub-menu Items */}
             {isLeadsGrabOpen && (
-              <div className="pl-6 pr-1 py-1 space-y-1 animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="pl-4 pr-1 py-1 space-y-1 ml-3 border-l-2 border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
                 {/* All Discovery Hub */}
                 <NavLink
                   to={getPath("/leads-grab")}
@@ -245,8 +245,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   className={() =>
                     `flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       isLeadsGrabRoute && !currentLeadChannel
-                        ? 'bg-crm-lime text-crm-navy font-black shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        ? 'bg-indigo-600 text-white font-black shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
@@ -264,15 +264,15 @@ export const Sidebar = ({ isOpen, onClose }) => {
                     `flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       isLeadsGrabRoute && currentLeadChannel === 'linkedin'
                         ? 'bg-[#0077b5] text-white font-black shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
                   <div className="flex items-center gap-2.5">
-                    <Linkedin className="w-3.5 h-3.5 text-sky-400" />
+                    <Linkedin className="w-3.5 h-3.5 text-[#0077b5]" />
                     <span>LinkedIn Leads</span>
                   </div>
-                  <span className="text-[9px] bg-sky-400/20 text-sky-300 px-1.5 py-0.2 rounded font-mono font-bold">
+                  <span className="text-[9px] bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 px-1.5 py-0.2 rounded font-mono font-bold">
                     B2B
                   </span>
                 </NavLink>
@@ -284,16 +284,16 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   className={() =>
                     `flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       isLeadsGrabRoute && currentLeadChannel === 'google-maps'
-                        ? 'bg-emerald-500 text-slate-950 font-black shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        ? 'bg-emerald-600 text-white font-black shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
                   <div className="flex items-center gap-2.5">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span>Google Maps Leads</span>
                   </div>
-                  <span className="text-[9px] bg-emerald-400/20 text-emerald-300 px-1.5 py-0.2 rounded font-mono font-bold">
+                  <span className="text-[9px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.2 rounded font-mono font-bold">
                     Local
                   </span>
                 </NavLink>
@@ -306,15 +306,15 @@ export const Sidebar = ({ isOpen, onClose }) => {
                     `flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       isLeadsGrabRoute && currentLeadChannel === 'discord'
                         ? 'bg-[#5865F2] text-white font-black shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
                   <div className="flex items-center gap-2.5">
-                    <Gamepad2 className="w-3.5 h-3.5 text-[#7289da]" />
+                    <Gamepad2 className="w-3.5 h-3.5 text-[#5865F2]" />
                     <span>Discord Leads</span>
                   </div>
-                  <span className="text-[9px] bg-[#5865F2]/30 text-indigo-200 px-1.5 py-0.2 rounded font-mono font-bold">
+                  <span className="text-[9px] bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 px-1.5 py-0.2 rounded font-mono font-bold">
                     Community
                   </span>
                 </NavLink>
@@ -326,16 +326,16 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   className={() =>
                     `flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       isLeadsGrabRoute && currentLeadChannel === 'tinyfish'
-                        ? 'bg-cyan-500 text-slate-950 font-black shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        ? 'bg-cyan-600 text-white font-black shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
                   <div className="flex items-center gap-2.5">
-                    <Bot className="w-3.5 h-3.5 text-cyan-400" />
+                    <Bot className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                     <span>TinyFish AI Leads</span>
                   </div>
-                  <span className="text-[9px] bg-cyan-400/20 text-cyan-300 px-1.5 py-0.2 rounded font-mono font-bold">
+                  <span className="text-[9px] bg-cyan-100 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 px-1.5 py-0.2 rounded font-mono font-bold">
                     AI Agent
                   </span>
                 </NavLink>
@@ -348,15 +348,15 @@ export const Sidebar = ({ isOpen, onClose }) => {
                     `flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       isLeadsGrabRoute && currentLeadChannel === 'web'
                         ? 'bg-purple-600 text-white font-black shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
                   <div className="flex items-center gap-2.5">
-                    <Globe className="w-3.5 h-3.5 text-purple-400" />
+                    <Globe className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                     <span>Web Page Scraper</span>
                   </div>
-                  <span className="text-[9px] bg-purple-400/20 text-purple-300 px-1.5 py-0.2 rounded font-mono font-bold">
+                  <span className="text-[9px] bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 px-1.5 py-0.2 rounded font-mono font-bold">
                     Web
                   </span>
                 </NavLink>
@@ -377,12 +377,12 @@ export const Sidebar = ({ isOpen, onClose }) => {
               }}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 select-none ${
                 isFoldersRoute
-                  ? 'bg-white/15 text-white shadow-xs'
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  ? 'bg-indigo-50 dark:bg-slate-800 text-indigo-900 dark:text-white border border-indigo-100 dark:border-slate-700 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <Folder className="w-4 h-4 shrink-0 text-crm-lime" />
+                <Folder className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
                 <span className="truncate">My Folders</span>
               </div>
 
@@ -397,7 +397,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
 
             {/* Collapsible Sub-menu Items */}
             {isFoldersOpen && (
-              <div className="pl-6 pr-1 py-1 space-y-1 animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="pl-4 pr-1 py-1 space-y-1 ml-3 border-l-2 border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
                 {/* All Folders */}
                 <NavLink
                   to={getPath("/folders")}
@@ -405,8 +405,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   className={() =>
                     `flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       isFoldersRoute && !currentCategory
-                        ? 'bg-crm-lime text-crm-navy font-black shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        ? 'bg-indigo-600 text-white font-black shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
@@ -423,16 +423,16 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   className={() =>
                     `flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       isFoldersRoute && currentCategory.toLowerCase() === 'india'
-                        ? 'bg-emerald-500 text-slate-950 font-black shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        ? 'bg-emerald-600 text-white font-black shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
                   <div className="flex items-center gap-2.5">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span>India</span>
                   </div>
-                  <span className="text-[9px] bg-emerald-400/20 text-emerald-300 px-1.5 py-0.2 rounded font-mono font-bold">
+                  <span className="text-[9px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.2 rounded font-mono font-bold">
                     🇮🇳 IN
                   </span>
                 </NavLink>
@@ -444,16 +444,16 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   className={() =>
                     `flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       isFoldersRoute && currentCategory.toLowerCase() === 'international'
-                        ? 'bg-sky-500 text-slate-950 font-black shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        ? 'bg-sky-600 text-white font-black shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
                   <div className="flex items-center gap-2.5">
-                    <Globe className="w-3.5 h-3.5 text-sky-400" />
+                    <Globe className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
                     <span>International</span>
                   </div>
-                  <span className="text-[9px] bg-sky-400/20 text-sky-300 px-1.5 py-0.2 rounded font-mono font-bold">
+                  <span className="text-[9px] bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 px-1.5 py-0.2 rounded font-mono font-bold">
                     🌐 Global
                   </span>
                 </NavLink>
@@ -474,12 +474,12 @@ export const Sidebar = ({ isOpen, onClose }) => {
               }}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 select-none ${
                 isEmailRoute
-                  ? 'bg-white/15 text-white shadow-xs'
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  ? 'bg-indigo-50 dark:bg-slate-800 text-indigo-900 dark:text-white border border-indigo-100 dark:border-slate-700 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <Mail className="w-4 h-4 shrink-0 text-crm-lime" />
+                <Mail className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
                 <span className="truncate">Emails</span>
               </div>
 
@@ -499,7 +499,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
 
             {/* Collapsible Sub-menu Items */}
             {isEmailsOpen && (
-              <div className="pl-6 pr-1 py-1 space-y-1 animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="pl-4 pr-1 py-1 space-y-1 ml-3 border-l-2 border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
                 {/* Inbox Sub-item */}
                 <NavLink
                   to={getPath("/emails?folder=inbox")}
@@ -507,8 +507,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   className={() =>
                     `flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       isEmailRoute && (currentFolder === 'inbox' || !currentFolder)
-                        ? 'bg-crm-lime text-crm-navy font-black shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        ? 'bg-indigo-600 text-white font-black shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
@@ -530,8 +530,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   className={() =>
                     `flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       isEmailRoute && currentFolder === 'sent'
-                        ? 'bg-crm-lime text-crm-navy font-black shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        ? 'bg-indigo-600 text-white font-black shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
@@ -548,8 +548,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   className={() =>
                     `flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       isEmailRoute && currentFolder === 'scheduled'
-                        ? 'bg-crm-lime text-crm-navy font-black shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        ? 'bg-indigo-600 text-white font-black shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
@@ -566,8 +566,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   className={() =>
                     `flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       isEmailRoute && currentFolder === 'trash'
-                        ? 'bg-crm-lime text-crm-navy font-black shadow-xs'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        ? 'bg-indigo-600 text-white font-black shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
@@ -587,20 +587,20 @@ export const Sidebar = ({ isOpen, onClose }) => {
             className={({ isActive }) =>
               `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 group ${
                 isActive
-                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-black'
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20 font-black'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`
             }
           >
             {({ isActive }) => (
               <>
                 <div className="flex items-center gap-3 min-w-0">
-                  <Smartphone className={`w-4 h-4 shrink-0 ${isActive ? 'text-slate-950' : 'text-emerald-400'}`} />
+                  <Smartphone className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
                   <span className="truncate">WhatsApp</span>
                 </div>
                 <span
                   className={`px-1.5 py-0.2 rounded text-[9px] font-black tracking-wider uppercase shrink-0 ${
-                    isActive ? 'bg-slate-950 text-emerald-400' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    isActive ? 'bg-white text-emerald-700 shadow-xs' : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                   }`}
                 >
                   LIVE
@@ -616,20 +616,20 @@ export const Sidebar = ({ isOpen, onClose }) => {
             className={({ isActive }) =>
               `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 group ${
                 isActive
-                  ? 'bg-[#0077b5] text-white shadow-md shadow-[#0077b5]/30 font-black'
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  ? 'bg-[#0077b5] text-white shadow-sm shadow-[#0077b5]/30 font-black'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`
             }
           >
             {({ isActive }) => (
               <>
                 <div className="flex items-center gap-3 min-w-0">
-                  <Linkedin className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-sky-400'}`} />
+                  <Linkedin className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#0077b5]'}`} />
                   <span className="truncate">LinkedIn</span>
                 </div>
                 <span
                   className={`px-1.5 py-0.2 rounded text-[9px] font-black tracking-wider uppercase shrink-0 ${
-                    isActive ? 'bg-white text-[#0077b5]' : 'bg-[#0077b5]/20 text-sky-300 border border-[#0077b5]/30'
+                    isActive ? 'bg-white text-[#0077b5] shadow-xs' : 'bg-sky-100 dark:bg-sky-950/60 text-[#0077b5] dark:text-sky-300 border border-sky-200 dark:border-sky-800'
                   }`}
                 >
                   OAuth
@@ -645,8 +645,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
             className={({ isActive }) =>
               `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 group ${
                 isActive
-                  ? 'bg-crm-lime text-crm-navy shadow-md shadow-crm-lime/20'
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`
             }
           >
@@ -660,7 +660,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   <span
                     className={`px-2 py-0.5 text-[10px] font-black rounded-full transition-transform shrink-0 ${
                       isActive
-                        ? 'bg-crm-navy text-crm-lime shadow-xs'
+                        ? 'bg-white text-indigo-700 shadow-xs'
                         : 'bg-rose-500 text-white shadow-xs shadow-rose-500/50 animate-pulse'
                     }`}
                   >
@@ -684,8 +684,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   className={({ isActive }) =>
                     `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 group ${
                       isActive
-                        ? 'bg-crm-lime text-crm-navy shadow-md shadow-crm-lime/20'
-                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`
                   }
                 >
@@ -699,10 +699,10 @@ export const Sidebar = ({ isOpen, onClose }) => {
         </nav>
 
         {/* Logout Footer */}
-        <div className="p-4 border-t border-white/10 shrink-0">
+        <div className="p-3 border-t border-slate-200/80 dark:border-slate-800 shrink-0">
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-300 hover:bg-rose-500/20 hover:text-rose-200 transition-colors"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 transition-colors"
           >
             <LogOut className="w-4 h-4 shrink-0" />
             <span>Logout Account</span>

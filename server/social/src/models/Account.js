@@ -63,7 +63,7 @@ accountSchema.post('save', decryptAccount);
 accountSchema.post('findOneAndUpdate', decryptAccount);
 
 accountSchema.index({ user: 1, platform: 1 });
-accountSchema.index({ platformUserId: 1, platform: 1 }, { unique: true });
+accountSchema.index({ user: 1, platformUserId: 1, platform: 1 }, { unique: true });
 
 // SECURITY: Strip all secret fields before any account document is
 // serialised to JSON and sent over the wire. This ensures tokens,

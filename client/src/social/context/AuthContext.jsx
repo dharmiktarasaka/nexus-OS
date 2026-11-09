@@ -22,18 +22,16 @@ export function AuthProvider({ children }) {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        return {
-          _id: parsed.uid || parsed._id,
-          name: parsed.displayName || parsed.name || 'Enterprise User',
-          email: parsed.email
-        };
+        if (parsed.uid || parsed._id) {
+          return {
+            _id: parsed.uid || parsed._id,
+            name: parsed.displayName || parsed.name || 'Enterprise User',
+            email: parsed.email
+          };
+        }
       } catch (e) {}
     }
-    return {
-      _id: 'nexus_user_master',
-      name: 'Nexus Executive',
-      email: 'admin@nexus.io'
-    };
+    return null;
   });
 
   const [loading, setLoading] = useState(false);
@@ -45,6 +43,8 @@ export function AuthProvider({ children }) {
         name: platformAuth.user.displayName || 'Enterprise User',
         email: platformAuth.user.email
       });
+    } else {
+      setUser(null);
     }
   }, [platformAuth?.user]);
 
@@ -52,7 +52,8 @@ export function AuthProvider({ children }) {
     if (platformAuth?.logout) {
       await platformAuth.logout();
     }
-    localStorage.removeItem('token');
+    const tokens = ['token', 'auth_token', 'crm_token', 'crm_user', 'nexus_current_user'];
+    tokens.forEach(t => localStorage.removeItem(t));
     setUser(null);
   };
 
