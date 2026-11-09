@@ -32,7 +32,7 @@ const PLATFORM_CONFIG = {
     icon: '💼',
     defaultHandle: '@NexusProfessional',
     callbackPath: '/api/accounts/linkedin/callback',
-    docs: 'https://www.linkedin.com/developers/apps',
+    docs: 'https://www.linkedin.com/developers/apps/77rq0wbfvmxy4u/auth',
     authFunc: accountsAPI.linkedinAuth,
   },
   facebook: {
@@ -65,6 +65,7 @@ export default function Dashboard() {
   const [connectModalPlatform, setConnectModalPlatform] = useState(null);
   const [customHandle, setCustomHandle] = useState('');
   const [tokenInput, setTokenInput] = useState('');
+  const [customRedirectUri, setCustomRedirectUri] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [activeConnectTab, setActiveConnectTab] = useState('oauth'); // 'oauth' | 'token' | 'demo' | 'credentials'
   const [copiedUri, setCopiedUri] = useState(false);
@@ -120,6 +121,7 @@ export default function Dashboard() {
     setConnectModalPlatform(platform);
     setCustomHandle(config.defaultHandle || '');
     setTokenInput('');
+    setCustomRedirectUri('');
     setActiveConnectTab(platform === 'instagram' ? 'credentials' : 'oauth');
     setCopiedUri(false);
     setInstaStep(1);
@@ -188,7 +190,8 @@ export default function Dashboard() {
     if (!config || !config.authFunc) return;
     setIsConnecting(true);
     try {
-      const res = await config.authFunc({ redirect_uri: resolvedRedirectUri });
+      const targetUri = customRedirectUri.trim() || resolvedRedirectUri;
+      const res = await config.authFunc({ redirect_uri: targetUri });
       const targetUrl = res.data?.url;
       if (targetUrl && (targetUrl.startsWith('https://') || targetUrl.startsWith('http://')) && !targetUrl.includes('connected=demo')) {
         window.location.href = targetUrl;
@@ -205,7 +208,8 @@ export default function Dashboard() {
   };
 
   const handleCopyUri = () => {
-    navigator.clipboard.writeText(resolvedRedirectUri).then(() => {
+    const targetUri = customRedirectUri.trim() || resolvedRedirectUri;
+    navigator.clipboard.writeText(targetUri).then(() => {
       setCopiedUri(true);
       setTimeout(() => setCopiedUri(false), 2500);
       toast.success('Redirect URI copied to clipboard!');
@@ -492,15 +496,16 @@ export default function Dashboard() {
 
                 <div>
                   <label className="connect-modal-label">
-                    Registered Redirect URI for {currentConfig.name} Developer App
+                    Redirect URI registered in your {currentConfig.name} Developer App
                   </label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input
                       type="text"
-                      readOnly
-                      value={resolvedRedirectUri}
+                      value={customRedirectUri || resolvedRedirectUri}
+                      onChange={(e) => setCustomRedirectUri(e.target.value)}
                       className="connect-modal-input"
                       style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                      placeholder="e.g. http://localhost:5000/api/accounts/linkedin/callback"
                     />
                     <button
                       type="button"
@@ -521,8 +526,46 @@ export default function Dashboard() {
                       {copiedUri ? '✓ Copied' : 'Copy URI'}
                     </button>
                   </div>
+
+                  {/* Quick Select Presets */}
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>Quick Presets:</span>
+                    {[
+                      `http://localhost:5000${currentConfig.callbackPath || ''}`,
+                      `http://localhost:5180${currentConfig.callbackPath || ''}`,
+                      `https://nexus-os-qg3c.onrender.com${currentConfig.callbackPath || ''}`
+                    ].map((presetUri) => {
+                      const isSelected = (customRedirectUri || resolvedRedirectUri) === presetUri;
+                      const label = presetUri.includes('5000') ? 'Port 5000 (Gateway)' : presetUri.includes('5180') ? 'Port 5180 (Client)' : 'Production (Render)';
+                      return (
+                        <button
+                          key={presetUri}
+                          type="button"
+                          onClick={() => setCustomRedirectUri(presetUri)}
+                          style={{
+                            background: isSelected ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255, 255, 255, 0.08)',
+                            border: isSelected ? '1px solid #818cf8' : '1px solid rgba(255, 255, 255, 0.16)',
+                            color: isSelected ? '#ffffff' : '#cbd5e1',
+                            borderRadius: '6px',
+                            padding: '3px 9px',
+                            fontSize: '11px',
+                            fontWeight: isSelected ? '700' : '500',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
                   <p className="connect-hint-text">
-                    Add this exact URL in your <a href={currentConfig.docs} target="_blank" rel="noreferrer">{currentConfig.name} Developer Portal</a> under <em>Redirect URIs</em>.
+                    LinkedIn requires this exact URL to be added in your{' '}
+                    <a href={currentConfig.docs} target="_blank" rel="noreferrer" style={{ fontWeight: 700, textDecoration: 'underline' }}>
+                      {currentConfig.name} Developer Portal
+                    </a>{' '}
+                    under <strong>Auth &gt; OAuth 2.0 settings &gt; Authorized redirect URLs for your app</strong>.
                   </p>
                 </div>
 
