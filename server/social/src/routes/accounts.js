@@ -920,12 +920,41 @@ router.get('/tumblr', protect, async (req, res) => {
       consumerSecret
     );
 
-    const resToken = await axios.post(url, new URLSearchParams({ oauth_callback: callbackUrl }), {
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/x-www-form-urlencoded',
+    let resToken;
+    let effectiveCallback = callbackUrl;
+
+    try {
+      resToken = await axios.post(url, new URLSearchParams({ oauth_callback: callbackUrl }), {
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        }
+      });
+    } catch (primaryErr) {
+      const errData = primaryErr.response?.data;
+      const isDisallowed = typeof errData === 'string' && errData.includes('Disallowed oauth_callback');
+      const isLocalUser = clientOrigin.includes('localhost') || clientOrigin.includes('127.0.0.1') || clientOrigin.includes('5180');
+
+      if (isDisallowed && isLocalUser && !callbackUrl.includes('localhost:5000')) {
+        console.warn(`[Tumblr OAuth] Specified callback (${callbackUrl}) was rejected by Tumblr. Attempting fallback to registered localhost gateway callback...`);
+        effectiveCallback = 'http://localhost:5000/api/accounts/tumblr/callback';
+        const fallbackAuthHeader = buildAuthorizationHeader(
+          'POST',
+          url,
+          { oauth_callback: effectiveCallback },
+          consumerKey,
+          consumerSecret
+        );
+        resToken = await axios.post(url, new URLSearchParams({ oauth_callback: effectiveCallback }), {
+          headers: {
+            'Authorization': fallbackAuthHeader,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          }
+        });
+      } else {
+        throw primaryErr;
       }
-    });
+    }
 
     const params = new URLSearchParams(resToken.data);
     const oauthToken = params.get('oauth_token');
@@ -943,15 +972,15 @@ router.get('/tumblr', protect, async (req, res) => {
         oauthToken,
         oauthTokenSecret,
         user: userId,
-        callbackUrl,
+        callbackUrl: effectiveCallback,
         clientOrigin,
       },
       { upsert: true, new: true }
     );
 
     const redirectUrl = `https://www.tumblr.com/oauth/authorize?oauth_token=${oauthToken}`;
-    console.log(`[Tumblr OAuth] Initiated successfully for user ${userId}. Redirecting to ${redirectUrl}`);
-    res.json({ url: redirectUrl, redirectUri: callbackUrl });
+    console.log(`[Tumblr OAuth] Initiated successfully for user ${userId}. Redirecting to ${redirectUrl} (callback: ${effectiveCallback})`);
+    res.json({ url: redirectUrl, redirectUri: effectiveCallback });
   } catch (error) {
     const errData = error.response?.data;
     const tumblrMsg = typeof errData === 'string' ? errData : (errData?.message || error.message);

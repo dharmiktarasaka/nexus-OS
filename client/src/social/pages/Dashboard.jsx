@@ -536,7 +536,12 @@ export default function Dashboard() {
                       `https://nexus-os-qg3c.onrender.com${currentConfig.callbackPath || ''}`
                     ].map((presetUri) => {
                       const isSelected = (customRedirectUri || resolvedRedirectUri) === presetUri;
-                      const label = presetUri.includes('5000') ? 'Port 5000 (Gateway)' : presetUri.includes('5180') ? 'Port 5180 (Client)' : 'Production (Render)';
+                      const isLocalHost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+                      const label = presetUri.includes('5000') 
+                        ? (connectModalPlatform === 'tumblr' && isLocalHost ? 'Port 5000 (Recommended)' : 'Port 5000 (Gateway)') 
+                        : presetUri.includes('5180') 
+                        ? 'Port 5180 (Client)' 
+                        : 'Production (Render)';
                       return (
                         <button
                           key={presetUri}
@@ -596,17 +601,8 @@ export default function Dashboard() {
                   </p>
 
                   {connectModalPlatform === 'tumblr' && (customRedirectUri || resolvedRedirectUri).includes('onrender.com') && (
-                    <div style={{
-                      marginTop: '10px',
-                      padding: '10px 14px',
-                      background: 'rgba(234, 179, 8, 0.12)',
-                      border: '1px solid rgba(234, 179, 8, 0.35)',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      color: '#fef08a',
-                      lineHeight: '1.5'
-                    }}>
-                      ⚡ <strong>Important for Render:</strong> If your Tumblr App still has <code>http://localhost:5000...</code> saved as its Default callback URL, Tumblr will reject the Render URL with a <code>400 Disallowed oauth_callback</code> error. Update the <strong>Default callback URL</strong> in your <a href="https://www.tumblr.com/oauth/apps" target="_blank" rel="noreferrer" style={{ color: '#fff', textDecoration: 'underline', fontWeight: 700 }}>Tumblr App Console</a> to this Render URL, or select <strong>Port 5000 (Gateway)</strong> when testing locally.
+                    <div className="connect-warning-box">
+                      ⚡ <strong>Important for Render:</strong> Tumblr OAuth 1.0a strictly validates against the single <strong>Default callback URL</strong> registered in your <a href="https://www.tumblr.com/oauth/apps" target="_blank" rel="noreferrer">Tumblr App Settings</a>. If you have not changed it on Tumblr yet, choose <strong>Port 5000 (Recommended)</strong> to connect your real account immediately on localhost.
                     </div>
                   )}
                 </div>
