@@ -10,6 +10,9 @@ const { logAudit } = require('../services/auditService');
 // @route   GET /api/users
 const getUsers = async (req, res, next) => {
   try {
+    if (!req.user || !req.user.companyId) {
+      return res.json({ success: true, users: [] });
+    }
     const query = { companyId: req.user.companyId };
     const users = await User.find(query).sort({ createdAt: -1 });
 

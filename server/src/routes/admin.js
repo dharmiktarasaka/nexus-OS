@@ -20,7 +20,7 @@ export function authenticateAdmin(req, res, next) {
   try {
     // Allow master key header for API calls
     const apiKey = (req.headers['x-admin-key'] || (req.query && req.query.adminKey) || '').trim();
-    if (apiKey && (apiKey === MASTER_ADMIN_KEY || apiKey === 'nexus_master_admin_secret_key_2026')) {
+    if (apiKey && apiKey === MASTER_ADMIN_KEY) {
       req.admin = {
         email: MASTER_ADMIN_EMAIL,
         role: 'ADMIN',
@@ -64,17 +64,57 @@ export function authenticateAdmin(req, res, next) {
   }
 }
 
+// In-memory rate limiting map for admin authentication attempts
+const adminLoginAttempts = new Map();
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+
+function checkRateLimit(ip) {
+  const record = adminLoginAttempts.get(ip);
+  if (!record) return { allowed: true };
+  if (Date.now() - record.lastAttempt > LOCKOUT_MS) {
+    adminLoginAttempts.delete(ip);
+    return { allowed: true };
+  }
+  if (record.count >= MAX_FAILED_ATTEMPTS) {
+    const remainingMinutes = Math.ceil((LOCKOUT_MS - (Date.now() - record.lastAttempt)) / 60000);
+    return { allowed: false, remainingMinutes };
+  }
+  return { allowed: true };
+}
+
+function recordFailedAttempt(ip) {
+  const record = adminLoginAttempts.get(ip) || { count: 0, lastAttempt: Date.now() };
+  record.count += 1;
+  record.lastAttempt = Date.now();
+  adminLoginAttempts.set(ip, record);
+}
+
+function resetAttempts(ip) {
+  adminLoginAttempts.delete(ip);
+}
+
 // POST /api/admin/login - Authenticate Administrator
 router.post('/login', (req, res) => {
   try {
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const limitCheck = checkRateLimit(ip);
+    if (!limitCheck.allowed) {
+      return res.status(429).json({
+        success: false,
+        message: `Too many failed login attempts. Account temporarily locked for security. Try again in ${limitCheck.remainingMinutes} minute(s).`
+      });
+    }
+
     const body = req.body || {};
     const email = (body.email || '').trim().toLowerCase();
     const password = (body.password || '').trim();
     const masterKey = (body.masterKey || '').trim();
 
     // Check master key bypass
-    const isMasterKey = masterKey && (masterKey === MASTER_ADMIN_KEY || masterKey === 'nexus_master_admin_secret_key_2026');
+    const isMasterKey = masterKey && (masterKey === MASTER_ADMIN_KEY);
     if (isMasterKey) {
+      resetAttempts(ip);
       const token = jwt.sign(
         { email: MASTER_ADMIN_EMAIL, role: 'ADMIN', isAdmin: true, name: 'Super Administrator' },
         JWT_SECRET,
@@ -92,23 +132,24 @@ router.post('/login', (req, res) => {
       });
     }
 
-    // Check admin credentials
-    const isEmailValid = email === MASTER_ADMIN_EMAIL.toLowerCase() || 
-                         email === 'admin' || 
-                         email === 'admin@nexus.io' ||
-                         email === 'dharmik.tarasaka@gmail.com';
-    const isPassValid = password === ADMIN_PASSWORD || 
-                        password === 'Admin@2026' || 
-                        password === 'admin' || 
-                        password === 'nexusadmin';
+    // Check admin credentials strictly without default backdoor passwords
+    const validEmails = [
+      MASTER_ADMIN_EMAIL.toLowerCase(),
+      'admin@nexus.io',
+      'dharmik.tarasaka@gmail.com'
+    ];
+    const isEmailValid = validEmails.includes(email);
+    const isPassValid = password === ADMIN_PASSWORD;
 
     if (!isEmailValid || !isPassValid) {
+      recordFailedAttempt(ip);
       return res.status(401).json({
         success: false,
         message: 'Invalid administrator email or password'
       });
     }
 
+    resetAttempts(ip);
     const token = jwt.sign(
       { email: email || MASTER_ADMIN_EMAIL, role: 'ADMIN', isAdmin: true, name: 'Enterprise Super Admin' },
       JWT_SECRET,

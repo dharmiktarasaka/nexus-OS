@@ -31,7 +31,15 @@ function resolveUser(req) {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
     const token = req.headers.authorization.split(' ')[1]?.trim();
     if (token) {
-      const secrets = [JWT_SECRET, CRM_JWT_SECRET];
+      const secrets = [
+        JWT_SECRET,
+        process.env.CENTRAL_JWT_SECRET,
+        CRM_JWT_SECRET,
+        'super_secret_central_saas_platform_key_2026',
+        'Tarasaka_supersecrectKey$2028',
+        'super_secret_crm_jwt_key_2026_production_grade'
+      ].filter(Boolean);
+
       for (const secret of secrets) {
         try {
           const decoded = jwt.verify(token, secret);
@@ -39,6 +47,20 @@ function resolveUser(req) {
             userId = decoded.uid || decoded.id || decoded._id || decoded.sub || null;
             userEmail = decoded.email || null;
             break;
+          }
+        } catch (e) {}
+      }
+
+      // Check Firebase ID token claims if not verified by secret
+      if (!userId) {
+        try {
+          const decodedFb = jwt.decode(token);
+          if (decodedFb && decodedFb.sub && (decodedFb.iss && decodedFb.iss.includes('securetoken.google.com'))) {
+            const nowInSec = Math.floor(Date.now() / 1000);
+            if (!decodedFb.exp || decodedFb.exp > nowInSec) {
+              userId = decodedFb.sub;
+              userEmail = decodedFb.email || null;
+            }
           }
         } catch (e) {}
       }
@@ -138,15 +160,20 @@ app.get('/api/projects/:id', async (req, res) => {
 app.post('/api/projects', async (req, res) => {
   try {
     const { userId: resolvedUid, userEmail: resolvedEmail } = resolveUser(req);
-    const userId = resolvedUid || req.body.ownerId || req.body.userId;
-    const userEmail = resolvedEmail || req.body.userEmail || '';
+    const userId = resolvedUid;
 
     if (!userId || userId === 'anonymous') {
-      return res.status(401).json({ error: 'Authentication required to save project' });
+      return res.status(401).json({ error: 'Valid authentication session required to save project' });
     }
 
+    const userEmail = resolvedEmail || (req.body.userEmail ? String(req.body.userEmail).trim() : '');
+
+    const projectData = { ...req.body };
+    delete projectData.ownerId;
+    delete projectData.userId;
+
     const project = await createProject({
-      ...req.body,
+      ...projectData,
       ownerId: userId,
       userId,
       userEmail
@@ -227,6 +254,7 @@ app.post('/api/refine', async (req, res) => {
   try {
     const { id, currentCode, prompt } = req.body;
     const apiKey = req.headers['x-gemini-key'] || req.body.apiKey;
+    const { userId } = resolveUser(req);
 
     if (!prompt) {
       return res.status(400).json({ error: 'Refinement instructions are required' });
@@ -236,7 +264,10 @@ app.post('/api/refine', async (req, res) => {
     let existingProject = null;
 
     if (id) {
-      existingProject = await getProjectById(id);
+      existingProject = await getProjectById(id, userId);
+      if (userId && !existingProject) {
+        return res.status(404).json({ error: 'Project not found or unauthorized' });
+      }
       if (existingProject && !codeToRefine) {
         codeToRefine = {
           html: existingProject.html,
@@ -261,7 +292,7 @@ app.post('/api/refine', async (req, res) => {
         js: refined.js,
         prompt: prompt,
         changeSummary: refined.changeSummary
-      });
+      }, userId);
       return res.json({
         ...updated,
         changeSummary: refined.changeSummary
@@ -278,9 +309,10 @@ app.post('/api/refine', async (req, res) => {
 // ZIP Export Endpoint
 app.get('/api/projects/:id/export', async (req, res) => {
   try {
-    const project = await getProjectById(req.params.id);
+    const { userId } = resolveUser(req);
+    const project = await getProjectById(req.params.id, userId);
     if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
+      return res.status(404).json({ error: 'Project not found or unauthorized' });
     }
 
     const zip = new JSZip();

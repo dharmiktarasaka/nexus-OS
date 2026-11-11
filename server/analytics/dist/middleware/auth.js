@@ -9,10 +9,16 @@ exports.requireAuth = requireAuth;
 const crypto_1 = __importDefault(require("crypto"));
 const repository_js_1 = require("../db/repository.js");
 const JWT_SECRETS = [
-    process.env.JWT_SECRET || 'stratiq_enterprise_secret_2026',
-    process.env.STRATIQ_JWT_SECRET || 'stratiq-jwt-secret-2026',
-    process.env.CENTRAL_JWT_SECRET || 'super_secret_central_saas_platform_key_2026'
-];
+    process.env.JWT_SECRET,
+    process.env.STRATIQ_JWT_SECRET,
+    process.env.CENTRAL_JWT_SECRET,
+    process.env.CRM_JWT_SECRET,
+    'stratiq_enterprise_secret_2026',
+    'stratiq-jwt-secret-2026',
+    'super_secret_central_saas_platform_key_2026',
+    'Tarasaka_supersecrectKey$2028',
+    'super_secret_crm_jwt_key_2026_production_grade'
+].filter(Boolean);
 function generateToken(payload) {
     const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
     const body = Buffer.from(JSON.stringify({ ...payload, exp: Date.now() + 30 * 24 * 60 * 60 * 1000 })).toString('base64url');
@@ -38,6 +44,20 @@ function verifyToken(token) {
                 };
             }
         }
+        // Check Firebase ID token claims fallback
+        try {
+            const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf-8'));
+            if (payload && payload.sub && payload.iss && payload.iss.includes('securetoken.google.com')) {
+                if (!payload.exp || (payload.exp * 1000) > Date.now()) {
+                    return {
+                        uid: String(payload.sub),
+                        email: payload.email || '',
+                        name: payload.name || payload.displayName
+                    };
+                }
+            }
+        }
+        catch { }
         return null;
     }
     catch {

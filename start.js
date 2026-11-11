@@ -179,6 +179,15 @@ if (!isProduction) {
 const gateway = http.createServer((req, res) => {
   const origin = req.headers.origin || '*';
 
+  // Security Headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  if (isProduction) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+
   // Global Permissive CORS
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Credentials', 'true');

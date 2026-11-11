@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 const User = require('../models/User');
+const TenantCompany = require('../models/TenantCompany');
 const { getDefaultPermissionsForRole } = require('../models/User');
 const { verifyFirebaseIdToken } = require('../utils/firebaseAuth');
 
@@ -90,17 +92,53 @@ const protect = async (req, res, next) => {
 
     // Check by email if not found
     if (!userDoc && decoded.email) {
-      userDoc = await User.findOne({ email: decoded.email }).select('-password');
+      userDoc = await User.findOne({ email: decoded.email.toLowerCase().trim() }).select('-password');
     }
 
     if (userDoc) {
       if (userDoc.isActive === false) {
         return res.status(401).json({ success: false, message: 'User account is inactive' });
       }
+
+      // Guarantee each user has their own dedicated TenantCompany
+      if (!userDoc.companyId) {
+        let company = await TenantCompany.findOne({ ownerId: userDoc._id });
+        if (!company) {
+          company = await TenantCompany.create({
+            name: `${userDoc.name || 'Personal'} Workspace`,
+            ownerId: userDoc._id
+          });
+        }
+        userDoc.companyId = company._id;
+        await User.updateOne({ _id: userDoc._id }, { companyId: company._id });
+      }
+
       req.user = userDoc;
-      req.user.ownerId = userUid;
+    } else if (decoded.email) {
+      // Create user record in CRM for Central / Firebase user to enforce absolute data isolation
+      const cleanEmail = decoded.email.toLowerCase().trim();
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      const company = await TenantCompany.create({
+        name: `${decoded.name || cleanEmail.split('@')[0]}'s Workspace`
+      });
+
+      userDoc = await User.create({
+        name: decoded.name || cleanEmail.split('@')[0],
+        email: cleanEmail,
+        password: randomPassword,
+        role: decoded.role === 'ADMIN' ? 'ADMIN' : 'EMPLOYEE',
+        companyId: company._id,
+        isActive: true
+      });
+
+      company.ownerId = userDoc._id;
+      await company.save();
+      req.user = userDoc;
     } else {
-      // Ephemeral authenticated user object with full isolation ownerId
+      // Deterministic per-user isolated company ID so users without email never share companyId
+      const hash = crypto.createHash('md5').update(`tenant_company_${userUid}`).digest('hex').slice(0, 24);
+      const isolatedCompanyId = new mongoose.Types.ObjectId(hash);
+
       req.user = {
         _id: userUid,
         id: userUid,
@@ -110,7 +148,7 @@ const protect = async (req, res, next) => {
         email: decoded.email || '',
         role: decoded.role || 'ADMIN',
         permissions: getDefaultPermissionsForRole(decoded.role || 'ADMIN'),
-        companyId: null,
+        companyId: isolatedCompanyId,
         isActive: true
       };
     }

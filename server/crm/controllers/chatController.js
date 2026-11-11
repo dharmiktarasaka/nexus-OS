@@ -7,6 +7,10 @@ const ChatAttachment = require('../models/ChatAttachment');
 // @route   GET /api/chat/conversations
 const getConversations = async (req, res, next) => {
   try {
+    if (!req.user || !req.user.companyId) {
+      return res.json({ success: true, conversations: [] });
+    }
+
     const allUsers = await User.find({
       companyId: req.user.companyId,
       isActive: true
@@ -78,6 +82,10 @@ const getConversations = async (req, res, next) => {
 // @route   GET /api/chat/users
 const getCompanyDirectory = async (req, res, next) => {
   try {
+    if (!req.user || !req.user.companyId) {
+      return res.json({ success: true, users: [] });
+    }
+
     const users = await User.find({
       companyId: req.user.companyId,
       _id: { $ne: req.user._id },
