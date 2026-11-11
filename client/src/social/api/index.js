@@ -17,12 +17,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor: handle 401 gracefully without forcing full page reload
+// Response interceptor: handle 401 gracefully
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
       console.warn('[Social API] Unauthorized request:', err.config?.url);
+      window.dispatchEvent(new Event('auth:unauthorized'));
     }
     return Promise.reject(err);
   }

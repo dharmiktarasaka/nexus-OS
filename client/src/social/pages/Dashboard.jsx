@@ -142,7 +142,7 @@ export default function Dashboard() {
       });
       if (res.data?.account) {
         setAccounts(prev => {
-          const filtered = prev.filter(a => a._id !== res.data.account._id && a.platformUserId !== res.data.account.platformUserId);
+          const filtered = prev.filter(a => a._id !== res.data.account._id && a.platform !== res.data.account.platform);
           return [res.data.account, ...filtered];
         });
       }
@@ -170,7 +170,7 @@ export default function Dashboard() {
       });
       if (res.data?.account) {
         setAccounts(prev => {
-          const filtered = prev.filter(a => a._id !== res.data.account._id && a.platformUserId !== res.data.account.platformUserId);
+          const filtered = prev.filter(a => a._id !== res.data.account._id && a.platform !== res.data.account.platform);
           return [res.data.account, ...filtered];
         });
       }

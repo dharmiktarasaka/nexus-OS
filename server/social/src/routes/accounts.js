@@ -139,8 +139,11 @@ router.post('/connect-token', protect, async (req, res) => {
       const username = pinterestUser.username || 'pinterest_user';
       const avatar = pinterestUser.profile_image || null;
 
+      // Clean up any stale or previous Pinterest account for this user
+      await Account.deleteMany({ user: userId, platform: 'pinterest', platformUserId: { $ne: username } });
+
       const account = await Account.findOneAndUpdate(
-        { user: userId, platformUserId: username, platform: 'pinterest' },
+        { user: userId, platform: 'pinterest' },
         {
           user: userId,
           platform: 'pinterest',
@@ -813,6 +816,8 @@ router.get('/pinterest/callback', async (req, res) => {
   try {
     const redirectUri = storedRedirectUri ? sanitizeUrl(storedRedirectUri) : getSanitizedRedirectUri(req, 'pinterest');
     const pinterestBaseUrl = process.env.PINTEREST_USE_SANDBOX === 'true' ? 'https://api-sandbox.pinterest.com/v5' : 'https://api.pinterest.com/v5';
+    const pinterestClientId = cleanEnvValue(process.env.PINTEREST_CLIENT_ID);
+    const pinterestClientSecret = cleanEnvValue(process.env.PINTEREST_CLIENT_SECRET);
     // Exchange authorization code for access token
     const tokenRes = await axios.post(`${pinterestBaseUrl}/oauth/token`,
       new URLSearchParams({
@@ -822,7 +827,7 @@ router.get('/pinterest/callback', async (req, res) => {
       }),
       {
         headers: {
-          'Authorization': `Basic ${Buffer.from(`${process.env.PINTEREST_CLIENT_ID}:${process.env.PINTEREST_CLIENT_SECRET}`).toString('base64')}`,
+          'Authorization': `Basic ${Buffer.from(`${pinterestClientId}:${pinterestClientSecret}`).toString('base64')}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         }
       }
@@ -842,8 +847,11 @@ router.get('/pinterest/callback', async (req, res) => {
     const platformUserId = pinterestUser.username;
     const avatar = pinterestUser.profile_image || null;
 
+    // Clean up any stale or previous Pinterest account for this user
+    await Account.deleteMany({ user: userId, platform: 'pinterest', platformUserId: { $ne: platformUserId } });
+
     await Account.findOneAndUpdate(
-      { user: userId, platformUserId, platform: 'pinterest' },
+      { user: userId, platform: 'pinterest' },
       {
         user: userId,
         platform: 'pinterest',

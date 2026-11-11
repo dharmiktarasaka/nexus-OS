@@ -90,6 +90,9 @@ function startProcess(name, cmd, args, cwd, colorCode, extraEnv = {}) {
   return proc;
 }
 
+const UNIFIED_JWT_SECRET = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
+const UNIFIED_CRM_SECRET = process.env.CRM_JWT_SECRET || 'Tarasaka_supersecrectKey$2028';
+
 // 1. Start Central Platform Server (Fixed Internal Port 5050)
 const centralServerPath = path.join(__dirname, 'server');
 startProcess('Central:5050', 'node', ['src/index.js'], centralServerPath, '34', {
@@ -98,21 +101,30 @@ startProcess('Central:5050', 'node', ['src/index.js'], centralServerPath, '34', 
   CENTRAL_MONGODB_URI: UNIFIED_MONGODB_URI,
   CRM_MONGODB_URI: UNIFIED_MONGODB_URI,
   WEBSITE_MONGODB_URI: UNIFIED_MONGODB_URI,
-  ANALYTICS_MONGODB_URI: UNIFIED_MONGODB_URI
+  ANALYTICS_MONGODB_URI: UNIFIED_MONGODB_URI,
+  JWT_SECRET: UNIFIED_JWT_SECRET,
+  CENTRAL_JWT_SECRET: UNIFIED_JWT_SECRET,
+  CRM_JWT_SECRET: UNIFIED_CRM_SECRET
 });
 
 // 2. Start CRM Backend Server (Fixed Internal Port 5001)
 const crmServerPath = path.join(__dirname, 'server', 'crm');
 startProcess('CRM:5001', 'node', ['server.js'], crmServerPath, '32', {
   PORT: '5001',
-  MONGODB_URI: UNIFIED_MONGODB_URI
+  MONGODB_URI: UNIFIED_MONGODB_URI,
+  JWT_SECRET: UNIFIED_CRM_SECRET,
+  CENTRAL_JWT_SECRET: UNIFIED_JWT_SECRET,
+  CRM_JWT_SECRET: UNIFIED_CRM_SECRET
 });
 
 // 3. Start Website Builder Backend Server (Fixed Internal Port 5002)
 const websiteServerPath = path.join(__dirname, 'server', 'website');
 startProcess('Website:5002', 'node', ['index.js'], websiteServerPath, '36', {
   PORT: '5002',
-  MONGODB_URI: UNIFIED_MONGODB_URI
+  MONGODB_URI: UNIFIED_MONGODB_URI,
+  JWT_SECRET: UNIFIED_JWT_SECRET,
+  CENTRAL_JWT_SECRET: UNIFIED_JWT_SECRET,
+  CRM_JWT_SECRET: UNIFIED_CRM_SECRET
 });
 
 // 3b. Start Social Media (Mediamation) Backend Server (Fixed Internal Port 5003)
@@ -121,7 +133,9 @@ if (fs.existsSync(socialServerPath)) {
   startProcess('Social:5003', 'node', ['src/index.js'], socialServerPath, '35', {
     PORT: '5003',
     MONGODB_URI: UNIFIED_MONGODB_URI,
-    JWT_SECRET: process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026',
+    JWT_SECRET: UNIFIED_JWT_SECRET,
+    CENTRAL_JWT_SECRET: UNIFIED_JWT_SECRET,
+    CRM_JWT_SECRET: UNIFIED_CRM_SECRET,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
     CLIENT_URL: process.env.CLIENT_URL || (isProduction ? '' : 'http://localhost:5180'),
     BACKEND_URL: process.env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL || (isProduction ? '' : `http://localhost:${GATEWAY_PORT}`)
@@ -135,6 +149,9 @@ if (fs.existsSync(analyticsServerPath)) {
     PORT: '5004',
     MONGODB_URI: UNIFIED_MONGODB_URI,
     CENTRAL_MONGODB_URI: UNIFIED_MONGODB_URI,
+    JWT_SECRET: UNIFIED_JWT_SECRET,
+    CENTRAL_JWT_SECRET: UNIFIED_JWT_SECRET,
+    CRM_JWT_SECRET: UNIFIED_CRM_SECRET,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || ''
   });
 }

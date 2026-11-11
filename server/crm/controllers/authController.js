@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const TenantCompany = require('../models/TenantCompany');
 const Invitation = require('../models/Invitation');
@@ -115,7 +116,28 @@ const login = async (req, res, next) => {
 // @route   GET /api/auth/me
 const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).populate('companyId', 'name');
+    let user = null;
+    if (mongoose.Types.ObjectId.isValid(req.user.id)) {
+      user = await User.findById(req.user.id).populate('companyId', 'name');
+    }
+    if (!user && req.user.email) {
+      user = await User.findOne({ email: req.user.email }).populate('companyId', 'name');
+    }
+    if (!user) {
+      return res.json({
+        success: true,
+        user: {
+          id: req.user.id || req.user._id,
+          name: req.user.name || 'User',
+          email: req.user.email || '',
+          role: req.user.role || 'ADMIN',
+          companyId: req.user.companyId || null,
+          companyName: 'Personal Workspace',
+          avatar: req.user.avatar || null,
+          permissions: req.user.permissions || []
+        }
+      });
+    }
     res.json({
       success: true,
       user: {

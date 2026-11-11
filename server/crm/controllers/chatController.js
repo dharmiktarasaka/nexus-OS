@@ -123,6 +123,10 @@ const getCompanyDirectory = async (req, res, next) => {
 // @route   GET /api/chat/unread-count
 const getUnreadChatCount = async (req, res, next) => {
   try {
+    if (!req.user || !req.user._id || !mongoose.Types.ObjectId.isValid(req.user._id)) {
+      return res.json({ success: true, totalUnread: 0 });
+    }
+
     const userConversations = await Conversation.find({
       companyId: req.user.companyId,
       participants: req.user._id

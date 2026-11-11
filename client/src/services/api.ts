@@ -14,7 +14,12 @@ async function authFetch(url: string, init?: RequestInit): Promise<Response> {
   Object.entries(authHeaders).forEach(([k, v]) => {
     if (!headers.has(k)) headers.set(k, v);
   });
-  return fetch(url, { ...init, headers });
+  const res = await fetch(url, { ...init, headers });
+  if (res.status === 401 && !url.includes('/auth/check-status') && !url.includes('/auth/bridge')) {
+    console.warn('[API] Session expired or unauthorized at:', url);
+    window.dispatchEvent(new Event('auth:unauthorized'));
+  }
+  return res;
 }
 
 export interface DashboardStats {
@@ -195,26 +200,46 @@ export const api = {
     return res.json();
   },
 
-  // Central Auth Bridge
-  async bridgeAuth(user: any): Promise<{
+  // Central Auth Bridge with automatic retry for server cold starts
+  async bridgeAuth(user: any, maxRetries = 2): Promise<{
     success: boolean;
     token: string;
     user: any;
     tokens: { central: string; crm: string; stratiq: string };
   }> {
-    const res = await fetch(`${BASE_URL}/auth/bridge`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(user)
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      const err: any = new Error(data.message || 'Auth bridge synchronization failed');
-      err.status = data.status || (res.status === 403 ? 'PENDING' : 'ERROR');
-      err.data = data;
-      throw err;
+    let lastError: any = null;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const res = await fetch(`${BASE_URL}/auth/bridge`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(user)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          const err: any = new Error(data.message || 'Auth bridge synchronization failed');
+          err.status = data.status || (res.status === 403 ? 'PENDING' : 'ERROR');
+          err.data = data;
+          // Don't retry definite client status codes like 403 (pending approval) or 400
+          if (res.status === 403 || res.status === 400) {
+            throw err;
+          }
+          lastError = err;
+        } else {
+          return data;
+        }
+      } catch (err: any) {
+        if (err.status === 'PENDING' || err.status === 'REJECTED') {
+          throw err;
+        }
+        lastError = err;
+        if (attempt < maxRetries) {
+          // Wait 2 seconds before retry to accommodate Render cold start
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
     }
-    return data;
+    throw lastError || new Error('Auth bridge synchronization failed');
   },
 
   // Check User Access Request Status

@@ -47,13 +47,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Synchronize authenticated session into sub-applications localStorage
   const syncSubAppSessions = (profile: UserProfile, bridgeData?: any) => {
     try {
-      // 0. Central SaaS Session Token
-      const centralToken = bridgeData?.token || bridgeData?.tokens?.central || `central_token_${profile.uid}`;
-      localStorage.setItem('auth_token', centralToken);
+      // 0. Central SaaS Session Token (Must be genuine verified JWT or existing valid session)
+      const existingToken = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const centralToken = bridgeData?.token || bridgeData?.tokens?.central || (existingToken && !existingToken.startsWith('central_token_') ? existingToken : null);
+      if (centralToken) {
+        localStorage.setItem('auth_token', centralToken);
+        localStorage.setItem('token', centralToken);
+      }
 
       // 1. CRM Platform Tokens & User
-      const crmToken = bridgeData?.tokens?.crm || `crm_bridge_token_${profile.uid}`;
-      localStorage.setItem('crm_token', crmToken);
+      const existingCrmToken = localStorage.getItem('crm_token');
+      const crmToken = bridgeData?.tokens?.crm || (existingCrmToken && !existingCrmToken.startsWith('crm_bridge_token_') ? existingCrmToken : centralToken);
+      if (crmToken) {
+        localStorage.setItem('crm_token', crmToken);
+      }
       localStorage.setItem('crm_user', JSON.stringify({
         _id: profile.uid,
         name: profile.displayName,
@@ -63,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }));
 
       // 2. Business Analytics (STRATIQ) Tokens & User
-      const stratiqToken = bridgeData?.tokens?.stratiq || `stratiq_token_${profile.uid}`;
+      const stratiqToken = bridgeData?.tokens?.stratiq || centralToken;
       localStorage.setItem('stratiq_user', JSON.stringify({
         uid: profile.uid,
         email: profile.email,
@@ -71,9 +78,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         businessName: profile.companyName || 'Personal Workspace',
         yearlyRevenue: '$1,000,000+'
       }));
-
-      // 3. Mediamation Social Media Platform Token
-      localStorage.setItem('token', centralToken);
 
       // 4. Website Builder Mock / Firebase Auth Session
       localStorage.setItem('mock_auth_user', JSON.stringify({
@@ -141,6 +145,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let unsubscribe: () => void = () => {};
 
+    const handleUnauthorized = () => {
+      console.warn('[AuthContext] Received unauthorized event: clearing expired session');
+      const tokens = ['auth_token', 'token', 'crm_token', 'crm_user', 'nexus_current_user', 'stratiq_user', 'mock_auth_user'];
+      tokens.forEach(t => localStorage.removeItem(t));
+      setUser(null);
+    };
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+
     if (isRealFirebase && authInstance) {
       unsubscribe = onAuthStateChanged(authInstance, async (fbUser) => {
         if (fbUser) {
@@ -155,9 +167,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           await handleAuthBridge(profile, idToken, 'firebase-auto');
         } else {
-          // Check saved session in localStorage
+          // Check saved session in localStorage - require token to exist
           const saved = localStorage.getItem('nexus_current_user');
-          if (saved) {
+          const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+          if (saved && token) {
             try {
               setUser(JSON.parse(saved));
             } catch {
@@ -175,7 +188,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await handleAuthBridge(mockUser, undefined, 'mock-auto');
         } else {
           const saved = localStorage.getItem('nexus_current_user');
-          if (saved) {
+          const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+          if (saved && token) {
             try {
               setUser(JSON.parse(saved));
             } catch {
@@ -189,7 +203,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
   }, []);
 
   const loginWithGoogle = async () => {
@@ -273,8 +290,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       companyName: 'Tarasaka Global Holdings',
       phone: '+1 (555) 789-2026'
     };
-    setUser(demoUser);
-    syncSubAppSessions(demoUser);
+    try {
+      const bridge = await api.bridgeAuth({ ...demoUser, provider: 'demo-executive' });
+      const approvedUser: UserProfile = { ...demoUser, status: 'APPROVED' };
+      setUser(approvedUser);
+      localStorage.setItem('nexus_current_user', JSON.stringify(approvedUser));
+      syncSubAppSessions(approvedUser, bridge);
+    } catch {
+      setUser(demoUser);
+      syncSubAppSessions(demoUser);
+    }
   };
 
   const resetPassword = async (email: string) => {

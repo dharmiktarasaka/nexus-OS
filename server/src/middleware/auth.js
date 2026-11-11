@@ -24,24 +24,35 @@ export async function authenticateUser(req, res, next) {
     });
   }
 
-  // 1. Try verifying as Central Platform Session JWT
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded && (decoded.uid || decoded.id || decoded.sub)) {
-      const uid = String(decoded.uid || decoded.id || decoded.sub).trim();
-      req.user = {
-        uid,
-        _id: uid,
-        id: uid,
-        email: decoded.email || '',
-        name: decoded.name || decoded.displayName || 'User',
-        role: decoded.role || 'USER',
-        companyName: decoded.companyName || 'Personal Workspace'
-      };
-      return next();
+  // 1. Try verifying as Central Platform or microservice Session JWT
+  const secrets = [
+    process.env.JWT_SECRET,
+    process.env.CENTRAL_JWT_SECRET,
+    process.env.CRM_JWT_SECRET,
+    'super_secret_central_saas_platform_key_2026',
+    'Tarasaka_supersecrectKey$2028',
+    'super_secret_crm_jwt_key_2026_production_grade'
+  ].filter(Boolean);
+
+  for (const secret of secrets) {
+    try {
+      const decoded = jwt.verify(token, secret);
+      if (decoded && (decoded.uid || decoded.id || decoded.sub || decoded.email)) {
+        const uid = String(decoded.uid || decoded.id || decoded.sub || decoded.email).trim();
+        req.user = {
+          uid,
+          _id: uid,
+          id: uid,
+          email: decoded.email || '',
+          name: decoded.name || decoded.displayName || (decoded.email ? decoded.email.split('@')[0] : 'User'),
+          role: decoded.role || 'USER',
+          companyName: decoded.companyName || 'Personal Workspace'
+        };
+        return next();
+      }
+    } catch (jwtErr) {
+      // Try next configured secret
     }
-  } catch (jwtErr) {
-    // If not central JWT, proceed to check Firebase ID token
   }
 
   // 2. Try verifying as Firebase ID Token

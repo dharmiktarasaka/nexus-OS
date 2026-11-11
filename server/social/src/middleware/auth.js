@@ -30,10 +30,13 @@ export const protect = async (req, res, next) => {
 
   // 1. Cryptographic JWT Verification (Central Platform JWT, CRM JWT, Social JWT)
   const secrets = [
-    process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026',
-    process.env.CRM_JWT_SECRET || 'Tarasaka_supersecrectKey$2028',
-    'super_secret_central_saas_platform_key_2026'
-  ];
+    process.env.JWT_SECRET,
+    process.env.CENTRAL_JWT_SECRET,
+    process.env.CRM_JWT_SECRET,
+    'super_secret_central_saas_platform_key_2026',
+    'Tarasaka_supersecrectKey$2028',
+    'super_secret_crm_jwt_key_2026_production_grade'
+  ].filter(Boolean);
 
   let verifiedDecoded = null;
   for (const secret of secrets) {
