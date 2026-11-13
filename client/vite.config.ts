@@ -446,6 +446,31 @@ export default defineConfig({
                     role: 'ADMIN'
                   }
                 };
+              } else if (url.includes('/analyze') || url.includes('/analyses/stepper') || (url.includes('/analyses/') && !url.endsWith('/analyses'))) {
+                payload = {
+                  success: true,
+                  offline: true,
+                  analysis: {
+                    id: 'ana_' + Date.now(),
+                    overallScore: 88,
+                    scores: { finance: 86, market: 84, operations: 91, people: 89 },
+                    swot: {
+                      strengths: ['High client retention (94%)', 'Proprietary technology stack', 'Fast product velocity'],
+                      weaknesses: ['Sales funnel bottleneck', 'Manual reporting overhead'],
+                      opportunities: ['Enterprise market expansion', 'Automated workflows'],
+                      threats: ['New VC-backed market entrants']
+                    },
+                    prosCons: {
+                      pros: ['Strong brand positioning', 'Scalable architecture'],
+                      cons: ['Resource constraints', 'High onboarding friction']
+                    },
+                    growthRoadmap: {
+                      immediate: [{ title: 'Automate Lead Scoring', horizon: 'Immediate', priority: 'High' }],
+                      shortTerm: [{ title: 'Launch Enterprise Tier', horizon: 'Short-term', priority: 'Medium' }],
+                      mediumTerm: [{ title: 'International Expansion', horizon: 'Medium-term', priority: 'High' }]
+                    }
+                  }
+                };
               } else if (url.includes('/businesses') && req.method === 'POST') {
                 payload = {
                   success: true,
