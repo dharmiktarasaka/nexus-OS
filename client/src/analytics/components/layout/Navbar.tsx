@@ -116,8 +116,22 @@ export const Navbar: React.FC = () => {
 
         {/* Analyze My Business Primary CTA */}
         <button
-          onClick={() => navigate('/apps/analytics/stepper')}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-md shadow-blue-600/25 transition-all hover:shadow-blue-600/40 active:scale-95"
+          type="button"
+          id="navbar-analyze-btn"
+          onClick={() => {
+            if (window.location.pathname.includes('/stepper')) {
+              const analyzeBtn =
+                document.getElementById('stepper-analyze-btn') ||
+                document.getElementById('stepper-analyze-btn-top') ||
+                document.getElementById('stepper-next-btn');
+              if (analyzeBtn) {
+                (analyzeBtn as HTMLButtonElement).click();
+                return;
+              }
+            }
+            navigate('/apps/analytics/stepper');
+          }}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-md shadow-blue-600/25 transition-all hover:shadow-blue-600/40 active:scale-95 cursor-pointer"
         >
           <Zap className="w-3.5 h-3.5 fill-white" />
           <span>Analyze My Business</span>

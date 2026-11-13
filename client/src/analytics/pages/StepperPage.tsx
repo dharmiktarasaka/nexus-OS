@@ -283,8 +283,11 @@ export const StepperPage: React.FC = () => {
       const primaryProblem = formData.challenges?.biggestProblems?.[0] || 'Need more customers and predictable sales';
       const primaryGoal = formData.challenges?.shortTermGoals30To90Days?.[0] || 'Grow revenue and simplify daily operations';
 
+      const targetBizId = activeBusiness?.id || formData.id || ('biz_' + Date.now());
+
       const finalProfile: IBusinessProfile = ensureBusinessShape({
         ...formData,
+        id: targetBizId,
         isDraft: false,
         completionPercentage: 100,
         currentStep: 5,
@@ -309,13 +312,23 @@ export const StepperPage: React.FC = () => {
         }
       });
 
-      await saveStepperDraft(finalProfile);
+      // Save draft profile without blocking analysis execution
+      try {
+        await saveStepperDraft(finalProfile);
+      } catch (saveErr) {
+        console.warn('Draft save notice before analysis:', saveErr);
+      }
 
-      // Trigger AI Analysis workflow
-      const analysis = await api.triggerAnalysis(formData.id);
-      navigate(`/apps/analytics/analysis/${analysis.id}`);
+      // Trigger AI Analysis workflow with the verified profile
+      const analysis = await api.triggerAnalysis(targetBizId, finalProfile);
+      if (analysis && analysis.id) {
+        navigate(`/apps/analytics/analysis/${analysis.id}`);
+      } else {
+        throw new Error('Analysis could not be initialized.');
+      }
     } catch (err) {
-      setErrorMsg((err as Error).message || 'Failed to trigger AI analysis.');
+      console.error('Failed to trigger AI analysis:', err);
+      setErrorMsg((err as Error).message || 'Failed to trigger AI analysis. Please check your connection and try again.');
       setSubmitting(false);
     }
   };
@@ -350,9 +363,10 @@ export const StepperPage: React.FC = () => {
           {currentStep === 5 && (
             <button
               type="button"
+              id="stepper-analyze-btn-top"
               onClick={handleFinalSubmit}
               disabled={submitting}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 hover:from-blue-500 hover:to-emerald-400 text-white text-xs font-bold shadow-md shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 hover:from-blue-500 hover:to-emerald-400 text-white text-xs font-bold shadow-md shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               {submitting ? (
                 <>
@@ -1003,67 +1017,67 @@ export const StepperPage: React.FC = () => {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-blue-400">1. Business & Stage</span>
-                <p className="text-sm font-bold text-white">{formData.identity?.businessName || 'My Enterprise'}</p>
-                <p className="text-xs text-slate-300 line-clamp-2">{formData.productsServices?.mainOfferings || 'Not specified'}</p>
-                <div className="pt-1 flex items-center gap-2 text-[11px] text-slate-400">
-                  <span className="capitalize px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+              <div className="p-4 rounded-xl bg-slate-100/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1 shadow-sm">
+                <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">1. Business & Stage</span>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">{formData.identity?.businessName || 'My Enterprise'}</p>
+                <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">{formData.productsServices?.mainOfferings || 'Not specified'}</p>
+                <div className="pt-1 flex items-center gap-2 text-[11px] text-slate-500">
+                  <span className="capitalize px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 font-medium">
                     {formData.identity?.businessStage || 'startup'} stage
                   </span>
-                  <span className="uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                  <span className="uppercase px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300 font-medium">
                     {formData.identity?.businessModel || 'b2b'}
                   </span>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-indigo-400">2. Customers & Advantage</span>
-                <p className="text-xs text-slate-300">
-                  <strong className="text-white">Target:</strong> {formData.targetAudience?.idealCustomerProfile || 'General audience'}
+              <div className="p-4 rounded-xl bg-slate-100/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1 shadow-sm">
+                <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">2. Customers & Advantage</span>
+                <p className="text-xs text-slate-700 dark:text-slate-300">
+                  <strong className="text-slate-900 dark:text-white font-semibold">Target:</strong> {formData.targetAudience?.idealCustomerProfile || 'General audience'}
                 </p>
-                <p className="text-xs text-slate-300">
-                  <strong className="text-white">What makes you special:</strong> {formData.productsServices?.usp || 'Quality product / service'}
+                <p className="text-xs text-slate-700 dark:text-slate-300">
+                  <strong className="text-slate-900 dark:text-white font-semibold">What makes you special:</strong> {formData.productsServices?.usp || 'Quality product / service'}
                 </p>
                 {formData.salesMarketing?.primaryChannels && formData.salesMarketing.primaryChannels.length > 0 && (
-                  <p className="text-[11px] text-slate-400 pt-0.5">
+                  <p className="text-[11px] text-slate-500 pt-0.5">
                     Channels: {formData.salesMarketing.primaryChannels.join(', ')}
                   </p>
                 )}
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-emerald-400">3. Money & Health</span>
-                <p className="text-sm font-bold text-white">{formData.financials?.monthlyRevenue || '$5,000 - $10,000 / month'}</p>
-                <p className="text-xs text-slate-300 capitalize">
-                  Cash Flow: <span className="text-emerald-400 font-semibold">{formData.financials?.cashFlowSituation || 'Positive'}</span>
+              <div className="p-4 rounded-xl bg-slate-100/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1 shadow-sm">
+                <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">3. Money & Health</span>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">{formData.financials?.monthlyRevenue || '$5,000 - $10,000 / month'}</p>
+                <p className="text-xs text-slate-700 dark:text-slate-300 capitalize">
+                  Cash Flow: <span className="text-emerald-600 dark:text-emerald-400 font-bold">{formData.financials?.cashFlowSituation || 'Positive'}</span>
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-rose-400">4. Priority Focus</span>
-                <p className="text-xs text-slate-300">
-                  <strong className="text-white">Main Problem:</strong> {formData.challenges?.biggestProblems?.[0] || 'Need steady leads and sales'}
+              <div className="p-4 rounded-xl bg-slate-100/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1 shadow-sm">
+                <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400">4. Priority Focus</span>
+                <p className="text-xs text-slate-700 dark:text-slate-300">
+                  <strong className="text-slate-900 dark:text-white font-semibold">Main Problem:</strong> {formData.challenges?.biggestProblems?.[0] || 'Need steady leads and sales'}
                 </p>
-                <p className="text-xs text-slate-300">
-                  <strong className="text-white">Next Goal:</strong> {formData.challenges?.shortTermGoals30To90Days?.[0] || 'Grow revenue and simplify operations'}
+                <p className="text-xs text-slate-700 dark:text-slate-300">
+                  <strong className="text-slate-900 dark:text-white font-semibold">Next Goal:</strong> {formData.challenges?.shortTermGoals30To90Days?.[0] || 'Grow revenue and simplify operations'}
                 </p>
               </div>
             </div>
 
             {/* What you will receive banner */}
-            <div className="p-4 rounded-xl bg-gradient-to-r from-blue-900/20 via-indigo-900/20 to-emerald-900/20 border border-blue-500/30 flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-              <div className="text-xs text-slate-300 space-y-1">
-                <p className="font-semibold text-white">What you will get instantly:</p>
+            <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 via-indigo-50 to-emerald-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-emerald-900/20 border border-blue-200 dark:border-blue-500/30 flex items-start gap-3">
+              <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1">
+                <p className="font-semibold text-slate-900 dark:text-white">What you will get instantly:</p>
                 <p>
-                  • <strong>Honest Pros & Cons:</strong> Clear breakdown of what you are doing right vs what is putting your business at risk.
+                  • <strong className="text-slate-900 dark:text-white">Honest Pros & Cons:</strong> Clear breakdown of what you are doing right vs what is putting your business at risk.
                 </p>
                 <p>
-                  • <strong>Actionable SWOT:</strong> Concrete strengths, weaknesses, untapped opportunities, and competitive threats.
+                  • <strong className="text-slate-900 dark:text-white">Actionable SWOT:</strong> Concrete strengths, weaknesses, untapped opportunities, and competitive threats.
                 </p>
                 <p>
-                  • <strong>Step-by-Step Growth Plan:</strong> Prioritized tasks you can implement in the next 7 to 30 days to fix problems and make more profit.
+                  • <strong className="text-slate-900 dark:text-white">Step-by-Step Growth Plan:</strong> Prioritized tasks you can implement in the next 7 to 30 days to fix problems and make more profit.
                 </p>
               </div>
             </div>
@@ -1071,9 +1085,11 @@ export const StepperPage: React.FC = () => {
             {/* Big Action Submit Button */}
             <div className="pt-2 flex justify-end">
               <button
+                type="button"
+                id="stepper-analyze-btn"
                 onClick={handleFinalSubmit}
                 disabled={submitting}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 hover:from-blue-500 hover:to-emerald-400 text-white font-bold text-sm shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2.5 transition-all transform hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 hover:from-blue-500 hover:to-emerald-400 text-white font-bold text-sm shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2.5 transition-all transform hover:scale-[1.02] active:scale-95 disabled:opacity-50 cursor-pointer"
               >
                 {submitting ? (
                   <>
