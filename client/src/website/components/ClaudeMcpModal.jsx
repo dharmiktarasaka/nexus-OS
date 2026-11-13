@@ -329,7 +329,7 @@ export default function ClaudeMcpModal({ isOpen, onClose }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--text-main, #0f172a)' }}>
-                B. Claude Code CLI Command
+                B. Claude Code CLI Command (Stdio)
               </h4>
 
               <button
@@ -369,6 +369,55 @@ export default function ClaudeMcpModal({ isOpen, onClose }) {
             >
               <Terminal size={14} color="#94a3b8" />
               <span>{claudeCliCommand}</span>
+            </div>
+          </div>
+
+          {/* Option C: Browser / Remote SSE Transport */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--text-main, #0f172a)' }}>
+                  C. Browser / Remote SSE MCP Endpoint
+                </h4>
+                <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted, #64748b)' }}>
+                  For web agents, browser extensions, or remote MCP clients over Server-Sent Events
+                </p>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: '10px',
+                background: '#0f172a',
+                color: '#34d399',
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                overflowX: 'auto'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Globe size={14} color="#34d399" />
+                <span>http://localhost:5002/api/mcp/sse</span>
+              </div>
+              <button
+                onClick={() => navigator.clipboard?.writeText('http://localhost:5002/api/mcp/sse')}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: 'none',
+                  color: '#ffffff',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '10px'
+                }}
+              >
+                Copy URL
+              </button>
             </div>
           </div>
 
@@ -498,3 +547,4 @@ export default function ClaudeMcpModal({ isOpen, onClose }) {
     </div>
   );
 }
+

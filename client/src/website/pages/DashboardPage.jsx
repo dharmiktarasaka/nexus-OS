@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import ClaudeMcpModal from '../components/ClaudeMcpModal';
+import ClaudeLiveConsole from '../components/ClaudeLiveConsole';
 import { useAuth } from '../context/AuthContext';
 import { exportProjectToZip } from '../utils/zipExport';
 import { getWebsiteApiUrl } from '../apiConfig';
@@ -34,6 +35,30 @@ export default function DashboardPage() {
   const [exportingId, setExportingId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [showClaudeMcp, setShowClaudeMcp] = useState(false);
+  const [liveToast, setLiveToast] = useState(null);
+
+  const handleLiveProjectUpdate = (eventData) => {
+    if (!eventData?.project) {
+      fetchProjects();
+      return;
+    }
+
+    const updated = eventData.project;
+    setProjects(prev => {
+      const exists = prev.some(p => p.id === updated.id);
+      if (exists) {
+        return prev.map(p => (p.id === updated.id ? { ...p, ...updated } : p));
+      } else {
+        return [updated, ...prev];
+      }
+    });
+
+    setLiveToast({
+      message: `⚡ Claude MCP ${eventData.action === 'create' ? 'created' : 'updated'} "${updated.name}"!`,
+      id: updated.id
+    });
+    setTimeout(() => setLiveToast(null), 5000);
+  };
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -447,6 +472,48 @@ export default function DashboardPage() {
         isOpen={showClaudeMcp}
         onClose={() => setShowClaudeMcp(false)}
       />
+
+      <ClaudeLiveConsole onProjectUpdated={handleLiveProjectUpdate} />
+
+      {liveToast && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '24px',
+            right: '24px',
+            zIndex: 99999,
+            background: 'rgba(15, 23, 42, 0.95)',
+            border: '1px solid #10b981',
+            borderRadius: '14px',
+            padding: '12px 20px',
+            color: '#ffffff',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(16, 185, 129, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            fontSize: '13px',
+            fontWeight: 600,
+            animation: 'fadeInDown 0.3s ease'
+          }}
+        >
+          <span style={{ fontSize: '18px' }}>✨</span>
+          <span>{liveToast.message}</span>
+          <Link
+            to={`${basePath}/editor/${liveToast.id}`}
+            style={{
+              background: '#2563eb',
+              color: '#ffffff',
+              padding: '4px 10px',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontSize: '11px',
+              fontWeight: 700
+            }}
+          >
+            Open Studio ↗
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

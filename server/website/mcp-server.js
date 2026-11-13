@@ -256,6 +256,7 @@ async function executeTool(name, args) {
       const previewUrl = `${API_BASE_URL}/api/preview/${created.id}`;
 
       return {
+        project: created,
         content: [
           {
             type: 'text',
@@ -313,6 +314,7 @@ async function executeTool(name, args) {
       const previewUrl = `${API_BASE_URL}/api/preview/${projectId}`;
 
       return {
+        project: updated || existing,
         content: [
           {
             type: 'text',
@@ -373,6 +375,7 @@ async function executeTool(name, args) {
       }
 
       return {
+        project: project,
         content: [
           {
             type: 'text',
@@ -684,3 +687,4 @@ module.exports = {
 if (require.main === module) {
   startStdioServer();
 }
+

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import DeviceFrame from '../components/DeviceFrame';
 import CodeEditor from '../components/CodeEditor';
+import ClaudeLiveConsole from '../components/ClaudeLiveConsole';
 import { exportProjectToZip } from '../utils/zipExport';
 import { getWebsiteApiUrl } from '../apiConfig';
 import { createClientFallbackProject, saveOfflineProject } from '../utils/clientGenerator';
@@ -53,6 +54,24 @@ export default function EditorPage() {
   const [refinePrompt, setRefinePrompt] = useState('');
   const [refining, setRefining] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
+  const [liveToast, setLiveToast] = useState(null);
+
+  const handleLiveEditorUpdate = (eventData) => {
+    if (eventData.projectId === id && eventData.project) {
+      const p = eventData.project;
+      if (p.html || p.css || p.js) {
+        setCode({
+          html: p.html || '',
+          css: p.css || '',
+          js: p.js || ''
+        });
+        if (p.name) setProjectName(p.name);
+        setProject(prev => ({ ...prev, ...p }));
+        setLiveToast('⚡ Live change from Claude applied to studio canvas!');
+        setTimeout(() => setLiveToast(null), 5000);
+      }
+    }
+  };
 
   const fetchProject = async () => {
     setLoading(true);
@@ -122,6 +141,26 @@ export default function EditorPage() {
 
   useEffect(() => {
     fetchProject();
+  }, [id]);
+
+  // Real-time Live Synchronization with Claude MCP
+  useEffect(() => {
+    let evt = null;
+    try {
+      evt = new EventSource(getWebsiteApiUrl('/api/projects/live-stream'));
+      evt.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.type === 'PROJECT_EVENT' && data.projectId === id && data.project) {
+            handleLiveEditorUpdate(data);
+          }
+        } catch (_err) {}
+      };
+    } catch (_e) {}
+
+    return () => {
+      if (evt) evt.close();
+    };
   }, [id]);
 
   const handleManualSave = async () => {
@@ -544,6 +583,35 @@ export default function EditorPage() {
             </>
           )}
         </button>
+      )}
+      {/* Floating Claude MCP Real-time Console */}
+      <ClaudeLiveConsole currentProjectId={id} onProjectUpdated={handleLiveEditorUpdate} />
+
+      {/* Floating Live Toast Notification */}
+      {liveToast && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '24px',
+            right: '24px',
+            zIndex: 99999,
+            background: 'rgba(15, 23, 42, 0.95)',
+            border: '1px solid #10b981',
+            borderRadius: '14px',
+            padding: '12px 20px',
+            color: '#ffffff',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(16, 185, 129, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            fontSize: '13px',
+            fontWeight: 600,
+            animation: 'fadeInDown 0.3s ease'
+          }}
+        >
+          <span style={{ fontSize: '18px' }}>✨</span>
+          <span>{liveToast}</span>
+        </div>
       )}
     </div>
   );

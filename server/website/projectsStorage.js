@@ -1,12 +1,45 @@
 // server/projectsStorage.js - Unified MongoDB & Persistent Store for Websites
 const fs = require('fs');
 const path = require('path');
+const EventEmitter = require('events');
 const { v4: uuidv4 } = require('uuid');
 const Project = require('./models/Project');
 const { isMongoConnected } = require('./db');
 
+class ProjectEventsEmitter extends EventEmitter {}
+const projectEvents = new ProjectEventsEmitter();
+projectEvents.setMaxListeners(100);
+
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'projects.json');
+
+let lastMtime = 0;
+try {
+  ensureDataFile();
+  if (fs.existsSync(DATA_FILE)) {
+    lastMtime = fs.statSync(DATA_FILE).mtimeMs;
+  }
+} catch (e) {}
+
+// Watch file changes from external Claude MCP processes (e.g. Claude Code CLI or Claude Desktop)
+fs.watchFile(DATA_FILE, { interval: 800 }, (curr, prev) => {
+  if (curr.mtimeMs > lastMtime) {
+    lastMtime = curr.mtimeMs;
+    try {
+      const projects = readProjectsFromFile();
+      if (projects.length > 0) {
+        const latest = projects[0];
+        projectEvents.emit('change', {
+          action: 'update',
+          projectId: latest.id,
+          project: latest,
+          source: 'claude_external_mcp',
+          timestamp: Date.now()
+        });
+      }
+    } catch (e) {}
+  }
+});
 
 function ensureDataFile() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -195,6 +228,15 @@ async function createProject(data) {
   projects.unshift(projectPayload);
   writeProjectsToFile(projects);
 
+  try {
+    projectEvents.emit('change', {
+      action: 'create',
+      projectId: projectPayload.id,
+      project: projectPayload,
+      timestamp: Date.now()
+    });
+  } catch (e) {}
+
   return projectPayload;
 }
 
@@ -268,7 +310,28 @@ async function updateProject(id, updateData, userId) {
     projects[index] = updated;
     writeProjectsToFile(projects);
 
-    return updatedDoc || updated;
+    const result = updatedDoc || updated;
+    try {
+      projectEvents.emit('change', {
+        action: 'update',
+        projectId: id,
+        project: result,
+        timestamp: Date.now()
+      });
+    } catch (e) {}
+
+    return result;
+  }
+
+  if (updatedDoc) {
+    try {
+      projectEvents.emit('change', {
+        action: 'update',
+        projectId: id,
+        project: updatedDoc,
+        timestamp: Date.now()
+      });
+    } catch (e) {}
   }
 
   return updatedDoc;
@@ -305,7 +368,18 @@ async function deleteProject(id, userId) {
     writeProjectsToFile(filtered);
   }
 
-  return deletedFromMongo || deletedFromFile;
+  const success = deletedFromMongo || deletedFromFile;
+  if (success) {
+    try {
+      projectEvents.emit('change', {
+        action: 'delete',
+        projectId: id,
+        timestamp: Date.now()
+      });
+    } catch (e) {}
+  }
+
+  return success;
 }
 
 module.exports = {
@@ -314,5 +388,6 @@ module.exports = {
   createProject,
   updateProject,
   deleteProject,
-  migrateFileProjectsToMongo
+  migrateFileProjectsToMongo,
+  projectEvents
 };

@@ -15,7 +15,8 @@ const {
   createProject,
   updateProject,
   deleteProject,
-  migrateFileProjectsToMongo
+  migrateFileProjectsToMongo,
+  projectEvents
 } = require('./projectsStorage');
 
 const jwt = require('jsonwebtoken');
@@ -468,6 +469,125 @@ app.get('/api/mcp/health', (req, res) => {
     toolsCount: mcpServer.TOOLS.length,
     tools: mcpServer.TOOLS.map(t => t.name)
   });
+});
+
+// 5. REAL-TIME LIVE SYNCHRONIZATION STREAM (Server-Sent Events)
+// Broadcasts website changes to Dashboard and Editor canvas in real-time
+app.get('/api/projects/live-stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+  // Send initial handshake
+  res.write(`data: ${JSON.stringify({ type: 'HANDSHAKE', status: 'connected', timestamp: Date.now() })}\n\n`);
+
+  const onProjectChange = (eventPayload) => {
+    try {
+      res.write(`data: ${JSON.stringify({ type: 'PROJECT_EVENT', ...eventPayload })}\n\n`);
+    } catch (err) {}
+  };
+
+  projectEvents.on('change', onProjectChange);
+
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(`: heartbeat\n\n`);
+    } catch (e) {}
+  }, 15000);
+
+  req.on('close', () => {
+    projectEvents.off('change', onProjectChange);
+    clearInterval(heartbeat);
+  });
+});
+
+// 6. ANTHROPIC MCP SSE TRANSPORT (Official specification for Browser / Remote MCP clients)
+const mcpSseSessions = new Map();
+
+app.get('/api/mcp/sse', (req, res) => {
+  const sessionId = require('crypto').randomUUID();
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+  mcpSseSessions.set(sessionId, res);
+
+  // Send official MCP endpoint event
+  const endpointUrl = `/api/mcp/message?sessionId=${sessionId}`;
+  res.write(`event: endpoint\ndata: ${endpointUrl}\n\n`);
+
+  const keepAlive = setInterval(() => {
+    try {
+      res.write(`: mcp-keepalive\n\n`);
+    } catch (e) {}
+  }, 15000);
+
+  req.on('close', () => {
+    mcpSseSessions.delete(sessionId);
+    clearInterval(keepAlive);
+  });
+});
+
+app.post('/api/mcp/message', async (req, res) => {
+  const sessionId = req.query.sessionId;
+  try {
+    const response = await mcpServer.handleRequest(req.body);
+    const sseClient = sessionId ? mcpSseSessions.get(sessionId) : null;
+
+    if (sseClient && response) {
+      sseClient.write(`event: message\ndata: ${JSON.stringify(response)}\n\n`);
+    }
+
+    if (response) {
+      res.status(200).json(response);
+    } else {
+      res.status(202).json({ jsonrpc: '2.0', status: 'accepted' });
+    }
+  } catch (err) {
+    res.status(500).json({
+      jsonrpc: '2.0',
+      id: req.body?.id || null,
+      error: { code: -32603, message: err.message }
+    });
+  }
+});
+
+// 7. IN-APP CLAUDE PROMPT RUNNER (Direct MCP Prompt & Tool Execution from Browser)
+app.post('/api/mcp/run-prompt', async (req, res) => {
+  const { prompt, projectId, name, category, stylePreferences } = req.body;
+  if (!prompt || typeof prompt !== 'string') {
+    return res.status(400).json({ error: 'Prompt is required' });
+  }
+
+  try {
+    let result;
+    if (projectId) {
+      result = await mcpServer.executeTool('refine_website', {
+        projectId,
+        prompt,
+        changeType: 'general'
+      });
+    } else {
+      result = await mcpServer.executeTool('generate_website', {
+        prompt,
+        name,
+        category: category || 'landing',
+        stylePreferences
+      });
+    }
+
+    res.json({
+      success: true,
+      message: result.content?.[0]?.text || '',
+      project: result.project || null
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Start Server and Initialize MongoDB Connection
