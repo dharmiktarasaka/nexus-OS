@@ -24,9 +24,12 @@ export default function ClaudeLiveConsole({ currentProjectId = null, onProjectUp
   const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [running, setRunning] = useState(false);
+  const [anthropicKey, setAnthropicKey] = useState(localStorage.getItem('anthropic_custom_api_key') || '');
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [tempKey, setTempKey] = useState(localStorage.getItem('anthropic_custom_api_key') || '');
   const [logs, setLogs] = useState([
     { time: new Date().toLocaleTimeString(), text: 'Claude MCP Real-Time Engine Initialized.', type: 'info' },
-    { time: new Date().toLocaleTimeString(), text: 'Listening on stdio and SSE (/api/mcp/sse)...', type: 'info' }
+    { time: new Date().toLocaleTimeString(), text: localStorage.getItem('anthropic_custom_api_key') ? 'Real Claude 3.5 Sonnet Engine Ready.' : 'Listening on stdio, SSE & Claude MCP...', type: 'info' }
   ]);
   const [isConnected, setIsConnected] = useState(true);
   const [lastBuiltProject, setLastBuiltProject] = useState(null);
@@ -90,6 +93,20 @@ export default function ClaudeLiveConsole({ currentProjectId = null, onProjectUp
     setLogs(prev => [...prev, { time: new Date().toLocaleTimeString(), text, type }]);
   };
 
+  const handleSaveKey = () => {
+    const key = tempKey.trim();
+    if (key) {
+      localStorage.setItem('anthropic_custom_api_key', key);
+      setAnthropicKey(key);
+      addLog(`✓ Anthropic Key configured (${key.slice(0, 10)}...). Real Claude 3.5 Sonnet active!`, 'success');
+    } else {
+      localStorage.removeItem('anthropic_custom_api_key');
+      setAnthropicKey('');
+      addLog(`Anthropic Key removed. Using standard engine.`, 'info');
+    }
+    setShowKeyInput(false);
+  };
+
   const handleRunPrompt = async (e) => {
     e?.preventDefault();
     if (!prompt.trim() || running) return;
@@ -97,6 +114,10 @@ export default function ClaudeLiveConsole({ currentProjectId = null, onProjectUp
     const userPrompt = prompt.trim();
     setRunning(true);
     addLog(`> Prompt: "${userPrompt}"`, 'user');
+
+    if (anthropicKey) {
+      addLog(`⚡ Connecting to Real Anthropic Claude 3.5 Sonnet...`, 'process');
+    }
 
     if (currentProjectId) {
       addLog(`Calling MCP tool: refine_website (Project: ${currentProjectId})...`, 'process');
@@ -109,10 +130,14 @@ export default function ClaudeLiveConsole({ currentProjectId = null, onProjectUp
     try {
       const res = await fetch(getWebsiteApiUrl('/api/mcp/run-prompt'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(anthropicKey ? { 'x-anthropic-key': anthropicKey } : {})
+        },
         body: JSON.stringify({
           prompt: userPrompt,
-          projectId: currentProjectId || undefined
+          projectId: currentProjectId || undefined,
+          anthropicKey: anthropicKey || undefined
         })
       });
 
@@ -318,6 +343,27 @@ export default function ClaudeLiveConsole({ currentProjectId = null, onProjectUp
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <button
+                onClick={() => setShowKeyInput(!showKeyInput)}
+                style={{
+                  background: anthropicKey ? 'rgba(217, 119, 6, 0.25)' : 'rgba(255, 255, 255, 0.08)',
+                  border: `1px solid ${anthropicKey ? '#d97706' : 'rgba(255, 255, 255, 0.15)'}`,
+                  color: anthropicKey ? '#fbbf24' : '#cbd5e1',
+                  borderRadius: '8px',
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  cursor: 'pointer'
+                }}
+                title="Configure Anthropic API Key for Real Claude 3.5 Sonnet"
+              >
+                <span>🔑</span>
+                <span>{anthropicKey ? 'Real Claude' : 'Claude Key'}</span>
+              </button>
+
+              <button
                 onClick={() => setIsOpen(false)}
                 style={{
                   background: 'rgba(255, 255, 255, 0.08)',
@@ -337,6 +383,86 @@ export default function ClaudeLiveConsole({ currentProjectId = null, onProjectUp
               </button>
             </div>
           </div>
+
+          {/* Optional Anthropic API Key Input Bar */}
+          {showKeyInput && (
+            <div
+              style={{
+                padding: '10px 16px',
+                background: 'rgba(30, 27, 75, 0.95)',
+                borderBottom: '1px solid rgba(217, 119, 6, 0.3)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#fbbf24' }}>
+                  Anthropic Claude API Key (sk-ant-...)
+                </span>
+                <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+                  Invokes Real Claude 3.5 Sonnet
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="password"
+                  value={tempKey}
+                  onChange={(e) => setTempKey(e.target.value)}
+                  placeholder="sk-ant-api03-..."
+                  style={{
+                    flex: 1,
+                    background: 'rgba(15, 23, 42, 0.9)',
+                    border: '1px solid rgba(217, 119, 6, 0.4)',
+                    borderRadius: '8px',
+                    padding: '6px 10px',
+                    color: '#ffffff',
+                    fontSize: '11px',
+                    outline: 'none'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveKey}
+                  style={{
+                    background: '#d97706',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '6px 12px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Save
+                </button>
+                {anthropicKey && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempKey('');
+                      localStorage.removeItem('anthropic_custom_api_key');
+                      setAnthropicKey('');
+                      setShowKeyInput(false);
+                      addLog('Anthropic Key cleared.', 'info');
+                    }}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.2)',
+                      color: '#f87171',
+                      border: '1px solid rgba(239, 68, 68, 0.4)',
+                      borderRadius: '8px',
+                      padding: '6px 8px',
+                      fontSize: '11px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Terminal Logs Output */}
           <div

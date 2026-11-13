@@ -5,6 +5,7 @@ import { getWebsiteApiUrl } from '../apiConfig';
 
 export default function SettingsModal({ isOpen, onClose }) {
   const [apiKey, setApiKey] = useState('');
+  const [anthropicKey, setAnthropicKey] = useState('');
   const [firebaseConfigStr, setFirebaseConfigStr] = useState('');
   const [mongoUri, setMongoUri] = useState('');
   const [serverHealth, setServerHealth] = useState(null);
@@ -27,6 +28,7 @@ export default function SettingsModal({ isOpen, onClose }) {
   useEffect(() => {
     if (isOpen) {
       setApiKey(localStorage.getItem('gemini_custom_api_key') || '');
+      setAnthropicKey(localStorage.getItem('anthropic_custom_api_key') || '');
       setFirebaseConfigStr(localStorage.getItem('custom_firebase_config') || '');
       setMongoUri(localStorage.getItem('custom_mongodb_uri') || '');
       checkHealth();
@@ -38,6 +40,12 @@ export default function SettingsModal({ isOpen, onClose }) {
       localStorage.setItem('gemini_custom_api_key', apiKey.trim());
     } else {
       localStorage.removeItem('gemini_custom_api_key');
+    }
+
+    if (anthropicKey.trim()) {
+      localStorage.setItem('anthropic_custom_api_key', anthropicKey.trim());
+    } else {
+      localStorage.removeItem('anthropic_custom_api_key');
     }
 
     if (mongoUri.trim()) {
@@ -119,6 +127,24 @@ export default function SettingsModal({ isOpen, onClose }) {
               placeholder="mongodb://127.0.0.1:27017/pulse_studio or mongodb+srv://..."
               value={mongoUri}
               onChange={e => setMongoUri(e.target.value)}
+            />
+          </div>
+
+          {/* Anthropic Claude API Key */}
+          <div className="form-field">
+            <label className="field-label">
+              <Key size={16} color="#d97706" />
+              <span>Anthropic Claude API Key (Real Claude 3.5 Sonnet)</span>
+            </label>
+            <p className="field-help">
+              Provide your Anthropic API Key (<code>sk-ant-...</code>) to build and refine websites using real <strong>Claude 3.5 Sonnet</strong>.
+            </p>
+            <input
+              type="password"
+              className="text-input"
+              placeholder="sk-ant-api03-..."
+              value={anthropicKey}
+              onChange={e => setAnthropicKey(e.target.value)}
             />
           </div>
 

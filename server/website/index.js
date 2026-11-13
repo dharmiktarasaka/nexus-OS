@@ -558,10 +558,12 @@ app.post('/api/mcp/message', async (req, res) => {
 
 // 7. IN-APP CLAUDE PROMPT RUNNER (Direct MCP Prompt & Tool Execution from Browser)
 app.post('/api/mcp/run-prompt', async (req, res) => {
-  const { prompt, projectId, name, category, stylePreferences } = req.body;
+  const { prompt, projectId, name, category, stylePreferences, html, css, js } = req.body;
   if (!prompt || typeof prompt !== 'string') {
     return res.status(400).json({ error: 'Prompt is required' });
   }
+
+  const anthropicKey = req.headers['x-anthropic-key'] || req.body.anthropicKey || req.body.anthropicApiKey || process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
 
   try {
     let result;
@@ -569,6 +571,10 @@ app.post('/api/mcp/run-prompt', async (req, res) => {
       result = await mcpServer.executeTool('refine_website', {
         projectId,
         prompt,
+        html,
+        css,
+        js,
+        anthropicKey,
         changeType: 'general'
       });
     } else {
@@ -576,7 +582,11 @@ app.post('/api/mcp/run-prompt', async (req, res) => {
         prompt,
         name,
         category: category || 'landing',
-        stylePreferences
+        stylePreferences,
+        html,
+        css,
+        js,
+        anthropicKey
       });
     }
 

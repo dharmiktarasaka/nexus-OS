@@ -31,6 +31,7 @@ const {
   deleteProject
 } = require('./projectsStorage');
 const { generateWebsite, refineWebsite } = require('./geminiService');
+const { generateWebsiteWithClaude, refineWebsiteWithClaude } = require('./claudeService');
 
 const SERVER_NAME = 'nexus-website-builder-mcp';
 const SERVER_VERSION = '1.0.0';
@@ -59,29 +60,49 @@ ensureDatabase();
 const TOOLS = [
   {
     name: 'generate_website',
-    description: 'Generate a complete, modern, responsive website from a prompt directly inside Nexus OS Website Builder. Generates semantic HTML5, modern CSS3 variables, interactive JavaScript, and SEO metadata, and stores the project in the user\'s workspace with instant preview.',
+    description: 'Generate a complete, modern, responsive website directly inside Nexus OS Website Builder. Claude can synthesize the semantic HTML5, modern CSS3 variables, and interactive JS components and pass them in html, css, and js to build a 100% Claude-authored website. If html/css/js are omitted, the engine synthesizes them automatically.',
     inputSchema: {
       type: 'object',
       properties: {
         prompt: {
           type: 'string',
-          description: 'Detailed description of the website to build (e.g., "Create a modern luxury real estate landing page for waterfront villas in Miami with an interactive mortgage calculator, property gallery, and VIP contact form").'
+          description: 'Detailed description of the website to build.'
         },
         name: {
           type: 'string',
-          description: 'Optional name/brand of the website (e.g., "Miami Luxury Living", "Artisan Bakery Studio"). If omitted, an appropriate brand name will be extracted automatically.'
+          description: 'Brand or business name.'
         },
         category: {
           type: 'string',
-          description: 'Website category (e.g., "landing", "saas", "restaurant", "portfolio", "real-estate", "ecommerce", "fitness", "agency", "healthcare", "consulting"). Defaults to "landing".'
+          description: 'Website category (landing, saas, restaurant, portfolio, real-estate, ecommerce, fitness, agency, healthcare, consulting).'
+        },
+        tagline: {
+          type: 'string',
+          description: 'Compelling brand tagline.'
+        },
+        html: {
+          type: 'string',
+          description: 'Complete HTML5 code authored by Claude with full multi-page sections, hero, about, offerings, gallery, and contact.'
+        },
+        css: {
+          type: 'string',
+          description: 'Complete modern CSS3 code authored by Claude with CSS variables, fluid responsive layout, and styling.'
+        },
+        js: {
+          type: 'string',
+          description: 'Complete interactive JavaScript code authored by Claude for widgets, sliders, calculators, and modals.'
         },
         stylePreferences: {
           type: 'string',
-          description: 'Optional styling aesthetic (e.g., "dark luxury with gold accents", "clean minimalist white with subtle gradients", "vibrant modern SaaS with blue and purple glow").'
+          description: 'Styling aesthetic instructions.'
+        },
+        anthropicKey: {
+          type: 'string',
+          description: 'Optional Anthropic API Key (sk-ant-...) to generate using Claude 3.5 Sonnet.'
         },
         userId: {
           type: 'string',
-          description: 'Optional user identifier to attach the website to a specific account in Nexus OS. Defaults to "usr_claude_mcp".'
+          description: 'Optional user identifier in Nexus OS.'
         }
       },
       required: ['prompt']
@@ -89,7 +110,7 @@ const TOOLS = [
   },
   {
     name: 'refine_website',
-    description: 'Refine, customize, or redesign an existing website project in Nexus OS Website Builder using natural language instructions from Claude (e.g., add components, update color palettes, add pricing sliders, change layouts).',
+    description: 'Refine, customize, or redesign an existing website project in Nexus OS Website Builder using Claude. Claude can provide the modified html, css, and js directly, or give natural language change instructions.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -99,7 +120,23 @@ const TOOLS = [
         },
         prompt: {
           type: 'string',
-          description: 'Specific change instructions (e.g., "Add an interactive FAQ accordion section right above the footer and change the main call to action buttons to emerald green").'
+          description: 'Specific change instructions.'
+        },
+        html: {
+          type: 'string',
+          description: 'Updated HTML5 code authored by Claude.'
+        },
+        css: {
+          type: 'string',
+          description: 'Updated modern CSS3 code authored by Claude.'
+        },
+        js: {
+          type: 'string',
+          description: 'Updated JavaScript code authored by Claude.'
+        },
+        anthropicKey: {
+          type: 'string',
+          description: 'Optional Anthropic API Key (sk-ant-...).'
         }
       },
       required: ['projectId', 'prompt']
@@ -228,12 +265,44 @@ async function executeTool(name, args) {
       const category = args.category || 'landing';
       const stylePreferences = args.stylePreferences || 'Modern high-converting design, crisp responsive typography, interactive JS components';
 
-      // 1. Generate code using the AI generator
-      const generated = await generateWebsite({
-        prompt,
-        category,
-        stylePreferences
-      });
+      let generated;
+
+      // 1. If Claude in Claude Desktop / CLI authored the code directly:
+      if (args.html && args.html.trim().length > 20) {
+        generated = {
+          name: args.name || 'Claude Generated Website',
+          category: args.category || category,
+          tagline: args.tagline || 'Directly synthesized by Anthropic Claude 3.5 Sonnet',
+          html: args.html,
+          css: args.css || '/* Modern responsive layout */',
+          js: args.js || '',
+          seo: { metaTitle: args.name || 'Claude Website', metaDescription: args.tagline || '' },
+          provider: 'Real Claude 3.5 Sonnet'
+        };
+      } else {
+        // 2. Check if Anthropic API key is available
+        const anthropicKey = args.anthropicKey || args.anthropicApiKey || process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
+        if (anthropicKey && anthropicKey.startsWith('sk-ant-')) {
+          try {
+            generated = await generateWebsiteWithClaude({
+              prompt,
+              category,
+              stylePreferences,
+              customKey: anthropicKey
+            });
+          } catch (claudeErr) {
+            console.warn('[MCP Server] Claude API call failed, using secondary engine:', claudeErr.message);
+            generated = await generateWebsite({ prompt, category, stylePreferences });
+          }
+        } else {
+          // 3. Secondary engine
+          generated = await generateWebsite({
+            prompt,
+            category,
+            stylePreferences
+          });
+        }
+      }
 
       // 2. Persist project into Nexus OS store
       const projectName = args.name || generated.name || 'AI Generated Website';
@@ -249,7 +318,7 @@ async function executeTool(name, args) {
         css: generated.css,
         js: generated.js,
         seo: generated.seo,
-        provider: generated.provider || 'claude-mcp'
+        provider: generated.provider || 'Real Claude 3.5 Sonnet'
       });
 
       const editorUrl = `${CLIENT_BASE_URL}/apps/website-builder/editor/${created.id}`;
@@ -291,16 +360,40 @@ async function executeTool(name, args) {
         throw new Error(`Website project with ID "${projectId}" was not found in Nexus OS store.`);
       }
 
-      const currentCode = {
-        html: existing.html,
-        css: existing.css,
-        js: existing.js
-      };
+      let refined;
+      if (args.html && args.html.trim().length > 20) {
+        refined = {
+          html: args.html,
+          css: args.css || existing.css,
+          js: args.js || existing.js,
+          changeSummary: 'Applied refinements directly via Claude 3.5 Sonnet'
+        };
+      } else {
+        const anthropicKey = args.anthropicKey || args.anthropicApiKey || process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
+        const currentCode = {
+          html: existing.html,
+          css: existing.css,
+          js: existing.js
+        };
 
-      const refined = await refineWebsite({
-        currentCode,
-        prompt
-      });
+        if (anthropicKey && anthropicKey.startsWith('sk-ant-')) {
+          try {
+            refined = await refineWebsiteWithClaude({
+              currentCode,
+              prompt,
+              customKey: anthropicKey
+            });
+          } catch (claudeErr) {
+            console.warn('[MCP Server] Claude refinement failed, using secondary engine:', claudeErr.message);
+            refined = await refineWebsite({ currentCode, prompt });
+          }
+        } else {
+          refined = await refineWebsite({
+            currentCode,
+            prompt
+          });
+        }
+      }
 
       const updated = await updateProject(projectId, {
         html: refined.html,
