@@ -236,10 +236,10 @@ export const AnalysisProgressPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[500px] space-y-4">
         <div className="relative">
-          <div className="w-14 h-14 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-          <Sparkles className="w-6 h-6 text-blue-400 absolute inset-0 m-auto animate-pulse" />
+          <div className="w-14 h-14 border-4 border-blue-500/20 border-t-blue-600 rounded-full animate-spin" />
+          <Sparkles className="w-6 h-6 text-blue-600 absolute inset-0 m-auto animate-pulse" />
         </div>
-        <p className="text-sm font-medium text-slate-300">Connecting to AI Analysis Core...</p>
+        <p className="text-sm font-semibold text-slate-700">Connecting to AI Analysis Core...</p>
       </div>
     );
   }
@@ -260,10 +260,10 @@ export const AnalysisProgressPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* 1. TOP HEADER & PROCESSING STATUS CARD                                    */}
       {/* ========================================================================= */}
-      <div className="bg-gradient-to-br from-slate-900/95 via-slate-900/80 to-blue-950/40 border border-slate-800 p-6 lg:p-8 rounded-3xl relative overflow-hidden shadow-2xl backdrop-blur-xl">
+      <div className="bg-white border border-slate-200/90 p-6 lg:p-8 rounded-3xl relative overflow-hidden shadow-xl shadow-slate-200/50">
         {/* Ambient background glow */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-blue-100/50 via-indigo-50/30 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-gradient-to-tr from-cyan-100/40 via-blue-50/20 to-transparent rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start gap-4">
@@ -271,19 +271,19 @@ export const AnalysisProgressPage: React.FC = () => {
             {!isCompleted && !isFailed ? (
               <div className="relative flex items-center justify-center w-16 h-16 shrink-0 mt-0.5">
                 {/* Ping wave */}
-                <div className="absolute inset-0 rounded-2xl bg-blue-500/20 animate-ping" />
+                <div className="absolute inset-0 rounded-2xl bg-blue-500/15 animate-ping" />
                 {/* Rotating gradient border ring */}
-                <div className="absolute -inset-1 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-500 to-cyan-400 opacity-75 blur-xs animate-pulse" />
-                <div className="relative w-16 h-16 rounded-2xl bg-slate-950 border border-blue-500/40 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+                <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-tr from-blue-500 via-indigo-500 to-cyan-400 opacity-80 blur-[2px] animate-pulse" />
+                <div className="relative w-16 h-16 rounded-2xl bg-white border border-blue-200 flex items-center justify-center shadow-md shadow-blue-500/10">
+                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
                 </div>
               </div>
             ) : isCompleted ? (
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/20 shrink-0">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-md shadow-emerald-500/10 shrink-0">
                 <CheckCircle2 className="w-9 h-9" />
               </div>
             ) : (
-              <div className="w-16 h-16 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shadow-lg shadow-rose-500/20 shrink-0">
+              <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-md shadow-rose-500/10 shrink-0">
                 <AlertCircle className="w-9 h-9" />
               </div>
             )}
@@ -291,24 +291,24 @@ export const AnalysisProgressPage: React.FC = () => {
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap">
                 {!isCompleted && !isFailed && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-blue-500/20 border border-blue-500/40 text-blue-300 animate-pulse">
-                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping inline-block" />
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-blue-50 border border-blue-200 text-blue-700 shadow-xs">
+                    <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping inline-block" />
                     AI Buffering & Calculating
                   </span>
                 )}
                 {isCompleted && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-emerald-500/20 border border-emerald-500/40 text-emerald-300">
-                    <Check className="w-3 h-3" /> Ready
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-emerald-50 border border-emerald-200 text-emerald-700 shadow-xs">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" /> Ready
                   </span>
                 )}
                 {analysis?.modelUsed && (
-                  <span className="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700/60">
+                  <span className="text-[11px] font-mono font-medium text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
                     Gemini 3.5 AI
                   </span>
                 )}
               </div>
 
-              <h1 className="text-xl lg:text-2xl font-bold text-white tracking-tight">
+              <h1 className="text-xl lg:text-2xl font-bold text-slate-900 tracking-tight">
                 {isCompleted
                   ? 'Your Business Diagnostic is Ready!'
                   : isFailed
@@ -316,7 +316,7 @@ export const AnalysisProgressPage: React.FC = () => {
                   : 'AI Advisor is Reviewing Your Business Answers'}
               </h1>
 
-              <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+              <p className="text-xs text-slate-600 max-w-xl leading-relaxed font-normal">
                 {isCompleted
                   ? 'We analyzed your business answers, detected bottlenecks, and generated your customized action plan.'
                   : isFailed
@@ -327,21 +327,21 @@ export const AnalysisProgressPage: React.FC = () => {
           </div>
 
           {/* Right Status Badge / CTA */}
-          <div className="flex flex-col items-start md:items-end justify-center shrink-0 border-t md:border-t-0 md:border-l border-slate-800/80 pt-4 md:pt-0 md:pl-6 space-y-2">
+          <div className="flex flex-col items-start md:items-end justify-center shrink-0 border-t md:border-t-0 md:border-l border-slate-200 pt-4 md:pt-0 md:pl-6 space-y-2">
             {!isCompleted && !isFailed && (
               <>
-                <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-                  <Clock className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Elapsed: <strong className="text-white">{elapsedSeconds}s</strong></span>
-                  <span className="text-slate-600">•</span>
+                <div className="flex items-center gap-2 text-xs font-mono text-slate-600">
+                  <Clock className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Elapsed: <strong className="text-slate-900 font-bold">{elapsedSeconds}s</strong></span>
+                  <span className="text-slate-300">•</span>
                   {BASELINE_TOTAL_SECONDS > elapsedSeconds ? (
-                    <span>Est: <strong className="text-slate-300">~{BASELINE_TOTAL_SECONDS - elapsedSeconds}s</strong></span>
+                    <span>Est: <strong className="text-slate-700 font-semibold">~{BASELINE_TOTAL_SECONDS - elapsedSeconds}s</strong></span>
                   ) : (
-                    <span className="text-cyan-400 animate-pulse font-medium">Finalizing analysis...</span>
+                    <span className="text-blue-600 animate-pulse font-semibold">Finalizing analysis...</span>
                   )}
                 </div>
                 <div className="text-right">
-                  <span className="text-2xl font-extrabold text-blue-400 font-mono tracking-tight">
+                  <span className="text-3xl font-extrabold text-blue-600 font-mono tracking-tight">
                     {progressPercent}%
                   </span>
                 </div>
@@ -362,28 +362,28 @@ export const AnalysisProgressPage: React.FC = () => {
 
         {/* Live Animated Progress Bar */}
         {!isCompleted && !isFailed && (
-          <div className="mt-6 space-y-2">
-            <div className="w-full bg-slate-950/80 rounded-full h-2.5 p-0.5 border border-slate-800/80 overflow-hidden">
+          <div className="mt-6 space-y-2.5">
+            <div className="w-full bg-slate-100 rounded-full h-3 p-0.5 border border-slate-200 overflow-hidden shadow-inner">
               <div
-                className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 rounded-full transition-all duration-300 ease-out relative overflow-hidden"
+                className="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 rounded-full transition-all duration-300 ease-out relative overflow-hidden"
                 style={{ width: `${progressPercent}%` }}
               >
                 {/* Moving shimmer stripe effect */}
-                <div className="absolute inset-0 bg-white/25 animate-pulse" />
+                <div className="absolute inset-0 bg-white/30 animate-pulse" />
               </div>
             </div>
 
             {/* Live Thinking Insight Note */}
-            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-              <span className="flex items-center gap-1.5 text-blue-300 font-medium">
-                <Activity className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+            <div className="flex items-center justify-between text-xs text-slate-600 pt-1">
+              <span className="flex items-center gap-1.5 text-blue-700 font-medium">
+                <Activity className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
                 <span>
                   {progressPercent >= 94
                     ? 'Finalizing executive summary & deep strategic roadmap...'
                     : (WORKFLOW_STAGES[activeStageIndex]?.thinkingNote || THINKING_MESSAGES[thoughtIndex])}
                 </span>
               </span>
-              <span className="text-slate-500 font-mono hidden sm:inline">
+              <span className="text-slate-500 font-mono font-medium hidden sm:inline">
                 Step {Math.min(activeStageIndex + 1, 7)} of 7
               </span>
             </div>
@@ -392,15 +392,15 @@ export const AnalysisProgressPage: React.FC = () => {
 
         {/* Failure Retry Action */}
         {isFailed && (
-          <div className="mt-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="mt-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
+              <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
               <span>{error || 'Something went wrong during analysis.'}</span>
             </div>
             <button
               onClick={handleRetry}
               disabled={retrying}
-              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50 shrink-0"
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50 shrink-0 shadow-sm"
             >
               <RotateCcw className={`w-4 h-4 ${retrying ? 'animate-spin' : ''}`} />
               <span>{retrying ? 'Retrying...' : 'Restart Analysis'}</span>
@@ -413,15 +413,15 @@ export const AnalysisProgressPage: React.FC = () => {
       {/* 2. LIVE ANALYSIS WORKFLOW STEPS WITH ACTIVE BUFFERING EFFECTS              */}
       {/* ========================================================================= */}
       {!isCompleted && !isFailed && (
-        <div className="bg-slate-900/60 border border-slate-800 p-6 lg:p-8 rounded-3xl space-y-5">
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+        <div className="bg-white border border-slate-200/90 p-6 lg:p-8 rounded-3xl space-y-5 shadow-xl shadow-slate-200/40">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-4">
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-blue-400" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              <Zap className="w-4 h-4 text-blue-600" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">
                 Live Processing Steps
               </h2>
             </div>
-            <span className="text-[11px] text-slate-400 font-mono">
+            <span className="text-[11px] text-slate-500 font-mono font-medium">
               Real-time Gemini Diagnostic
             </span>
           </div>
@@ -437,10 +437,10 @@ export const AnalysisProgressPage: React.FC = () => {
                   key={stage.id}
                   className={`p-4 rounded-2xl border transition-all duration-300 ${
                     isCurrent
-                      ? 'bg-gradient-to-r from-blue-950/80 via-slate-900 to-indigo-950/50 border-blue-500/50 text-white shadow-xl shadow-blue-500/10 ring-2 ring-blue-500/30'
+                      ? 'bg-blue-50/80 border-blue-400 text-slate-900 shadow-md shadow-blue-500/10 ring-2 ring-blue-500/20'
                       : isDone
-                      ? 'bg-slate-950/60 border-slate-800/80 text-emerald-400'
-                      : 'bg-slate-950/20 border-slate-900/80 text-slate-500'
+                      ? 'bg-emerald-50/40 border-emerald-200/80 text-slate-800'
+                      : 'bg-slate-50/70 border-slate-200/70 text-slate-500'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -448,18 +448,18 @@ export const AnalysisProgressPage: React.FC = () => {
                       {/* Step Indicator Icon */}
                       <div className="mt-0.5">
                         {isDone ? (
-                          <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-sm shadow-emerald-500/20">
+                          <div className="w-6 h-6 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-600 shadow-xs">
                             <CheckCircle2 className="w-4 h-4" />
                           </div>
                         ) : isCurrent ? (
                           <div className="relative w-6 h-6 flex items-center justify-center">
-                            <div className="absolute inset-0 rounded-full bg-blue-500/30 animate-ping" />
-                            <div className="relative w-6 h-6 rounded-full bg-blue-600/30 border border-blue-400 flex items-center justify-center text-blue-300">
+                            <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" />
+                            <div className="relative w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xs">
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             </div>
                           </div>
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600">
+                          <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
                             <Clock className="w-3.5 h-3.5" />
                           </div>
                         )}
@@ -468,11 +468,11 @@ export const AnalysisProgressPage: React.FC = () => {
                       {/* Step Title & Details */}
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs font-semibold ${isCurrent ? 'text-white' : isDone ? 'text-slate-200' : 'text-slate-500'}`}>
+                          <span className={`text-xs font-semibold ${isCurrent ? 'text-blue-950 font-bold' : isDone ? 'text-slate-800' : 'text-slate-500'}`}>
                             Step {stage.id}: {stage.title}
                           </span>
                         </div>
-                        <p className={`text-[11px] leading-relaxed ${isCurrent ? 'text-blue-200' : isDone ? 'text-slate-400' : 'text-slate-600'}`}>
+                        <p className={`text-[11px] leading-relaxed ${isCurrent ? 'text-blue-800 font-normal' : isDone ? 'text-slate-600' : 'text-slate-400'}`}>
                           {isCurrent ? stage.thinkingNote : stage.shortDesc}
                         </p>
                       </div>
@@ -481,20 +481,20 @@ export const AnalysisProgressPage: React.FC = () => {
                     {/* Step Status Pill */}
                     <div className="shrink-0">
                       {isDone ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono uppercase bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono uppercase bg-emerald-100/80 border border-emerald-200 text-emerald-700">
                           <Check className="w-3 h-3" /> Done
                         </span>
                       ) : isCurrent ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold font-mono uppercase bg-blue-500/20 border border-blue-400/50 text-blue-300 shadow-xs shadow-blue-500/20">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold font-mono uppercase bg-blue-600 text-white shadow-sm shadow-blue-500/20">
                           <span className="flex space-x-1">
-                            <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                           </span>
                           <span>Analyzing</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono uppercase bg-slate-900 border border-slate-800/80 text-slate-600">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono uppercase bg-slate-100 border border-slate-200 text-slate-500">
                           Waiting
                         </span>
                       )}
@@ -503,12 +503,12 @@ export const AnalysisProgressPage: React.FC = () => {
 
                   {/* Micro sub-progress bar for active step */}
                   {isCurrent && (
-                    <div className="mt-3 pt-3 border-t border-blue-500/20 flex items-center justify-between text-[10px] text-blue-300">
-                      <span className="flex items-center gap-1.5">
-                        <Sparkles className="w-3 h-3 text-cyan-400 animate-spin" />
+                    <div className="mt-3 pt-3 border-t border-blue-200 flex items-center justify-between text-[11px] text-blue-700">
+                      <span className="flex items-center gap-1.5 font-medium">
+                        <Sparkles className="w-3.5 h-3.5 text-blue-600 animate-spin" />
                         <span>AI reasoning in progress for this question set...</span>
                       </span>
-                      <span className="font-mono text-cyan-400 animate-pulse font-semibold">Active</span>
+                      <span className="font-mono text-blue-700 font-bold uppercase tracking-wider text-[10px]">Active</span>
                     </div>
                   )}
                 </div>
@@ -517,11 +517,11 @@ export const AnalysisProgressPage: React.FC = () => {
           </div>
 
           {/* Friendly explanatory banner */}
-          <div className="p-4 rounded-2xl bg-blue-950/20 border border-blue-500/20 flex items-start gap-3">
-            <Sparkles className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-            <div className="space-y-0.5 text-xs text-slate-300">
-              <span className="font-semibold text-blue-300">Why does this take a few moments?</span>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+          <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 flex items-start gap-3">
+            <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+            <div className="space-y-0.5 text-xs text-slate-700">
+              <span className="font-semibold text-blue-900">Why does this take a few moments?</span>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
                 Gemini AI is reading every answer you gave, cross-referencing industry benchmarks, finding hidden revenue opportunities, and creating an actionable checklist tailored specifically to your business.
               </p>
             </div>
@@ -535,19 +535,19 @@ export const AnalysisProgressPage: React.FC = () => {
       {isCompleted && analysis && (
         <div className="space-y-6">
           {/* Executive Summary Card */}
-          <div className="bg-slate-900/70 border border-slate-800 p-6 lg:p-8 rounded-3xl space-y-6 shadow-xl backdrop-blur-xl">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5" />
+          <div className="bg-white border border-slate-200/90 p-6 lg:p-8 rounded-3xl space-y-6 shadow-xl shadow-slate-200/50">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                 Comprehensive Analysis Complete
               </span>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-400 font-mono">
+                <span className="text-xs text-slate-500 font-mono font-medium bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
                   Engine: {analysis.modelUsed || 'Gemini 3.5'}
                 </span>
                 <button
                   onClick={() => navigate('/apps/analytics/dashboard')}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition-all hover:scale-[1.02]"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition-all hover:scale-[1.02]"
                 >
                   <span>Open Full Dashboard</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -556,37 +556,37 @@ export const AnalysisProgressPage: React.FC = () => {
             </div>
 
             <div>
-              <h2 className="text-lg font-bold text-white mb-2">Executive Overview of Your Business</h2>
-              <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
-                {analysis.executiveSummary.overview || 'Your diagnostic report has synthesized your business answers.'}
+              <h2 className="text-lg font-bold text-slate-900 mb-2">Executive Overview of Your Business</h2>
+              <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                {analysis.executiveSummary?.overview || 'Your diagnostic report has synthesized your business answers.'}
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-              <div className="p-4 rounded-2xl bg-slate-950 border border-emerald-500/20 space-y-2.5">
-                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5" />
+              <div className="p-4 rounded-2xl bg-emerald-50/40 border border-emerald-200 space-y-2.5">
+                <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
                   Top Growth Opportunities Found
                 </span>
-                <ul className="space-y-2 text-xs text-slate-300">
-                  {analysis.executiveSummary.keyOpportunities.slice(0, 3).map((opp, i) => (
+                <ul className="space-y-2 text-xs text-slate-700">
+                  {(analysis.executiveSummary?.keyOpportunities || []).slice(0, 3).map((opp, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <span className="text-emerald-400 font-bold mt-0.5">•</span>
+                      <span className="text-emerald-600 font-bold mt-0.5">•</span>
                       <span className="leading-relaxed">{opp}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-950 border border-amber-500/20 space-y-2.5">
-                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <ShieldAlert className="w-3.5 h-3.5" />
+              <div className="p-4 rounded-2xl bg-amber-50/40 border border-amber-200 space-y-2.5">
+                <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
                   Priority Bottlenecks to Fix
                 </span>
-                <ul className="space-y-2 text-xs text-slate-300">
-                  {analysis.executiveSummary.priorityConcerns.slice(0, 3).map((con, i) => (
+                <ul className="space-y-2 text-xs text-slate-700">
+                  {(analysis.executiveSummary?.priorityConcerns || []).slice(0, 3).map((con, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <span className="text-amber-400 font-bold mt-0.5">•</span>
+                      <span className="text-amber-600 font-bold mt-0.5">•</span>
                       <span className="leading-relaxed">{con}</span>
                     </li>
                   ))}
@@ -599,38 +599,38 @@ export const AnalysisProgressPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <button
               onClick={() => navigate('/apps/analytics/dashboard')}
-              className="p-5 rounded-2xl bg-gradient-to-b from-blue-600/10 to-transparent border border-blue-500/20 hover:border-blue-500/50 text-left space-y-2 group transition-all hover:scale-[1.02]"
+              className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-blue-400 text-left space-y-2 group transition-all shadow-sm hover:shadow-md hover:scale-[1.02]"
             >
-              <Compass className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform" />
-              <h3 className="text-xs font-bold text-white">Full Dashboard</h3>
-              <p className="text-[11px] text-slate-400">See your complete analytics report, next steps, and task checklist.</p>
+              <Compass className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
+              <h3 className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors">Full Dashboard</h3>
+              <p className="text-[11px] text-slate-500 leading-relaxed">See your complete analytics report, next steps, and task checklist.</p>
             </button>
 
             <button
               onClick={() => navigate('/apps/analytics/swot')}
-              className="p-5 rounded-2xl bg-gradient-to-b from-indigo-600/10 to-transparent border border-indigo-500/20 hover:border-indigo-500/50 text-left space-y-2 group transition-all hover:scale-[1.02]"
+              className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-indigo-400 text-left space-y-2 group transition-all shadow-sm hover:shadow-md hover:scale-[1.02]"
             >
-              <Sparkles className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
-              <h3 className="text-xs font-bold text-white">SWOT Analysis</h3>
-              <p className="text-[11px] text-slate-400">Review strengths, weaknesses, opportunities, and market risks.</p>
+              <Sparkles className="w-5 h-5 text-indigo-600 group-hover:scale-110 transition-transform" />
+              <h3 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">SWOT Analysis</h3>
+              <p className="text-[11px] text-slate-500 leading-relaxed">Review strengths, weaknesses, opportunities, and market risks.</p>
             </button>
 
             <button
               onClick={() => navigate('/apps/analytics/growth')}
-              className="p-5 rounded-2xl bg-gradient-to-b from-emerald-600/10 to-transparent border border-emerald-500/20 hover:border-emerald-500/50 text-left space-y-2 group transition-all hover:scale-[1.02]"
+              className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-emerald-400 text-left space-y-2 group transition-all shadow-sm hover:shadow-md hover:scale-[1.02]"
             >
-              <TrendingUp className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
-              <h3 className="text-xs font-bold text-white">Growth Roadmap</h3>
-              <p className="text-[11px] text-slate-400">Explore prioritized ideas and high-impact revenue levers.</p>
+              <TrendingUp className="w-5 h-5 text-emerald-600 group-hover:scale-110 transition-transform" />
+              <h3 className="text-xs font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">Growth Roadmap</h3>
+              <p className="text-[11px] text-slate-500 leading-relaxed">Explore prioritized ideas and high-impact revenue levers.</p>
             </button>
 
             <button
               onClick={() => navigate('/apps/analytics/chat')}
-              className="p-5 rounded-2xl bg-gradient-to-b from-violet-600/10 to-transparent border border-violet-500/20 hover:border-violet-500/50 text-left space-y-2 group transition-all hover:scale-[1.02]"
+              className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-violet-400 text-left space-y-2 group transition-all shadow-sm hover:shadow-md hover:scale-[1.02]"
             >
-              <MessageSquare className="w-5 h-5 text-violet-400 group-hover:scale-110 transition-transform" />
-              <h3 className="text-xs font-bold text-white">Ask AI Advisor</h3>
-              <p className="text-[11px] text-slate-400">Chat directly with Gemini about your report or ask how to do any task.</p>
+              <MessageSquare className="w-5 h-5 text-violet-600 group-hover:scale-110 transition-transform" />
+              <h3 className="text-xs font-bold text-slate-900 group-hover:text-violet-600 transition-colors">Ask AI Advisor</h3>
+              <p className="text-[11px] text-slate-500 leading-relaxed">Chat directly with Gemini about your report or ask how to do any task.</p>
             </button>
           </div>
         </div>
