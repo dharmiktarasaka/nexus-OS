@@ -434,8 +434,8 @@ Return a JSON object with this EXACT structure:
 
     // 1. Try Google Gemini API directly from server .env
     const activeApiKey = process.env.GEMINI_API_KEY || config.geminiApiKey;
-    const preferredModel = process.env.GEMINI_MODEL || config.geminiModel || 'gemini-3.5-flash';
-    const candidateModels = [preferredModel, 'gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.1-flash-lite'].filter((v, i, a) => a.indexOf(v) === i);
+    const preferredModel = process.env.GEMINI_MODEL || config.geminiModel || 'gemini-2.5-flash';
+    const candidateModels = [preferredModel, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'].filter((v, i, a) => a.indexOf(v) === i);
 
     if (activeApiKey) {
       if (!genAI || config.geminiApiKey !== activeApiKey) {
@@ -455,7 +455,10 @@ Return a JSON object with this EXACT structure:
           });
 
           const prompt = `${systemPrompt}\n\nBUSINESS DIAGNOSTIC DATA:\n${businessContextText}\n\nSCHEMA SPECIFICATION:\n${schemaPrompt}`;
-          const result = await model.generateContent(prompt);
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`Timeout waiting for Gemini (${targetModel}) after 12s`)), 12000)
+          );
+          const result = (await Promise.race([model.generateContent(prompt), timeoutPromise])) as any;
           const text = result.response.text();
           const cleanedText = cleanJsonString(text);
           const parsed = JSON.parse(cleanedText);
@@ -474,6 +477,10 @@ Return a JSON object with this EXACT structure:
     }
 
     // 2. Intelligent rule-grounded synthesizer grounded strictly in user's inputs
+    return synthesizeAnalysisFromProfile(profile);
+  },
+
+  synthesizeAnalysisFromProfile(profile: IBusinessProfile) {
     return synthesizeAnalysisFromProfile(profile);
   },
 
@@ -565,7 +572,7 @@ function cleanJsonString(str: string): string {
 /**
  * High-quality deterministic synthesizer strictly based on the user's data
  */
-function synthesizeAnalysisFromProfile(rawProfile: IBusinessProfile): Omit<IBusinessAnalysis, 'id' | 'ownerId' | 'businessId' | 'status' | 'currentStage' | 'createdAt'> {
+export function synthesizeAnalysisFromProfile(rawProfile: IBusinessProfile): Omit<IBusinessAnalysis, 'id' | 'ownerId' | 'businessId' | 'status' | 'currentStage' | 'createdAt'> {
   const p = sanitizeProfile(rawProfile);
   const name = p.identity.businessName;
   const industry = p.identity.industry;

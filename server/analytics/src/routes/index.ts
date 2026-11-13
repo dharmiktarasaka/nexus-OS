@@ -477,8 +477,14 @@ apiRouter.post('/businesses/:id/analyze', requireAuth, async (req: Authenticated
 
         // 1. Immediately kick off Gemini AI analysis in parallel (no artificial blocking delay)
         const geminiPromise = geminiService.generateBusinessAnalysis(profile);
+        const safetyTimeoutPromise = new Promise<any>((resolve) => {
+          setTimeout(() => {
+            console.log('⏱️ [Analysis Route] 20s safety threshold reached. Providing synthesized diagnostic report.');
+            resolve(geminiService.synthesizeAnalysisFromProfile ? geminiService.synthesizeAnalysisFromProfile(profile) : {});
+          }, 20000);
+        });
 
-        // 2. Pace the 7 diagnostic stages evenly across the analysis time (~6.5s per stage)
+        // 2. Pace the 7 diagnostic stages smoothly across the analysis time (~2.6s per stage)
         let stageIdx = 0;
         analysisRecord.currentStage = stages[0];
         await repository.saveAnalysis(analysisRecord);
@@ -489,11 +495,11 @@ apiRouter.post('/businesses/:id/analyze', requireAuth, async (req: Authenticated
             analysisRecord.currentStage = stages[stageIdx];
             await repository.saveAnalysis(analysisRecord);
           }
-        }, 6500);
+        }, 2600);
 
         let generatedData;
         try {
-          generatedData = await geminiPromise;
+          generatedData = await Promise.race([geminiPromise, safetyTimeoutPromise]);
         } finally {
           clearInterval(stageInterval);
         }

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.geminiService = void 0;
 exports.formatProfileForPrompt = formatProfileForPrompt;
+exports.synthesizeAnalysisFromProfile = synthesizeAnalysisFromProfile;
 const generative_ai_1 = require("@google/generative-ai");
 const env_js_1 = require("../config/env.js");
 let genAI = null;
@@ -429,8 +430,8 @@ Return a JSON object with this EXACT structure:
 `;
         // 1. Try Google Gemini API directly from server .env
         const activeApiKey = process.env.GEMINI_API_KEY || env_js_1.config.geminiApiKey;
-        const preferredModel = process.env.GEMINI_MODEL || env_js_1.config.geminiModel || 'gemini-3.5-flash';
-        const candidateModels = [preferredModel, 'gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.1-flash-lite'].filter((v, i, a) => a.indexOf(v) === i);
+        const preferredModel = process.env.GEMINI_MODEL || env_js_1.config.geminiModel || 'gemini-2.5-flash';
+        const candidateModels = [preferredModel, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'].filter((v, i, a) => a.indexOf(v) === i);
         if (activeApiKey) {
             if (!genAI || env_js_1.config.geminiApiKey !== activeApiKey) {
                 genAI = new generative_ai_1.GoogleGenerativeAI(activeApiKey);
@@ -447,7 +448,8 @@ Return a JSON object with this EXACT structure:
                         }
                     });
                     const prompt = `${systemPrompt}\n\nBUSINESS DIAGNOSTIC DATA:\n${businessContextText}\n\nSCHEMA SPECIFICATION:\n${schemaPrompt}`;
-                    const result = await model.generateContent(prompt);
+                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout waiting for Gemini (${targetModel}) after 12s`)), 12000));
+                    const result = (await Promise.race([model.generateContent(prompt), timeoutPromise]));
                     const text = result.response.text();
                     const cleanedText = cleanJsonString(text);
                     const parsed = JSON.parse(cleanedText);
@@ -465,6 +467,9 @@ Return a JSON object with this EXACT structure:
             }
         }
         // 2. Intelligent rule-grounded synthesizer grounded strictly in user's inputs
+        return synthesizeAnalysisFromProfile(profile);
+    },
+    synthesizeAnalysisFromProfile(profile) {
         return synthesizeAnalysisFromProfile(profile);
     },
     /**

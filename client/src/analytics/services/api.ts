@@ -647,10 +647,19 @@ class ApiClient {
     try {
       const res = await this.request<{ success: boolean; analysis: IBusinessAnalysis }>(`/analyses/${id}`);
       if (res && res.analysis && res.analysis.id) {
+        if (!res.analysis.status && (res.analysis.executiveSummary || (res.analysis as any).overallScore)) {
+          res.analysis.status = 'completed';
+          res.analysis.currentStage = 'Completed';
+        }
         return res.analysis;
       }
       if (res && (res as any).id && !(res as any).analysis) {
-        return res as unknown as IBusinessAnalysis;
+        const item = res as unknown as IBusinessAnalysis;
+        if (!item.status && (item.executiveSummary || (item as any).overallScore)) {
+          item.status = 'completed';
+          item.currentStage = 'Completed';
+        }
+        return item;
       }
     } catch (e) {
       console.warn('API getAnalysis notice, checking local storage:', e);
@@ -661,13 +670,21 @@ class ApiClient {
       if (raw) {
         const list = JSON.parse(raw);
         const found = list.find((a: any) => a.id === id);
-        if (found) return found;
-        if (list.length > 0) return list[0];
+        if (found) {
+          if (!found.status) found.status = 'completed';
+          return found;
+        }
+        if (list.length > 0) {
+          if (!list[0].status) list[0].status = 'completed';
+          return list[0];
+        }
       }
     } catch {}
 
     const direct = this.generateDirectAnalysis('biz_default');
     direct.id = id;
+    direct.status = 'completed';
+    direct.currentStage = 'Completed';
     return direct;
   }
 

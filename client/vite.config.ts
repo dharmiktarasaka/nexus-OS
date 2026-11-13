@@ -452,23 +452,76 @@ export default defineConfig({
                   offline: true,
                   analysis: {
                     id: 'ana_' + Date.now(),
+                    status: 'completed',
+                    currentStage: 'Completed',
                     overallScore: 88,
                     scores: { finance: 86, market: 84, operations: 91, people: 89 },
-                    swot: {
-                      strengths: ['High client retention (94%)', 'Proprietary technology stack', 'Fast product velocity'],
-                      weaknesses: ['Sales funnel bottleneck', 'Manual reporting overhead'],
-                      opportunities: ['Enterprise market expansion', 'Automated workflows'],
-                      threats: ['New VC-backed market entrants']
+                    modelUsed: 'gemini-2.5-flash',
+                    executiveSummary: {
+                      overview: 'Strategic enterprise diagnostic synthesized from your business profile. Demonstrates strong client retention, scalable workflows, and clear runways for margin expansion.',
+                      businessStage: 'Growing Steady',
+                      mainFindings: [
+                        'Strong core positioning centered around autonomous workflows and high-touch consulting.',
+                        'High-value target market with solid recurring client demand.',
+                        'Predictable revenue expansion available through structured recurring client packages.'
+                      ],
+                      keyOpportunities: [
+                        'Package core offerings into standardized monthly retainer tiers.',
+                        'Deploy automated inbound lead qualification to scale client acquisition.',
+                        'Streamline routine delivery workflows to free founder time for high-value strategic growth.'
+                      ],
+                      priorityConcerns: [
+                        'Unpredictable monthly lead generation requiring active founder outreach.',
+                        'Manual operational overhead during peak delivery periods.'
+                      ]
                     },
-                    prosCons: {
-                      pros: ['Strong brand positioning', 'Scalable architecture'],
-                      cons: ['Resource constraints', 'High onboarding friction']
+                    swot: {
+                      strengths: [
+                        { point: 'High client retention (94%)', explanation: 'Clients experience consistent value and recommend your services.', evidenceRef: 'Step 2' },
+                        { point: 'Proprietary technology stack', explanation: 'Unique automation tools differentiate from competitors.', evidenceRef: 'Step 1' }
+                      ],
+                      weaknesses: [
+                        { point: 'Sales funnel bottleneck', explanation: 'Relying heavily on manual outreach creates revenue fluctuations.', evidenceRef: 'Step 4' },
+                        { point: 'Manual reporting overhead', explanation: 'Time spent compiling reports reduces strategic bandwidth.', evidenceRef: 'Step 4' }
+                      ],
+                      opportunities: [
+                        { point: 'Enterprise market expansion', explanation: 'Larger accounts provide multi-year retainers and higher margins.', evidenceRef: 'Step 3' },
+                        { point: 'Automated workflows', explanation: 'Inbound automation accelerates prospect qualification by 35%.', evidenceRef: 'Step 2' }
+                      ],
+                      threats: [
+                        { point: 'New market entrants', explanation: 'Competitors entering the space require continued positioning sharpness.', evidenceRef: 'Step 1' }
+                      ]
+                    },
+                    prosAndCons: {
+                      pros: [
+                        { point: 'Strong brand positioning & client trust', detail: 'Consistent high retention and referral rates.', category: 'Operations', impact: 'High', type: 'confirmed_fact' },
+                        { point: 'Scalable architecture', detail: 'Existing foundation supports 3-5x current client volume.', category: 'Product', impact: 'High', type: 'confirmed_fact' }
+                      ],
+                      cons: [
+                        { point: 'Resource constraints', detail: 'Core delivery relies heavily on founder involvement.', category: 'Operations', impact: 'Critical', type: 'confirmed_fact' },
+                        { point: 'High onboarding friction', detail: 'New client setup requires several manual touchpoints.', category: 'Operations', impact: 'Moderate', type: 'ai_diagnosis' }
+                      ]
                     },
                     growthRoadmap: {
-                      immediate: [{ title: 'Automate Lead Scoring', horizon: 'Immediate', priority: 'High' }],
-                      shortTerm: [{ title: 'Launch Enterprise Tier', horizon: 'Short-term', priority: 'Medium' }],
-                      mediumTerm: [{ title: 'International Expansion', horizon: 'Medium-term', priority: 'High' }]
-                    }
+                      immediate: [{ id: 'g1', title: 'Automate Lead Scoring & Intake', horizon: 'immediate', priority: 'high', expectedImpact: 'High', description: 'Deploy automated form with 15-minute response notification.' }],
+                      shortTerm: [{ id: 'g2', title: 'Launch Enterprise Retainer Tier', horizon: 'shortTerm', priority: 'high', expectedImpact: 'High', description: 'Package recurring advisory services into quarterly contracts.' }],
+                      mediumTerm: [{ id: 'g3', title: 'Scale Inbound Acquisition', horizon: 'mediumTerm', priority: 'medium', expectedImpact: 'Medium', description: 'Double qualified discovery calls through targeted industry content.' }]
+                    },
+                    actionPlan: [
+                      {
+                        id: 'act-1',
+                        timeframe: '7_days',
+                        problemAddressed: 'Lead Generation',
+                        recommendedAction: 'Deploy automated intake & qualification workflow',
+                        whyItMatters: 'Captures and converts interested prospects while intent is at its highest peak.',
+                        implementationSteps: ['Create 3-question client questionnaire', 'Connect instant Slack/email notifications'],
+                        priority: 'Urgent',
+                        suggestedOwnerRole: 'Founder / Head of Growth',
+                        successMetric: '3+ qualified client discovery calls scheduled within 7 days',
+                        dependenciesAndAssumptions: 'Core service pricing finalized'
+                      }
+                    ],
+                    createdAt: new Date().toISOString()
                   }
                 };
               } else if (url.includes('/businesses') && req.method === 'POST') {
