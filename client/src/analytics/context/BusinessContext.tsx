@@ -102,12 +102,15 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         api.getActionItems(businessId).catch(() => [])
       ]);
 
-      const completed = analyses.find((a) => a.status === 'completed') || analyses[0] || null;
+      const safeAnalyses = Array.isArray(analyses) ? analyses : [];
+      const completed = safeAnalyses.find((a) => a.status === 'completed') || safeAnalyses[0] || null;
       setLatestAnalysis(completed);
-      setReports(rpts);
-      setActionItems(acts);
+      setReports(Array.isArray(rpts) ? rpts : []);
+      setActionItems(Array.isArray(acts) ? acts : []);
     } catch (err) {
       console.warn('Failed loading business sub-data:', err);
+      setActionItems([]);
+      setReports([]);
     }
   }, []);
 

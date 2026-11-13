@@ -660,6 +660,45 @@ export default defineConfig({
                   },
                   autosavedAt: new Date().toISOString()
                 };
+              } else if (url.includes('/actions')) {
+                payload = {
+                  success: true,
+                  offline: true,
+                  actionItems: [
+                    {
+                      id: 'act-1',
+                      title: 'Deploy Automated Client Intake & Lead Qualification',
+                      description: 'Captures and converts interested prospects while intent is at its highest peak.',
+                      priority: 'high',
+                      timeframe: '7_days',
+                      status: 'todo',
+                      ownerRole: 'Founder / Head of Growth',
+                      successMetric: '3+ qualified client discovery calls scheduled within 7 days'
+                    },
+                    {
+                      id: 'act-2',
+                      title: 'Standardize Recurring Retainer Service Packages',
+                      description: 'Convert top 3 recurring clients into standardized quarterly retainers.',
+                      priority: 'high',
+                      timeframe: '30_days',
+                      status: 'todo',
+                      ownerRole: 'Operations / Finance',
+                      successMetric: 'At least 2 clients enrolled in recurring agreements'
+                    }
+                  ]
+                };
+              } else if (url.includes('/reports')) {
+                payload = {
+                  success: true,
+                  offline: true,
+                  reports: []
+                };
+              } else if (url.includes('/analyses') && !url.includes('/analyze')) {
+                payload = {
+                  success: true,
+                  offline: true,
+                  analyses: []
+                };
               } else if (url.includes('/businesses')) {
                 payload = {
                   success: true,

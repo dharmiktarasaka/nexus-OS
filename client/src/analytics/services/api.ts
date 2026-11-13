@@ -730,8 +730,15 @@ class ApiClient {
   }
 
   async getReports(businessId: string): Promise<IReport[]> {
-    const res = await this.request<{ success: boolean; reports: IReport[] }>(`/businesses/${businessId}/reports`);
-    return res.reports;
+    try {
+      const res = await this.request<{ success: boolean; reports: IReport[] }>(`/businesses/${businessId}/reports`);
+      if (res && Array.isArray(res.reports)) {
+        return res.reports;
+      }
+    } catch (e) {
+      console.warn('API getReports notice:', e);
+    }
+    return [];
   }
 
   async getReport(id: string): Promise<IReport> {
@@ -741,8 +748,27 @@ class ApiClient {
 
   // --- ACTION ITEMS ---
   async getActionItems(businessId: string): Promise<IActionItem[]> {
-    const res = await this.request<{ success: boolean; actionItems: IActionItem[] }>(`/businesses/${businessId}/actions`);
-    return res.actionItems;
+    try {
+      const res = await this.request<{ success: boolean; actionItems: IActionItem[] }>(`/businesses/${businessId}/actions`);
+      if (res && Array.isArray(res.actionItems)) {
+        return res.actionItems;
+      }
+      if (res && Array.isArray((res as any).actions)) {
+        return (res as any).actions;
+      }
+    } catch (e) {
+      console.warn('API getActionItems notice, checking local storage:', e);
+    }
+
+    try {
+      const raw = localStorage.getItem('stratiq_local_actions');
+      if (raw) {
+        const list = JSON.parse(raw);
+        if (Array.isArray(list)) return list;
+      }
+    } catch {}
+
+    return [];
   }
 
   async createActionItem(businessId: string, item: Partial<IActionItem>): Promise<IActionItem> {

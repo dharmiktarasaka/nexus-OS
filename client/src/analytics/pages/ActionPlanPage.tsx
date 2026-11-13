@@ -84,14 +84,15 @@ export const ActionPlanPage: React.FC = () => {
     }
   };
 
-  const filtered = actionItems.filter((item) => {
+  const safeItems = Array.isArray(actionItems) ? actionItems : [];
+  const filtered = safeItems.filter((item) => {
     if (filterTimeframe !== 'all' && item.timeframe !== filterTimeframe) return false;
     if (filterStatus !== 'all' && item.status !== filterStatus) return false;
     return true;
   });
 
-  const completedCount = actionItems.filter((i) => i.status === 'completed').length;
-  const progressPercent = actionItems.length > 0 ? Math.round((completedCount / actionItems.length) * 100) : 0;
+  const completedCount = safeItems.filter((i) => i.status === 'completed').length;
+  const progressPercent = safeItems.length > 0 ? Math.round((completedCount / safeItems.length) * 100) : 0;
 
   return (
     <div className="space-y-6 pb-12">
@@ -130,7 +131,7 @@ export const ActionPlanPage: React.FC = () => {
             />
           </div>
           <span className="text-xs font-semibold text-slate-300 whitespace-nowrap">
-            {completedCount} of {actionItems.length} Done ({progressPercent}%)
+            {completedCount} of {safeItems.length} Done ({progressPercent}%)
           </span>
         </div>
 

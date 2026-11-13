@@ -149,13 +149,14 @@ export const DashboardPage: React.FC = () => {
   }
 
   // Calculated action items statistics
-  const completedTasks = actionItems.filter((t) => t.status === 'completed').length;
-  const totalTasks = actionItems.length;
+  const safeActionItems = Array.isArray(actionItems) ? actionItems : [];
+  const completedTasks = safeActionItems.filter((t) => t?.status === 'completed').length;
+  const totalTasks = safeActionItems.length;
   const taskProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const filteredTasks = actionItems.filter((t) => {
+  const filteredTasks = safeActionItems.filter((t) => {
     if (taskFilter === 'all') return true;
-    return t.timeframe === taskFilter;
+    return t?.timeframe === taskFilter;
   });
 
   return (
@@ -343,9 +344,9 @@ export const DashboardPage: React.FC = () => {
           {/* Interactive Report View Switcher */}
           <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200 self-start sm:self-auto">
             {[
-              { id: 'actions' as const, label: '🎯 What To Do Next', badge: actionItems.length },
-              { id: 'proscons' as const, label: '⚖️ Pros & Cons', badge: (latestAnalysis?.prosAndCons.pros.length || 0) + (latestAnalysis?.prosAndCons.cons.length || 0) },
-              { id: 'growth' as const, label: '💡 Growth Ideas', badge: latestAnalysis?.growthOpportunities.length || 0 },
+              { id: 'actions' as const, label: '🎯 What To Do Next', badge: safeActionItems.length },
+              { id: 'proscons' as const, label: '⚖️ Pros & Cons', badge: (latestAnalysis?.prosAndCons?.pros?.length || 0) + (latestAnalysis?.prosAndCons?.cons?.length || 0) },
+              { id: 'growth' as const, label: '💡 Growth Ideas', badge: latestAnalysis?.growthOpportunities?.length || 0 },
               { id: 'swot' as const, label: '🔍 SWOT Analysis' },
               { id: 'overview' as const, label: '📄 Executive Summary' }
             ].map((tab) => (
@@ -533,12 +534,12 @@ export const DashboardPage: React.FC = () => {
                   <span>Strengths (What Is Working Well)</span>
                 </h3>
                 <span className="text-[10px] text-emerald-700 font-mono font-bold">
-                  {latestAnalysis?.prosAndCons.pros.length || 0} Strengths
+                  {latestAnalysis?.prosAndCons?.pros?.length || 0} Strengths
                 </span>
               </div>
 
               <div className="space-y-3">
-                {latestAnalysis?.prosAndCons.pros.map((item, idx) => (
+                {(latestAnalysis?.prosAndCons?.pros || []).map((item, idx) => (
                   <div key={idx} className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
@@ -552,7 +553,10 @@ export const DashboardPage: React.FC = () => {
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed">{item.detail}</p>
                   </div>
-                )) || <p className="text-xs text-slate-500 italic">No pros recorded yet.</p>}
+                ))}
+                {(!latestAnalysis?.prosAndCons?.pros || latestAnalysis.prosAndCons.pros.length === 0) && (
+                  <p className="text-xs text-slate-500 italic">No pros recorded yet.</p>
+                )}
               </div>
             </div>
 
@@ -564,12 +568,12 @@ export const DashboardPage: React.FC = () => {
                   <span>Things to Fix (Weaknesses & Bottlenecks)</span>
                 </h3>
                 <span className="text-[10px] text-rose-700 font-mono font-bold">
-                  {latestAnalysis?.prosAndCons.cons.length || 0} Issues
+                  {latestAnalysis?.prosAndCons?.cons?.length || 0} Issues
                 </span>
               </div>
 
               <div className="space-y-3">
-                {latestAnalysis?.prosAndCons.cons.map((item, idx) => (
+                {(latestAnalysis?.prosAndCons?.cons || []).map((item, idx) => (
                   <div key={idx} className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
@@ -583,7 +587,10 @@ export const DashboardPage: React.FC = () => {
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed">{item.detail}</p>
                   </div>
-                )) || <p className="text-xs text-slate-500 italic">No cons recorded yet.</p>}
+                ))}
+                {(!latestAnalysis?.prosAndCons?.cons || latestAnalysis.prosAndCons.cons.length === 0) && (
+                  <p className="text-xs text-slate-500 italic">No cons recorded yet.</p>
+                )}
               </div>
             </div>
           </div>
@@ -593,7 +600,7 @@ export const DashboardPage: React.FC = () => {
         {activeReportTab === 'growth' && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {latestAnalysis?.growthOpportunities.map((opp, idx) => (
+              {(latestAnalysis?.growthOpportunities || []).map((opp, idx) => (
                 <div
                   key={opp.id || idx}
                   className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3 flex flex-col justify-between"
@@ -649,7 +656,7 @@ export const DashboardPage: React.FC = () => {
                 Strengths (Internal Advantages)
               </h3>
               <div className="space-y-2.5">
-                {latestAnalysis?.swot.strengths.map((s, idx) => (
+                {(latestAnalysis?.swot?.strengths || []).map((s, idx) => (
                   <div key={idx} className="p-3 rounded-xl bg-white border border-emerald-100 shadow-xs">
                     <p className="text-xs font-bold text-slate-900">{s.point}</p>
                     <p className="text-[11px] text-slate-600 mt-0.5">{s.explanation}</p>
@@ -665,7 +672,7 @@ export const DashboardPage: React.FC = () => {
                 Weaknesses (Internal Bottlenecks)
               </h3>
               <div className="space-y-2.5">
-                {latestAnalysis?.swot.weaknesses.map((w, idx) => (
+                {(latestAnalysis?.swot?.weaknesses || []).map((w, idx) => (
                   <div key={idx} className="p-3 rounded-xl bg-white border border-rose-100 shadow-xs">
                     <p className="text-xs font-bold text-slate-900">{w.point}</p>
                     <p className="text-[11px] text-slate-600 mt-0.5">{w.explanation}</p>
@@ -681,7 +688,7 @@ export const DashboardPage: React.FC = () => {
                 Opportunities (Market Potential)
               </h3>
               <div className="space-y-2.5">
-                {latestAnalysis?.swot.opportunities.map((o, idx) => (
+                {(latestAnalysis?.swot?.opportunities || []).map((o, idx) => (
                   <div key={idx} className="p-3 rounded-xl bg-white border border-blue-100 shadow-xs">
                     <p className="text-xs font-bold text-slate-900">{o.point}</p>
                     <p className="text-[11px] text-slate-600 mt-0.5">{o.explanation}</p>
@@ -697,7 +704,7 @@ export const DashboardPage: React.FC = () => {
                 Threats (External Risks)
               </h3>
               <div className="space-y-2.5">
-                {latestAnalysis?.swot.threats.map((t, idx) => (
+                {(latestAnalysis?.swot?.threats || []).map((t, idx) => (
                   <div key={idx} className="p-3 rounded-xl bg-white border border-amber-100 shadow-xs">
                     <p className="text-xs font-bold text-slate-900">{t.point}</p>
                     <p className="text-[11px] text-slate-600 mt-0.5">{t.explanation}</p>
@@ -730,35 +737,35 @@ export const DashboardPage: React.FC = () => {
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
                   <h4 className="font-bold text-blue-700 uppercase text-[11px]">Business Model Structure</h4>
                   <p className="text-slate-600">
-                    <strong className="text-slate-800">Primary Value Generation:</strong> {latestAnalysis?.businessModelAnalysis.valueGeneration || activeBusiness.productsServices.mainOfferings}
+                    <strong className="text-slate-800">Primary Value Generation:</strong> {latestAnalysis?.businessModelAnalysis?.valueGeneration || activeBusiness.productsServices?.mainOfferings}
                   </p>
                   <p className="text-slate-600">
-                    <strong className="text-slate-800">Value Proposition:</strong> {activeBusiness.productsServices.usp}
+                    <strong className="text-slate-800">Value Proposition:</strong> {activeBusiness.productsServices?.usp}
                   </p>
                   <p className="text-slate-600">
-                    <strong className="text-slate-800">Customer Target:</strong> {activeBusiness.targetAudience.idealCustomerProfile}
+                    <strong className="text-slate-800">Customer Target:</strong> {activeBusiness.targetAudience?.idealCustomerProfile}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
                   <h4 className="font-bold text-emerald-700 uppercase text-[11px]">Financial & Cash Review</h4>
                   <p className="text-slate-600">
-                    <strong className="text-slate-800">Revenue Bracket:</strong> {activeBusiness.financials.monthlyRevenue || activeBusiness.financials.annualRevenue}
+                    <strong className="text-slate-800">Revenue Bracket:</strong> {activeBusiness.financials?.monthlyRevenue || activeBusiness.financials?.annualRevenue}
                   </p>
                   <p className="text-slate-600">
-                    <strong className="text-slate-800">Cash Flow Status:</strong> <span className="capitalize text-slate-800 font-semibold">{activeBusiness.financials.cashFlowSituation || 'Positive'}</span>
+                    <strong className="text-slate-800">Cash Flow Status:</strong> <span className="capitalize text-slate-800 font-semibold">{activeBusiness.financials?.cashFlowSituation || 'Positive'}</span>
                   </p>
                   <p className="text-slate-600">
-                    <strong className="text-slate-800">Pricing Assessment:</strong> {latestAnalysis?.financialReview.revenueModelAssessment || 'Standard direct model'}
+                    <strong className="text-slate-800">Pricing Assessment:</strong> {latestAnalysis?.financialReview?.revenueModelAssessment || 'Standard direct model'}
                   </p>
                 </div>
               </div>
 
-              {latestAnalysis?.executiveSummary.mainFindings && (
+              {latestAnalysis?.executiveSummary?.mainFindings && (
                 <div className="pt-2">
                   <h4 className="text-xs font-bold text-slate-900 mb-2">Key Diagnostic Findings:</h4>
                   <ul className="space-y-1.5 list-disc list-inside text-xs text-slate-600">
-                    {latestAnalysis.executiveSummary.mainFindings.map((finding, idx) => (
+                    {(latestAnalysis.executiveSummary.mainFindings || []).map((finding, idx) => (
                       <li key={idx}>{finding}</li>
                     ))}
                   </ul>
