@@ -359,6 +359,117 @@ This website is completely self-contained and ready to deploy:
   }
 });
 
+// ============================================================================
+// CLAUDE MCP (Model Context Protocol) & LIVE WEBSITE PREVIEW ENDPOINTS
+// ============================================================================
+const mcpServer = require('./mcp-server');
+
+// 1. Live Standalone Website Preview with Injected Toolbar
+app.get('/api/preview/:id', async (req, res) => {
+  try {
+    const project = await getProjectById(req.params.id);
+    if (!project) {
+      return res.status(404).send('<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;text-align:center;"><h2>Website Project Not Found</h2><p>Please check the project ID or create a new site in Nexus OS.</p></body></html>');
+    }
+
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5180';
+    const editorUrl = `${clientUrl}/apps/website-builder/editor/${project.id}`;
+
+    let html = project.html || '<!DOCTYPE html><html><head><title>Website</title></head><body><h1>Empty Website</h1></body></html>';
+    const cssTag = project.css ? `<style id="nexus-injected-css">\n${project.css}\n</style>` : '';
+    const jsTag = project.js ? `<script id="nexus-injected-js">\n${project.js}\n</script>` : '';
+
+    const previewBanner = `
+    <div id="nexus-preview-banner" style="position:fixed;bottom:16px;right:16px;z-index:999999;background:rgba(15,23,42,0.92);backdrop-filter:blur(12px);border:1px solid rgba(59,130,246,0.3);color:#fff;padding:10px 18px;border-radius:14px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.4);font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;gap:12px;font-size:12px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;"></span>
+        <strong>${project.name || 'Nexus OS Website'}</strong>
+      </div>
+      <a href="${editorUrl}" target="_blank" style="background:#2563eb;color:#fff;text-decoration:none;padding:5px 12px;border-radius:8px;font-weight:600;font-size:11px;display:inline-flex;align-items:center;gap:4px;transition:all 0.2s;">
+        Edit in PulseStudio ↗
+      </a>
+      <button onclick="document.getElementById('nexus-preview-banner').style.display='none'" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;line-height:1;padding:2px;" title="Dismiss">✕</button>
+    </div>
+    `;
+
+    if (html.includes('</head>')) {
+      html = html.replace('</head>', `${cssTag}\n</head>`);
+    } else {
+      html = `${cssTag}\n${html}`;
+    }
+
+    if (html.includes('</body>')) {
+      html = html.replace('</body>', `${previewBanner}\n${jsTag}\n</body>`);
+    } else {
+      html = `${html}\n${previewBanner}\n${jsTag}`;
+    }
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    res.status(500).send(`<h1>Error rendering preview: ${err.message}</h1>`);
+  }
+});
+
+// 2. Claude MCP Configuration Snippet Generator
+app.get('/api/mcp/config', (req, res) => {
+  const mcpServerPath = path.resolve(__dirname, 'mcp-server.js').replace(/\\/g, '/');
+  const claudeDesktopConfig = {
+    mcpServers: {
+      'nexus-website-builder': {
+        command: 'node',
+        args: [mcpServerPath]
+      }
+    }
+  };
+
+  const claudeCliCommand = `claude mcp add nexus-website-builder node "${mcpServerPath}"`;
+
+  res.json({
+    status: 'online',
+    protocolVersion: '2024-11-05',
+    serverPath: mcpServerPath,
+    tools: mcpServer.TOOLS.map(t => ({ name: t.name, description: t.description })),
+    claudeDesktopConfig,
+    claudeCliCommand,
+    configPaths: {
+      windows: '%APPDATA%\\Claude\\claude_desktop_config.json',
+      mac: '~/Library/Application Support/Claude/claude_desktop_config.json',
+      linux: '~/.config/Claude/claude_desktop_config.json'
+    }
+  });
+});
+
+// 3. HTTP JSON-RPC 2.0 MCP Endpoint
+app.post('/api/mcp', async (req, res) => {
+  try {
+    const response = await mcpServer.handleRequest(req.body);
+    if (response) {
+      res.json(response);
+    } else {
+      res.status(204).end();
+    }
+  } catch (err) {
+    res.status(500).json({
+      jsonrpc: '2.0',
+      id: req.body?.id || null,
+      error: { code: -32603, message: err.message }
+    });
+  }
+});
+
+// 4. MCP Health Endpoint
+app.get('/api/mcp/health', (req, res) => {
+  res.json({
+    status: 'online',
+    server: 'nexus-website-builder-mcp',
+    version: '1.0.0',
+    protocolVersion: '2024-11-05',
+    toolsCount: mcpServer.TOOLS.length,
+    tools: mcpServer.TOOLS.map(t => t.name)
+  });
+});
+
 // Start Server and Initialize MongoDB Connection
 app.listen(PORT, async () => {
   console.log(`[Server] AI Website Builder API running on http://localhost:${PORT}`);

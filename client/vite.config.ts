@@ -424,6 +424,14 @@ export default defineConfig({
           });
         }
       },
+      '/api/preview': {
+        target: 'http://localhost:5002',
+        changeOrigin: true
+      },
+      '/api/mcp': {
+        target: 'http://localhost:5002',
+        changeOrigin: true
+      },
       '/analytics-api': {
         target: 'http://localhost:5004',
         changeOrigin: true,

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import ClaudeMcpModal from '../components/ClaudeMcpModal';
 import { useAuth } from '../context/AuthContext';
 import { exportProjectToZip } from '../utils/zipExport';
 import { getWebsiteApiUrl } from '../apiConfig';
@@ -17,7 +18,8 @@ import {
   X,
   Code2,
   Globe,
-  ArrowRight
+  ArrowRight,
+  Bot
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -31,6 +33,7 @@ export default function DashboardPage() {
   const [filterCategory, setFilterCategory] = useState('all');
   const [exportingId, setExportingId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [showClaudeMcp, setShowClaudeMcp] = useState(false);
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -199,11 +202,96 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <Link to={`${basePath}/new`} className="btn-hero-create">
-            <Plus size={18} />
-            <span>Generate New Website</span>
-            <ArrowRight size={16} className="btn-arrow" />
-          </Link>
+          <div className="hero-action-buttons-wrap" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setShowClaudeMcp(true)}
+              className="btn-claude-mcp-hero"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 20px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                color: '#fff',
+                border: 'none',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(217, 119, 6, 0.35)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Bot size={18} />
+              <span>Connect Claude MCP</span>
+            </button>
+
+            <Link to={`${basePath}/new`} className="btn-hero-create">
+              <Plus size={18} />
+              <span>Generate New Website</span>
+              <ArrowRight size={16} className="btn-arrow" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Claude MCP Banner */}
+        <div
+          onClick={() => setShowClaudeMcp(true)}
+          style={{
+            padding: '14px 20px',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, rgba(79, 70, 229, 0.05) 100%)',
+            border: '1px solid rgba(217, 119, 6, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '14px',
+            cursor: 'pointer',
+            marginBottom: '20px',
+            transition: 'all 0.15s ease'
+          }}
+          title="Click to view Claude MCP setup"
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                background: '#d97706',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                shrink: 0
+              }}
+            >
+              <Bot size={18} />
+            </div>
+            <div>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main, #0f172a)' }}>
+                Want to build websites from your Claude chat?
+              </span>
+              <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted, #64748b)' }}>
+                Connect Claude Desktop or Claude Code via Model Context Protocol (MCP) to prompt Claude and generate websites live inside this builder.
+              </p>
+            </div>
+          </div>
+
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#d97706',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <span>Setup Guide</span>
+            <ArrowRight size={14} />
+          </span>
         </div>
 
         {/* Filter and Search Bar */}
@@ -354,6 +442,11 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      <ClaudeMcpModal
+        isOpen={showClaudeMcp}
+        onClose={() => setShowClaudeMcp(false)}
+      />
     </div>
   );
 }

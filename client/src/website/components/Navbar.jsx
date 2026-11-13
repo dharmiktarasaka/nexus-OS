@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import SettingsModal from './SettingsModal';
+import ClaudeMcpModal from './ClaudeMcpModal';
 import {
   Sparkles,
   Plus,
@@ -11,7 +12,8 @@ import {
   ShieldCheck,
   Sun,
   Moon,
-  ArrowLeft
+  ArrowLeft,
+  Bot
 } from 'lucide-react';
 
 function UserAvatar({ user }) {
@@ -84,6 +86,7 @@ function UserAvatar({ user }) {
 export default function Navbar() {
   const { user, logout, isRealFirebase } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
+  const [showClaudeMcp, setShowClaudeMcp] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('studio_theme') || 'light');
   const navigate = useNavigate();
   const location = useLocation();
@@ -130,6 +133,30 @@ export default function Navbar() {
         </div>
 
         <div className="nav-right">
+          <button
+            className="btn-claude-mcp-nav"
+            onClick={() => setShowClaudeMcp(true)}
+            title="Connect Claude MCP to build websites from Claude Desktop"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+              color: '#ffffff',
+              border: 'none',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px -1px rgba(217, 119, 6, 0.4)',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Bot size={15} />
+            <span>Claude MCP</span>
+          </button>
+
           <Link to={`${basePath}/new`} className="btn-create-nav">
             <Plus size={16} />
             <span>Generate Website</span>
@@ -172,6 +199,7 @@ export default function Navbar() {
       </header>
 
       <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      <ClaudeMcpModal isOpen={showClaudeMcp} onClose={() => setShowClaudeMcp(false)} />
     </>
   );
 }
