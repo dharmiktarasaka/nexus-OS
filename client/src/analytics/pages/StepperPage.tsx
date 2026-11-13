@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBusiness } from '../context/BusinessContext.js';
 import { api } from '../services/api.js';
@@ -74,8 +74,8 @@ const ensureBusinessShape = (biz: any): IBusinessProfile => {
     id: biz?.id || 'biz_' + Date.now(),
     ownerId: biz?.ownerId || biz?.ownerUid || 'usr_default',
     isDraft: biz?.isDraft !== undefined ? biz.isDraft : true,
-    currentStep: biz?.currentStep || 1,
-    completionPercentage: biz?.completionPercentage || 20,
+    currentStep: biz?.currentStep && biz.currentStep >= 1 && biz.currentStep <= 5 ? biz.currentStep : 1,
+    completionPercentage: biz?.completionPercentage ?? 20,
     identity: {
       businessName: biz?.identity?.businessName || '',
       industry: biz?.identity?.industry || 'Bakery / Coffee Shop',
@@ -135,23 +135,33 @@ export const StepperPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [saveToast, setSaveToast] = useState(false);
 
+  // Track the ID of the currently loaded business so we don't clobber active user edits on background autosaves
+  const loadedBusinessIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (activeBusiness) {
-      setFormData(ensureBusinessShape(activeBusiness));
-      if (activeBusiness.currentStep && activeBusiness.currentStep <= 5) {
-        setCurrentStep(activeBusiness.currentStep);
+      if (loadedBusinessIdRef.current !== activeBusiness.id) {
+        loadedBusinessIdRef.current = activeBusiness.id;
+        setFormData(ensureBusinessShape(activeBusiness));
+        if (activeBusiness.currentStep && activeBusiness.currentStep >= 1 && activeBusiness.currentStep <= 5) {
+          setCurrentStep(activeBusiness.currentStep);
+        }
       }
     } else {
+      loadedBusinessIdRef.current = null;
       createNewBusiness('My Enterprise')
         .then((biz) => {
-          if (biz) setFormData(ensureBusinessShape(biz));
+          if (biz) {
+            loadedBusinessIdRef.current = biz.id;
+            setFormData(ensureBusinessShape(biz));
+          }
         })
         .catch((err) => {
           console.warn('Fallback to local business profile for stepper:', err);
           setFormData(ensureBusinessShape({ identity: { businessName: 'My Enterprise' } }));
         });
     }
-  }, [activeBusiness]);
+  }, [activeBusiness, createNewBusiness]);
 
   if (!formData) {
     return (
@@ -162,7 +172,9 @@ export const StepperPage: React.FC = () => {
   }
 
   const handleNext = async () => {
-    // Basic validation
+    if (!formData) return;
+
+    // Step 1 Validation
     if (currentStep === 1) {
       if (!formData.identity?.businessName?.trim()) {
         setErrorMsg('Please enter your business name.');
@@ -178,21 +190,55 @@ export const StepperPage: React.FC = () => {
     if (currentStep < 5) {
       const next = currentStep + 1;
       setCurrentStep(next);
-      const updated = {
+
+      const updated: IBusinessProfile = {
         ...formData,
         currentStep: next,
         completionPercentage: Math.round((next / 5) * 100)
       };
       setFormData(updated);
-      await saveStepperDraft(updated);
+
+      // Autosave draft in background without blocking the step transition
+      try {
+        await saveStepperDraft(updated);
+      } catch (err) {
+        console.warn('Draft autosave notice during step advance:', err);
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handlePrev = () => {
     setErrorMsg(null);
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      const prev = currentStep - 1;
+      setCurrentStep(prev);
+      if (formData) {
+        const updated = {
+          ...formData,
+          currentStep: prev
+        };
+        setFormData(updated);
+        saveStepperDraft(updated).catch(() => {});
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const handleStepClick = (stepId: number) => {
+    setErrorMsg(null);
+    setCurrentStep(stepId);
+    if (formData) {
+      const updated = {
+        ...formData,
+        currentStep: stepId,
+        completionPercentage: Math.max(formData.completionPercentage || 0, Math.round((stepId / 5) * 100))
+      };
+      setFormData(updated);
+      saveStepperDraft(updated).catch(() => {});
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleManualSave = async () => {
@@ -267,7 +313,7 @@ export const StepperPage: React.FC = () => {
 
       // Trigger AI Analysis workflow
       const analysis = await api.triggerAnalysis(formData.id);
-      navigate(`/analysis/${analysis.id}`);
+      navigate(`/apps/analytics/analysis/${analysis.id}`);
     } catch (err) {
       setErrorMsg((err as Error).message || 'Failed to trigger AI analysis.');
       setSubmitting(false);
@@ -281,18 +327,19 @@ export const StepperPage: React.FC = () => {
         <div>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[11px] font-semibold mb-1 border border-blue-500/20">
             <Sparkles className="w-3 h-3" />
-            <span>Beginner Friendly • 4 Simple Steps</span>
+            <span>Beginner Friendly • 5 Simple Steps</span>
           </div>
           <h1 className="text-xl font-bold text-white">
             Quick Business Diagnostic
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Answer 4 simple, practical questions. No complicated corporate jargon, and everything autosaves.
+            Answer 5 simple, practical questions. No complicated corporate jargon, and everything autosaves.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
           <button
+            type="button"
             onClick={handleManualSave}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition-colors"
           >
@@ -302,6 +349,7 @@ export const StepperPage: React.FC = () => {
 
           {currentStep === 5 && (
             <button
+              type="button"
               onClick={handleFinalSubmit}
               disabled={submitting}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 hover:from-blue-500 hover:to-emerald-400 text-white text-xs font-bold shadow-md shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
@@ -332,7 +380,8 @@ export const StepperPage: React.FC = () => {
             return (
               <button
                 key={step.id}
-                onClick={() => setCurrentStep(step.id)}
+                type="button"
+                onClick={() => handleStepClick(step.id)}
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all ${
                   isCurrent
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 ring-1 ring-blue-400'
@@ -374,7 +423,7 @@ export const StepperPage: React.FC = () => {
         {currentStep === 1 && (
           <div className="space-y-6">
             <div className="border-b border-slate-800 pb-3">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-blue-400">Step 1 of 4</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-blue-400">Step 1 of 5</span>
               <h2 className="text-lg font-bold text-white">About Your Business</h2>
               <p className="text-xs text-slate-400 mt-0.5">
                 Tell us who you are and what you do so the AI understands your business.
@@ -572,7 +621,7 @@ export const StepperPage: React.FC = () => {
         {currentStep === 2 && (
           <div className="space-y-6">
             <div className="border-b border-slate-800 pb-3">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-blue-400">Step 2 of 4</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-blue-400">Step 2 of 5</span>
               <h2 className="text-lg font-bold text-white">Your Customers & What Makes You Special</h2>
               <p className="text-xs text-slate-400 mt-0.5">
                 Tell us who buys from you, how they find you, and why they choose you over competitors.
@@ -704,7 +753,7 @@ export const StepperPage: React.FC = () => {
           <div className="space-y-6">
             <div className="border-b border-slate-800 pb-3 flex items-start justify-between">
               <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-blue-400">Step 3 of 4</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-blue-400">Step 3 of 5</span>
                 <h2 className="text-lg font-bold text-white">Money & Financial Health</h2>
                 <p className="text-xs text-slate-400 mt-0.5">
                   Rough estimates are completely fine. We use this to give advice that fits your real budget.
@@ -818,7 +867,7 @@ export const StepperPage: React.FC = () => {
         {currentStep === 4 && (
           <div className="space-y-6">
             <div className="border-b border-slate-800 pb-3">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-blue-400">Step 4 of 4</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-blue-400">Step 4 of 5</span>
               <h2 className="text-lg font-bold text-white">Your #1 Headache & Next Goal</h2>
               <p className="text-xs text-slate-400 mt-0.5">
                 Tell us what is holding you back most so the AI knows exactly what to help you fix first.
@@ -1047,9 +1096,11 @@ export const StepperPage: React.FC = () => {
       {/* Navigation Footer */}
       <div className="flex items-center justify-between pt-2">
         <button
+          type="button"
+          id="stepper-prev-btn"
           onClick={handlePrev}
           disabled={currentStep === 1}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer disabled:cursor-not-allowed"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Previous Step</span>
@@ -1061,8 +1112,10 @@ export const StepperPage: React.FC = () => {
 
         {currentStep < 5 ? (
           <button
+            type="button"
+            id="stepper-next-btn"
             onClick={handleNext}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30 transition-all hover:translate-x-0.5"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold shadow-md shadow-blue-600/30 transition-all hover:translate-x-0.5 cursor-pointer"
           >
             <span>Next Step</span>
             <ArrowRight className="w-4 h-4" />

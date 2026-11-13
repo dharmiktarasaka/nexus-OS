@@ -36,7 +36,12 @@ class ApiClient {
   }
 
   getToken(): string | null {
-    return this.idToken || localStorage.getItem('auth_token') || localStorage.getItem('token');
+    return (
+      this.idToken ||
+      localStorage.getItem('auth_token') ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('crm_token')
+    );
   }
 
   private getHeaders(): Record<string, string> {
@@ -183,10 +188,11 @@ class ApiClient {
         if (idx >= 0) {
           stored[idx] = { ...stored[idx], ...partial, updatedAt: new Date().toISOString() };
           updated = stored[idx];
-          localStorage.setItem('stratiq_local_businesses', JSON.stringify(stored));
         } else {
-          updated = { id, ...partial };
+          updated = { id, ...partial, updatedAt: new Date().toISOString() };
+          stored.push(updated);
         }
+        localStorage.setItem('stratiq_local_businesses', JSON.stringify(stored));
         return { success: true, business: updated, autosavedAt: new Date().toISOString() } as unknown as T;
       }
 

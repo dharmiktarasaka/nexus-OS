@@ -349,15 +349,11 @@ apiRouter.put('/businesses/:id/draft', requireAuth, async (req: AuthenticatedReq
   try {
     const id = getParam(req.params.id);
     const existing = await repository.getBusinessById(id, req.user!.uid);
-    if (!existing) {
-      res.status(404).json({ success: false, error: 'Business profile not found.' });
-      return;
-    }
     const updatedDraft: IBusinessProfile = {
-      ...existing,
+      ...(existing || {}),
       ...req.body,
-      id: existing.id,
-      ownerId: existing.ownerId,
+      id,
+      ownerId: existing ? existing.ownerId : req.user!.uid,
       isDraft: true,
       updatedAt: new Date()
     };

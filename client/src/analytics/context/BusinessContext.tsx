@@ -26,6 +26,8 @@ const normalizeBusiness = (biz: any): IBusinessProfile => {
   if (!biz) return biz;
   return {
     ...biz,
+    currentStep: biz.currentStep && biz.currentStep >= 1 && biz.currentStep <= 5 ? biz.currentStep : 1,
+    completionPercentage: biz.completionPercentage !== undefined ? biz.completionPercentage : 20,
     identity: {
       businessName: '',
       industry: 'Software & Technology',
@@ -263,7 +265,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const res = await api.autosaveDraft(activeBusiness.id, partial);
       if (res && res.business) {
-        const normalized = normalizeBusiness(res.business);
+        const normalized = normalizeBusiness({ ...activeBusiness, ...res.business, ...partial });
         setActiveBusiness(normalized);
         setBusinesses((prev) => prev.map((b) => (b.id === normalized.id ? normalized : b)));
       } else {
