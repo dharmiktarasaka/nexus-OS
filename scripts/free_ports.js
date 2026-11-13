@@ -26,5 +26,4 @@ for (const port of PORTS) {
     // Port not in use, continue
   }
 }
-
 console.log('🚀 All platform ports are completely freed and ready!');
