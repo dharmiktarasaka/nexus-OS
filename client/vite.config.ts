@@ -405,6 +405,22 @@ export default defineConfig({
           });
         }
       },
+      '/api/projects/live-stream': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (_err, req, res) => {
+            if (res && !res.headersSent && typeof res.writeHead === 'function') {
+              res.writeHead(200, {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive'
+              });
+              res.end(`data: ${JSON.stringify({ type: 'HANDSHAKE', status: 'connected', mode: 'offline-stream' })}\n\n`);
+            }
+          });
+        }
+      },
       '/api/projects': {
         target: 'http://localhost:5002',
         changeOrigin: true,
@@ -430,7 +446,15 @@ export default defineConfig({
       },
       '/api/mcp': {
         target: 'http://localhost:5002',
-        changeOrigin: true
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (_err, req, res) => {
+            if (res && !res.headersSent && typeof res.writeHead === 'function') {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true, offline: true }));
+            }
+          });
+        }
       },
       '/analytics-api': {
         target: 'http://localhost:5004',

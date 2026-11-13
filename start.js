@@ -238,7 +238,9 @@ const gateway = http.createServer((req, res) => {
     urlPath.startsWith('/api/projects') ||
     urlPath.startsWith('/api/refine') ||
     urlPath.startsWith('/api/analyze-prompt') ||
-    urlPath.startsWith('/api/database')
+    urlPath.startsWith('/api/database') ||
+    urlPath.startsWith('/api/mcp') ||
+    urlPath.startsWith('/api/preview')
   ) {
     targetPort = 5002;
     targetPath = urlPath;
