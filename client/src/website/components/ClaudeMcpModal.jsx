@@ -19,10 +19,15 @@ import { getWebsiteApiUrl } from '../apiConfig';
 export default function ClaudeMcpModal({ isOpen, onClose }) {
   const [copiedConfig, setCopiedConfig] = useState(false);
   const [copiedCli, setCopiedCli] = useState(false);
+  const [copiedWebUrl, setCopiedWebUrl] = useState(false);
+  const [copiedLocalUrl, setCopiedLocalUrl] = useState(false);
   const [copiedPromptIdx, setCopiedPromptIdx] = useState(null);
   const [serverPath, setServerPath] = useState('c:/code/all in one/server/website/mcp-server.js');
   const [mcpHealth, setMcpHealth] = useState(null);
   const [checking, setChecking] = useState(false);
+
+  const webSseUrl = 'https://nexus-os-qg3c.onrender.com/api/mcp/sse';
+  const localSseUrl = 'http://localhost:5000/api/mcp/sse';
 
   useEffect(() => {
     if (isOpen) {
@@ -273,12 +278,154 @@ export default function ClaudeMcpModal({ isOpen, onClose }) {
             </div>
           </div>
 
-          {/* Option A: Claude Desktop Configuration */}
+          {/* Option A: Claude.ai Website Chatbot Connector (FlexiFunnels Style) */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              padding: '20px',
+              borderRadius: '18px',
+              background: 'linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, rgba(79, 70, 229, 0.06) 100%)',
+              border: '2px solid rgba(217, 119, 6, 0.4)',
+              boxShadow: '0 8px 24px -4px rgba(217, 119, 6, 0.15)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
+                    background: '#d97706',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff'
+                  }}
+                >
+                  <Globe size={18} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
+                    1. Connect Claude.ai Web Chatbot (FlexiFunnels Style)
+                  </h4>
+                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted, #64748b)' }}>
+                    Type prompts directly on <strong>claude.ai</strong> in your browser to build & update websites inside this app
+                  </p>
+                </div>
+              </div>
+
+              <span
+                style={{
+                  background: '#d97706',
+                  color: '#fff',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  padding: '3px 9px',
+                  borderRadius: '999px',
+                  textTransform: 'uppercase'
+                }}
+              >
+                Recommended
+              </span>
+            </div>
+
+            {/* Steps Guide */}
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.6)',
+                backdropFilter: 'blur(8px)',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                border: '1px solid rgba(217, 119, 6, 0.2)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                fontSize: '12px',
+                color: '#1e293b'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#d97706', color: '#fff', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</span>
+                <span>Open <a href="https://claude.ai" target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontWeight: 700, textDecoration: 'underline' }}>claude.ai</a> in your browser.</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#d97706', color: '#fff', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
+                <span>Click your profile (bottom-left) → <strong>Settings</strong> → <strong>Connectors</strong> (or Customize).</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#d97706', color: '#fff', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
+                <span>Click <strong>+ Add Custom Connector</strong>, enter Name: <code>Nexus Website Builder</code>, and paste this URL:</span>
+              </div>
+            </div>
+
+            {/* URL Input Strip */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: '#0f172a',
+                borderRadius: '12px',
+                padding: '10px 14px',
+                border: '1px solid rgba(217, 119, 6, 0.4)'
+              }}
+            >
+              <Globe size={16} color="#fbbf24" />
+              <input
+                type="text"
+                readOnly
+                value={webSseUrl}
+                style={{
+                  flex: 1,
+                  background: 'none',
+                  border: 'none',
+                  color: '#fbbf24',
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  outline: 'none'
+                }}
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(webSseUrl);
+                  setCopiedWebUrl(true);
+                  setTimeout(() => setCopiedWebUrl(false), 2500);
+                }}
+                style={{
+                  background: copiedWebUrl ? '#10b981' : '#d97706',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                {copiedWebUrl ? <Check size={13} /> : <Copy size={13} />}
+                <span>{copiedWebUrl ? 'Copied URL!' : 'Copy Connector URL'}</span>
+              </button>
+            </div>
+
+            <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>
+              💡 Once added, open any chat in <strong>claude.ai</strong> and type: <em>"Build a modern luxury Italian cafe website with table booking for Nexus Website Builder"</em>. Claude will build it and it will immediately appear in your PulseStudio app!
+            </div>
+          </div>
+
+          {/* Option B: Claude Desktop App Setup */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--text-main, #0f172a)' }}>
-                  A. Claude Desktop App Setup
+                  2. Claude Desktop App Setup (Windows)
                 </h4>
                 <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted, #64748b)' }}>
                   Paste into: <code style={{ background: 'rgba(0,0,0,0.05)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>%APPDATA%\Claude\claude_desktop_config.json</code>
@@ -325,11 +472,11 @@ export default function ClaudeMcpModal({ isOpen, onClose }) {
             </pre>
           </div>
 
-          {/* Option B: Claude Code CLI Command */}
+          {/* Option C: Claude Code CLI Command */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--text-main, #0f172a)' }}>
-                B. Claude Code CLI Command (Stdio)
+                3. Claude Code CLI Command (Terminal)
               </h4>
 
               <button

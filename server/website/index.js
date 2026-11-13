@@ -503,8 +503,15 @@ app.get('/api/projects/live-stream', (req, res) => {
   });
 });
 
-// 6. ANTHROPIC MCP SSE TRANSPORT (Official specification for Browser / Remote MCP clients)
+// 6. ANTHROPIC MCP SSE TRANSPORT (Official specification for Claude.ai Web Chatbot & Remote MCP clients)
 const mcpSseSessions = new Map();
+
+app.options('/api/mcp/*', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.status(204).end();
+});
 
 app.get('/api/mcp/sse', (req, res) => {
   const sessionId = require('crypto').randomUUID();
@@ -512,12 +519,15 @@ app.get('/api/mcp/sse', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
   if (typeof res.flushHeaders === 'function') res.flushHeaders();
 
   mcpSseSessions.set(sessionId, res);
 
-  // Send official MCP endpoint event
-  const endpointUrl = `/api/mcp/message?sessionId=${sessionId}`;
+  // Send official MCP endpoint event with complete absolute URL for claude.ai web chatbot
+  const protocol = req.headers['x-forwarded-proto'] || (req.connection?.encrypted ? 'https' : 'http');
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5002';
+  const endpointUrl = `${protocol}://${host}/api/mcp/message?sessionId=${sessionId}`;
   res.write(`event: endpoint\ndata: ${endpointUrl}\n\n`);
 
   const keepAlive = setInterval(() => {
@@ -533,6 +543,8 @@ app.get('/api/mcp/sse', (req, res) => {
 });
 
 app.post('/api/mcp/message', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
   const sessionId = req.query.sessionId;
   try {
     const response = await mcpServer.handleRequest(req.body);
