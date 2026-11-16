@@ -104,6 +104,18 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       const safeAnalyses = Array.isArray(analyses) ? analyses : [];
       const completed = safeAnalyses.find((a) => a.status === 'completed') || safeAnalyses[0] || null;
+      if (completed) {
+        if (!completed.swot) {
+          completed.swot = { strengths: [], weaknesses: [], opportunities: [], threats: [] };
+        } else {
+          completed.swot.strengths = completed.swot.strengths || [];
+          completed.swot.weaknesses = completed.swot.weaknesses || [];
+          completed.swot.opportunities = completed.swot.opportunities || [];
+          completed.swot.threats = completed.swot.threats || [];
+        }
+        completed.growthOpportunities = completed.growthOpportunities || [];
+        completed.actionPlan = completed.actionPlan || [];
+      }
       setLatestAnalysis(completed);
       setReports(Array.isArray(rpts) ? rpts : []);
       setActionItems(Array.isArray(acts) ? acts : []);

@@ -221,7 +221,7 @@ export const DashboardPage: React.FC = () => {
                     <ShieldCheck className="w-3.5 h-3.5" /> What's Working
                   </span>
                   <p className="text-xs font-semibold text-slate-900 mt-1 line-clamp-1">
-                    {latestAnalysis.swot.strengths[0]?.point || activeBusiness.productsServices.usp || 'Clear unique offer'}
+                    {latestAnalysis.swot?.strengths?.[0]?.point || activeBusiness?.productsServices?.usp || 'Clear unique offer'}
                   </p>
                 </div>
 
@@ -230,7 +230,7 @@ export const DashboardPage: React.FC = () => {
                     <AlertTriangle className="w-3.5 h-3.5" /> #1 Thing to Fix
                   </span>
                   <p className="text-xs font-semibold text-slate-900 mt-1 line-clamp-1">
-                    {latestAnalysis.swot.weaknesses[0]?.point || activeBusiness.challenges.biggestProblems[0] || 'Unsteady leads'}
+                    {latestAnalysis.swot?.weaknesses?.[0]?.point || activeBusiness?.challenges?.biggestProblems?.[0] || 'Unsteady leads'}
                   </p>
                 </div>
 
@@ -239,7 +239,7 @@ export const DashboardPage: React.FC = () => {
                     <Lightbulb className="w-3.5 h-3.5" /> Top Growth Lever
                   </span>
                   <p className="text-xs font-semibold text-slate-900 mt-1 line-clamp-1">
-                    {latestAnalysis.growthOpportunities[0]?.title || 'Systematize customer acquisition'}
+                    {latestAnalysis.growthOpportunities?.[0]?.title || 'Systematize customer acquisition'}
                   </p>
                 </div>
               </div>
@@ -803,9 +803,9 @@ export const DashboardPage: React.FC = () => {
         {/* Quick Clickable Question Chips */}
         <div className="flex flex-wrap gap-2">
           {[
-            `How can I get 5 new customers this month for ${activeBusiness.identity.businessName}?`,
+            `How can I get 5 new customers this month for ${activeBusiness?.identity?.businessName || 'my business'}?`,
             `How should I increase my prices without losing clients?`,
-            `What is the best way to fix my biggest problem (${activeBusiness.challenges.biggestProblems[0] || 'slow sales'})?`,
+            `What is the best way to fix my biggest problem (${activeBusiness?.challenges?.biggestProblems?.[0] || 'slow sales'})?`,
             `Give me a simple 7-day checklist to boost profits.`
           ].map((promptText, idx) => (
             <button

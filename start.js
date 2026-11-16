@@ -196,7 +196,11 @@ const gateway = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Range, x-user-id, x-user-email, x-gemini-key');
+  const requestedHeaders = req.headers['access-control-request-headers'];
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    requestedHeaders || 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Range, x-user-id, x-user-email, x-user-name, x-user-role, x-admin-key, x-gemini-key, x-business-id, *'
+  );
   res.setHeader('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range');
 
   if (req.method === 'OPTIONS') {

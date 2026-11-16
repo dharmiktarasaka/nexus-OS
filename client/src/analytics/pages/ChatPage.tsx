@@ -243,7 +243,7 @@ export const ChatPage: React.FC = () => {
                   {
                     icon: '⚡',
                     title: 'Fix #1 Problem',
-                    prompt: `What is the best way to fix my biggest problem: "${activeBusiness.challenges.biggestProblems[0] || 'inconsistent sales'}"?`
+                    prompt: `What is the best way to fix my biggest problem: "${activeBusiness?.challenges?.biggestProblems?.[0] || 'inconsistent sales'}"?`
                   },
                   {
                     icon: '📋',

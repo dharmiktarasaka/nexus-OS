@@ -152,7 +152,7 @@ export const ProfileEditorPage: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-300 mb-1">#1 Biggest Problem or Headache</label>
               <input
                 type="text"
-                value={profile.challenges.biggestProblems[0] || ''}
+                value={profile.challenges?.biggestProblems?.[0] || ''}
                 onChange={(e) => setProfile({ ...profile, challenges: { ...profile.challenges, biggestProblems: [e.target.value] } })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500"
               />
@@ -161,7 +161,7 @@ export const ProfileEditorPage: React.FC = () => {
               <label className="block text-xs font-semibold text-slate-300 mb-1">Goal for Next 3 to 6 Months</label>
               <input
                 type="text"
-                value={profile.challenges.shortTermGoals30To90Days[0] || ''}
+                value={profile.challenges?.shortTermGoals30To90Days?.[0] || ''}
                 onChange={(e) => setProfile({ ...profile, challenges: { ...profile.challenges, shortTermGoals30To90Days: [e.target.value] } })}
                 className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500"
               />

@@ -33,8 +33,15 @@ app.use(
         return callback(null, true);
       }
 
-      // 3. Automatically allow all Vercel production & preview deployments
-      if (origin.endsWith('.vercel.app') || origin.includes('vercel.app')) {
+      // 3. Automatically allow all Render, Railway, Vercel, Netlify deployments, and user domains (*.tarasaka.com)
+      if (
+        origin.endsWith('.vercel.app') ||
+        origin.includes('vercel.app') ||
+        origin.includes('onrender.com') ||
+        origin.includes('railway.app') ||
+        origin.includes('netlify.app') ||
+        origin.includes('tarasaka.com')
+      ) {
         return callback(null, true);
       }
 
@@ -58,10 +65,16 @@ app.use(
     allowedHeaders: [
       'Content-Type',
       'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
       'x-admin-key',
       'x-user-id',
       'x-user-email',
-      'x-user-name'
+      'x-user-name',
+      'x-user-role',
+      'x-business-id',
+      'x-gemini-key'
     ]
   })
 );

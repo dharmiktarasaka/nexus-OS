@@ -933,7 +933,7 @@ export const StepperPage: React.FC = () => {
 
                 <textarea
                   rows={2}
-                  value={formData.challenges.biggestProblems[0] || ''}
+                  value={formData.challenges?.biggestProblems?.[0] || ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,

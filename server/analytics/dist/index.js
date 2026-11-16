@@ -32,8 +32,13 @@ app.use((0, cors_1.default)({
         if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
             return callback(null, true);
         }
-        // 3. Automatically allow all Vercel production & preview deployments
-        if (origin.endsWith('.vercel.app') || origin.includes('vercel.app')) {
+        // 3. Automatically allow all Render, Railway, Vercel, Netlify deployments, and user domains (*.tarasaka.com)
+        if (origin.endsWith('.vercel.app') ||
+            origin.includes('vercel.app') ||
+            origin.includes('onrender.com') ||
+            origin.includes('railway.app') ||
+            origin.includes('netlify.app') ||
+            origin.includes('tarasaka.com')) {
             return callback(null, true);
         }
         // 4. Allow explicit origins configured in CORS_ORIGIN or wildcard
@@ -52,10 +57,16 @@ app.use((0, cors_1.default)({
     allowedHeaders: [
         'Content-Type',
         'Authorization',
+        'X-Requested-With',
+        'Accept',
+        'Origin',
         'x-admin-key',
         'x-user-id',
         'x-user-email',
-        'x-user-name'
+        'x-user-name',
+        'x-user-role',
+        'x-business-id',
+        'x-gemini-key'
     ]
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
