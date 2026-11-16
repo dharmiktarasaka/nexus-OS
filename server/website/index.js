@@ -86,14 +86,16 @@ app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
-// Host Header Subdomain Router: automatically routes *.tarasaka.com or *.localhost to live website
+// Host Header Subdomain Router: automatically routes *.[BASE_DOMAIN] or *.localhost to live website
 app.use(async (req, res, next) => {
   const rawHost = req.headers['x-forwarded-host'] || req.headers.host || '';
   const hostWithoutPort = rawHost.split(':')[0].toLowerCase();
-  const isTarasakaSub = hostWithoutPort.endsWith('.tarasaka.com') && hostWithoutPort !== 'tarasaka.com';
+  const configuredDomain = (BASE_DOMAIN || 'tarasaka.com').toLowerCase().trim();
+  const isDomainSub = (hostWithoutPort.endsWith('.' + configuredDomain) && hostWithoutPort !== configuredDomain) ||
+                      (hostWithoutPort.endsWith('.tarasaka.com') && hostWithoutPort !== 'tarasaka.com');
   const isLocalhostSub = hostWithoutPort.endsWith('.localhost') && hostWithoutPort !== 'localhost';
 
-  if ((isTarasakaSub || isLocalhostSub) && !req.path.startsWith('/api') && !req.path.startsWith('/live') && !req.path.startsWith('/sites')) {
+  if ((isDomainSub || isLocalhostSub) && !req.path.startsWith('/api') && !req.path.startsWith('/live') && !req.path.startsWith('/sites')) {
     const subdomain = hostWithoutPort.split('.')[0];
     const reserved = ['www', 'api', 'admin', 'app', 'crm', 'mail', 'portal', 'status'];
     if (!reserved.includes(subdomain)) {

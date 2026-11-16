@@ -124,7 +124,8 @@ startProcess('Website:5002', 'node', ['index.js'], websiteServerPath, '36', {
   MONGODB_URI: UNIFIED_MONGODB_URI,
   JWT_SECRET: UNIFIED_JWT_SECRET,
   CENTRAL_JWT_SECRET: UNIFIED_JWT_SECRET,
-  CRM_JWT_SECRET: UNIFIED_CRM_SECRET
+  CRM_JWT_SECRET: UNIFIED_CRM_SECRET,
+  DEPLOY_DOMAIN: process.env.DEPLOY_DOMAIN || process.env.PRIMARY_DOMAIN || 'tarasaka.com'
 });
 
 // 3b. Start Social Media (Mediamation) Backend Server (Fixed Internal Port 5003)
@@ -224,13 +225,15 @@ const gateway = http.createServer((req, res) => {
   let targetPort = 5050;
   let targetPath = urlPath;
 
-  // Check Host Header for Wildcard Subdomains on tarasaka.com or *.localhost
+  // Check Host Header for Wildcard Subdomains on configured domain or *.localhost
   const rawHost = req.headers['x-forwarded-host'] || req.headers.host || '';
   const hostWithoutPort = rawHost.split(':')[0].toLowerCase();
-  const isTarasakaSubdomain = hostWithoutPort.endsWith('.tarasaka.com') && hostWithoutPort !== 'tarasaka.com';
+  const configuredDomain = (process.env.DEPLOY_DOMAIN || process.env.PRIMARY_DOMAIN || 'tarasaka.com').toLowerCase().trim();
+  const isCustomSubdomain = (hostWithoutPort.endsWith('.' + configuredDomain) && hostWithoutPort !== configuredDomain) ||
+                            (hostWithoutPort.endsWith('.tarasaka.com') && hostWithoutPort !== 'tarasaka.com');
   const isLocalhostSubdomain = hostWithoutPort.endsWith('.localhost') && hostWithoutPort !== 'localhost';
 
-  if (isTarasakaSubdomain || isLocalhostSubdomain) {
+  if (isCustomSubdomain || isLocalhostSubdomain) {
     const parts = hostWithoutPort.split('.');
     const subdomain = parts[0];
     const reserved = ['www', 'api', 'admin', 'app', 'crm', 'mail', 'portal', 'status'];

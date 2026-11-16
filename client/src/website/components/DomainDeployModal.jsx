@@ -15,11 +15,11 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
-import { getWebsiteApiUrl } from '../apiConfig';
+import { getWebsiteApiUrl, PRIMARY_DOMAIN } from '../apiConfig';
 
 export default function DomainDeployModal({ isOpen, onClose, project, onSubdomainUpdated }) {
   const [subdomain, setSubdomain] = useState('');
-  const [customDomain, setCustomDomain] = useState('tarasaka.com');
+  const [customDomain, setCustomDomain] = useState(PRIMARY_DOMAIN);
   const [copiedSubdomain, setCopiedSubdomain] = useState(false);
   const [copiedDirect, setCopiedDirect] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -33,7 +33,7 @@ export default function DomainDeployModal({ isOpen, onClose, project, onSubdomai
     if (isOpen && project) {
       const initialSub = project.subdomain || (project.name || 'site').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || 'site';
       setSubdomain(initialSub);
-      setCustomDomain(project.customDomain || 'tarasaka.com');
+      setCustomDomain(project.customDomain || PRIMARY_DOMAIN);
       setIsAvailable(true);
       setStatusMessage(null);
     }
