@@ -1070,8 +1070,8 @@ app.post('/api/mcp/run-prompt', async (req, res) => {
 });
 
 // Start Server and Initialize MongoDB Connection
-app.listen(PORT, async () => {
-  console.log(`[Server] AI Website Builder API running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', async () => {
+  console.log(`[Server] AI Website Builder API running on http://127.0.0.1:${PORT} (0.0.0.0)`);
   const connected = await connectDB();
   if (connected) {
     await migrateFileProjectsToMongo();

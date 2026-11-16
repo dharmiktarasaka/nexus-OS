@@ -346,19 +346,19 @@ export default defineConfig({
         secure: false
       },
       '/live': {
-        target: 'http://localhost:5002',
+        target: 'http://127.0.0.1:5002',
         changeOrigin: true
       },
       '/sites': {
-        target: 'http://localhost:5002',
+        target: 'http://127.0.0.1:5002',
         changeOrigin: true
       },
       '/api/subdomain': {
-        target: 'http://localhost:5002',
+        target: 'http://127.0.0.1:5002',
         changeOrigin: true
       },
       '/api/agent': {
-        target: 'http://localhost:5002',
+        target: 'http://127.0.0.1:5002',
         changeOrigin: true,
         configure: (proxy) => {
           proxy.on('error', (_err, req, res) => {
@@ -370,7 +370,7 @@ export default defineConfig({
         }
       },
       '/api/auth': {
-        target: 'http://localhost:5002',
+        target: 'http://127.0.0.1:5002',
         changeOrigin: true,
         configure: (proxy) => {
           proxy.on('error', (_err, req, res) => {
@@ -382,7 +382,7 @@ export default defineConfig({
         }
       },
       '/api/generate': {
-        target: 'http://localhost:5002',
+        target: 'http://127.0.0.1:5002',
         changeOrigin: true,
         configure: (proxy) => {
           proxy.on('error', (_err, req, res) => {
@@ -408,7 +408,7 @@ export default defineConfig({
         }
       },
       '/api/refine': {
-        target: 'http://localhost:5002',
+        target: 'http://127.0.0.1:5002',
         changeOrigin: true,
         configure: (proxy) => {
           proxy.on('error', (_err, req, res) => {
@@ -420,7 +420,7 @@ export default defineConfig({
         }
       },
       '/api/analyze-prompt': {
-        target: 'http://localhost:5002',
+        target: 'http://127.0.0.1:5002',
         changeOrigin: true,
         configure: (proxy) => {
           proxy.on('error', (_err, req, res) => {
@@ -442,7 +442,7 @@ export default defineConfig({
         }
       },
       '/api/projects/live-stream': {
-        target: 'http://localhost:5002',
+        target: 'http://127.0.0.1:5002',
         changeOrigin: true,
         configure: (proxy) => {
           proxy.on('error', (_err, req, res) => {
@@ -458,7 +458,7 @@ export default defineConfig({
         }
       },
       '/api/projects': {
-        target: 'http://localhost:5002',
+        target: 'http://127.0.0.1:5002',
         changeOrigin: true,
         configure: (proxy) => {
           proxy.on('error', (_err, req, res) => {
@@ -477,11 +477,11 @@ export default defineConfig({
         }
       },
       '/api/preview': {
-        target: 'http://localhost:5002',
+        target: 'http://127.0.0.1:5002',
         changeOrigin: true
       },
       '/api/mcp': {
-        target: 'http://localhost:5002',
+        target: 'http://127.0.0.1:5002',
         changeOrigin: true,
         configure: (proxy) => {
           proxy.on('error', (_err, req, res) => {
