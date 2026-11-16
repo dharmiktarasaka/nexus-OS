@@ -652,19 +652,22 @@ function renderLiveWebsite(project, req, res, subPath = '/') {
 }
 
 // Public live website routes (via /live/:subdomain or /sites/:subdomain)
-app.get(['/live/:subdomain', '/live/:subdomain/*', '/sites/:subdomain', '/sites/:subdomain/*'], async (req, res) => {
+async function handleLiveWebsiteRequest(req, res) {
   try {
     const subdomain = req.params.subdomain;
     const project = await getProjectBySubdomain(subdomain);
     if (!project) {
       return res.status(404).send(`<!DOCTYPE html><html><body style="font-family:system-ui,-apple-system,sans-serif;padding:60px 20px;text-align:center;background:#0f172a;color:#f8fafc;"><h2>Website Not Found</h2><p style="color:#94a3b8;">No published website was found for subdomain <strong>"${subdomain}.${BASE_DOMAIN || 'tarasaka.com'}"</strong>.</p><a href="https://${BASE_DOMAIN || 'tarasaka.com'}" style="color:#38bdf8;text-decoration:none;font-weight:600;">Go to Tarasaka OS ↗</a></body></html>`);
     }
-    const subPath = req.params[0] || '/';
+    const subPath = req.url || '/';
     return renderLiveWebsite(project, req, res, subPath);
   } catch (err) {
     res.status(500).send(`<h1>Error loading website: ${err.message}</h1>`);
   }
-});
+}
+
+app.use('/live/:subdomain', handleLiveWebsiteRequest);
+app.use('/sites/:subdomain', handleLiveWebsiteRequest);
 
 // Deploy / Publish Project Endpoint (Generates subdomain and attaches to tarasaka.com)
 app.post('/api/projects/:id/deploy', async (req, res) => {
@@ -957,11 +960,14 @@ app.get('/api/projects/live-stream', (req, res) => {
 // 6. ANTHROPIC MCP SSE TRANSPORT (Official specification for Claude.ai Web Chatbot & Remote MCP clients)
 const mcpSseSessions = new Map();
 
-app.options('/api/mcp/*', (req, res) => {
+app.use('/api/mcp', (req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
-  res.status(204).end();
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  next();
 });
 
 app.get('/api/mcp/sse', (req, res) => {

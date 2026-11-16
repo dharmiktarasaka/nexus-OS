@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { createClientFallbackProject } from '../utils/clientGenerator';
 
-export default function DeviceFrame({ html, css, js, title }) {
+export default function DeviceFrame({ html, css, js, title, subdomain, customDomain = 'tarasaka.com' }) {
   const [device, setDevice] = useState('desktop'); // 'desktop' | 'tablet' | 'mobile'
   const [isLandscape, setIsLandscape] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -153,6 +153,28 @@ export default function DeviceFrame({ html, css, js, title }) {
         </div>
 
         <div className="toolbar-actions-right">
+          {subdomain && (
+            <a
+              href={`https://${subdomain}.${customDomain}`}
+              target="_blank"
+              rel="noreferrer"
+              className="tool-btn"
+              style={{
+                color: '#34d399',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontWeight: 600
+              }}
+              title={`Visit live website on ${subdomain}.${customDomain}`}
+            >
+              <ExternalLink size={13} color="#10b981" />
+              <span>{subdomain}.{customDomain}</span>
+            </a>
+          )}
           <button className="tool-btn icon-only" onClick={handleRefresh} title="Reload Preview">
             <RefreshCw size={14} />
           </button>

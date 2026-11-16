@@ -1078,6 +1078,8 @@ export default function EditorPage() {
                 css={code.css}
                 js={code.js}
                 title={projectName}
+                subdomain={project?.subdomain}
+                customDomain={project?.customDomain || 'tarasaka.com'}
               />
             )}
 
