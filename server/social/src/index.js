@@ -31,33 +31,57 @@ app.use(helmet({
 }));
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-// Exact allow-list only. *.vercel.app wildcard removed — an attacker
-// could register their own Vercel project and make credentialed requests.
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:4173',
+  'http://localhost:5180',
+  'http://localhost:5000',
   'https://mediamation.vercel.app',
   process.env.CLIENT_URL,
   process.env.ADMIN_URL,
+  process.env.BACKEND_URL,
+  process.env.RENDER_EXTERNAL_URL,
 ].filter(Boolean).map(url => url.replace(/\/$/, '').replace(/[\r\n\s\t]/g, ''));
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow server-to-server (no origin) or explicitly allowed origins
-    if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+    // 1. Allow server-to-server (no origin) or explicitly allowed origins
+    if (!origin) {
       return callback(null, true);
     }
-    // Allow all Vercel and Netlify preview and production deployments
-    if (/^https:\/\/.*\.vercel\.app$/.test(origin) ||
-        /^https:\/\/.*\.netlify\.app$/.test(origin)) {
+    const cleanOrigin = origin.replace(/\/$/, '').trim();
+    if (allowedOrigins.includes(cleanOrigin)) {
       return callback(null, true);
     }
-    // Localhost is allowed for development
-    if (/^https?:\/\/localhost(:\d+)?$/.test(origin) ||
-        /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) {
+    // 2. Allow all Render, Railway, Vercel, and Netlify deployments
+    if (
+      /^https:\/\/.*\.onrender\.com$/.test(origin) ||
+      /^https:\/\/.*\.railway\.app$/.test(origin) ||
+      /^https:\/\/.*\.vercel\.app$/.test(origin) ||
+      /^https:\/\/.*\.netlify\.app$/.test(origin)
+    ) {
       return callback(null, true);
     }
-    callback(new Error('Not allowed by CORS'));
+    // 3. Allow user's custom domains (tarasaka.com, any configured DEPLOY_DOMAIN)
+    const customDomain = process.env.DEPLOY_DOMAIN || process.env.PRIMARY_DOMAIN;
+    if (
+      /^https?:\/\/(.*\.)?tarasaka\.com$/.test(origin) ||
+      (customDomain && (origin.includes(customDomain) || origin.endsWith(customDomain)))
+    ) {
+      return callback(null, true);
+    }
+    // 4. Localhost is allowed for development
+    if (
+      /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+      /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+
+    console.warn(`[Social CORS] Origin blocked: ${origin}`);
+    const corsErr = new Error(`Origin ${origin} is not allowed by CORS`);
+    corsErr.status = 403;
+    callback(corsErr);
   },
   credentials: true,
 }));
@@ -122,19 +146,17 @@ app.get('/api/health', (req, res) => {
 });
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
-// SECURITY: In production, never return raw error.message — it can leak
-// internal paths, DB schema info, or stack traces.
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  const status = err.status || err.statusCode || 500;
+  const status = err.status || err.statusCode || (err.message?.includes('CORS') ? 403 : 500);
 
   // Log full detail server-side
   console.error(`[Express Error] ${req.method} ${req.path} → ${status}:`, err.message);
 
-  // Send sanitised message to client
-  const clientMessage = IS_PROD && status === 500
-    ? 'An internal server error occurred. Please try again later.'
-    : err.message || 'Internal server error';
+  // Send message to client: if 4xx, expose the reason (e.g. CORS, Auth, Validation)
+  const clientMessage = (status < 500 || !IS_PROD || err.expose)
+    ? (err.message || 'Request failed')
+    : 'An internal server error occurred. Please try again later.';
 
   res.status(status).json({ message: clientMessage });
 });

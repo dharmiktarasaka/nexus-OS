@@ -30,6 +30,26 @@ export const sanitizeUrl = (url) => {
 
 let clientUrl = sanitizeUrl(cleanEnvValue(process.env.CLIENT_URL) || 'http://localhost:5180');
 
+export const getClientUrl = (req) => {
+  const origin = req && req.headers ? (req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null)) : null;
+  if (origin && !origin.includes(':5000') && !origin.includes(':5003')) {
+    return sanitizeUrl(origin);
+  }
+  if (process.env.CLIENT_URL) {
+    return sanitizeUrl(process.env.CLIENT_URL);
+  }
+  if (process.env.DEPLOY_DOMAIN) {
+    return `https://${process.env.DEPLOY_DOMAIN}`;
+  }
+  if (process.env.PRIMARY_DOMAIN) {
+    return `https://${process.env.PRIMARY_DOMAIN}`;
+  }
+  if (process.env.RENDER_EXTERNAL_URL) {
+    return sanitizeUrl(process.env.RENDER_EXTERNAL_URL);
+  }
+  return 'http://localhost:5180';
+};
+
 export const getSanitizedRedirectUri = (req, platform) => {
   // 1. Platform-specific environment override
   const envKey = `${platform.toUpperCase()}_REDIRECT_URI`;
@@ -606,6 +626,8 @@ router.get('/facebook', protect, async (req, res) => {
     const userId = req.user?._id;
     if (!userId) return res.status(401).json({ message: 'Authentication required' });
 
+    const clientOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null) || getClientUrl(req);
+
     if (req.query.mode === 'demo') {
       console.log('[Facebook Connect] Workspace Demo Mode: Connecting Facebook page for user', userId);
       await Account.findOneAndUpdate(
@@ -621,7 +643,7 @@ router.get('/facebook', protect, async (req, res) => {
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
-      return res.json({ url: `${clientUrl}/apps/social?connected=facebook` });
+      return res.json({ url: `${clientOrigin}/apps/social?connected=facebook` });
     }
 
     const appId = cleanEnvValue(process.env.FACEBOOK_APP_ID);
@@ -630,7 +652,7 @@ router.get('/facebook', protect, async (req, res) => {
     }
 
     const redirectUri = sanitizeUrl(req.query.redirect_uri || getSanitizedRedirectUri(req, 'facebook'));
-    const stateToken = jwt.sign({ userId: userId.toString(), redirectUri }, jwtSecret, { expiresIn: '15m' });
+    const stateToken = jwt.sign({ userId: userId.toString(), redirectUri, clientOrigin }, jwtSecret, { expiresIn: '15m' });
     const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateToken}&scope=pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish,pages_show_list,business_management`;
     res.json({ url, redirectUri });
   } catch (err) {
@@ -643,14 +665,16 @@ router.get('/facebook/callback', async (req, res) => {
   const { code, state } = req.query;
   let userId;
   let storedRedirectUri;
+  let returnClientUrl = getClientUrl(req);
   try {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const decoded = jwt.verify(state, jwtSecret);
     userId = decoded.userId;
     storedRedirectUri = decoded.redirectUri;
+    if (decoded.clientOrigin) returnClientUrl = sanitizeUrl(decoded.clientOrigin);
   } catch (err) {
     console.error('Facebook state verification failed:', err.message);
-    return res.redirect(`${clientUrl}/apps/social?error=facebook_auth_failed&details=Invalid%20state%20parameter`);
+    return res.redirect(`${returnClientUrl}/apps/social?error=facebook_auth_failed&details=Invalid%20state%20parameter`);
   }
 
   try {
@@ -718,13 +742,13 @@ router.get('/facebook/callback', async (req, res) => {
     }
 
     if (!pagesRes.data.data || pagesRes.data.data.length === 0) {
-      return res.redirect(`${clientUrl}/apps/social?error=no_pages_found`);
+      return res.redirect(`${returnClientUrl}/apps/social?error=no_pages_found`);
     }
 
-    res.redirect(`${clientUrl}/apps/social?connected=facebook`);
+    res.redirect(`${returnClientUrl}/apps/social?connected=facebook`);
   } catch (error) {
     console.error('Facebook callback error:', error.response?.data || error.message);
-    res.redirect(`${clientUrl}/apps/social?error=facebook_auth_failed`);
+    res.redirect(`${returnClientUrl}/apps/social?error=facebook_auth_failed`);
   }
 });
 
@@ -766,6 +790,7 @@ router.get('/pinterest', protect, async (req, res) => {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const userId = req.user?._id;
     if (!userId) return res.status(401).json({ message: 'Authentication required' });
+    const clientOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : null) || getClientUrl(req);
 
     if (req.query.mode === 'demo') {
       console.log('[Pinterest Connect] Workspace Demo Mode: Connecting Pinterest account for user', userId);
@@ -781,21 +806,23 @@ router.get('/pinterest', protect, async (req, res) => {
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
-      return res.json({ url: `${clientUrl}/apps/social?connected=pinterest` });
+      return res.json({ url: `${clientOrigin}/apps/social?connected=pinterest` });
     }
 
     const clientId = cleanEnvValue(process.env.PINTEREST_CLIENT_ID);
     if (!clientId) {
-      return res.status(400).json({ message: 'Pinterest Client ID is not configured. Please add PINTEREST_CLIENT_ID in server/social/.env or use Direct Access Token.' });
+      return res.status(400).json({ 
+        message: 'Pinterest Client ID is not configured on your server. Please add PINTEREST_CLIENT_ID and PINTEREST_CLIENT_SECRET on Render, or switch to the "Access Token Connect" or "Offline Demo" tab to connect instantly.' 
+      });
     }
 
     const redirectUri = sanitizeUrl(req.query.redirect_uri || getSanitizedRedirectUri(req, 'pinterest'));
-    const stateToken = jwt.sign({ userId: userId.toString(), redirectUri }, jwtSecret, { expiresIn: '15m' });
+    const stateToken = jwt.sign({ userId: userId.toString(), redirectUri, clientOrigin }, jwtSecret, { expiresIn: '15m' });
     const url = `https://www.pinterest.com/oauth/?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=boards:read,boards:write,pins:read,pins:write,user_accounts:read&state=${stateToken}`;
     res.json({ url, redirectUri });
   } catch (err) {
     console.error('Pinterest auth initiate error:', err.message);
-    res.status(500).json({ message: 'Failed to initiate Pinterest connection' });
+    res.status(500).json({ message: 'Failed to initiate Pinterest connection: ' + err.message });
   }
 });
 
@@ -803,14 +830,16 @@ router.get('/pinterest/callback', async (req, res) => {
   const { code, state } = req.query;
   let userId;
   let storedRedirectUri;
+  let returnClientUrl = getClientUrl(req);
   try {
     const jwtSecret = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
     const decoded = jwt.verify(state, jwtSecret);
     userId = decoded.userId;
     storedRedirectUri = decoded.redirectUri;
+    if (decoded.clientOrigin) returnClientUrl = sanitizeUrl(decoded.clientOrigin);
   } catch (err) {
     console.error('Pinterest state verification failed:', err.message);
-    return res.redirect(`${clientUrl}/apps/social?error=pinterest_auth_failed&details=Invalid%20state%20parameter`);
+    return res.redirect(`${returnClientUrl}/apps/social?error=pinterest_auth_failed&details=Invalid%20state%20parameter`);
   }
 
   try {
@@ -865,10 +894,10 @@ router.get('/pinterest/callback', async (req, res) => {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    res.redirect(`${clientUrl}/apps/social?connected=pinterest`);
+    res.redirect(`${returnClientUrl}/apps/social?connected=pinterest`);
   } catch (error) {
     console.error('Pinterest callback error:', error.response?.data || error.message);
-    res.redirect(`${clientUrl}/apps/social?error=pinterest_auth_failed`);
+    res.redirect(`${returnClientUrl}/apps/social?error=pinterest_auth_failed`);
   }
 });
 

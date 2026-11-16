@@ -201,7 +201,14 @@ export default function Dashboard() {
         toast.error(res.data?.message || `Did not receive an authorization URL from ${config.name}.`);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || `Failed to initiate official ${config.name} login.`);
+      const errorMsg = err.response?.data?.message || `Failed to initiate official ${config.name} login.`;
+      toast.error(errorMsg, { duration: 6000 });
+      if (errorMsg.includes('not configured') || errorMsg.includes('Client ID') || errorMsg.includes('App ID')) {
+        toast('💡 Tip: You can switch to the "Access Token Connect" or "Offline Demo" tab to connect immediately without developer keys.', {
+          icon: '🔑',
+          duration: 7000
+        });
+      }
     } finally {
       setIsConnecting(false);
     }
@@ -507,39 +514,71 @@ export default function Dashboard() {
                   {/* Quick Select Presets */}
                   <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>Quick Presets:</span>
-                    {[
-                      `http://localhost:5000${currentConfig.callbackPath || ''}`,
-                      `http://localhost:5180${currentConfig.callbackPath || ''}`,
-                      `https://nexus-os-qg3c.onrender.com${currentConfig.callbackPath || ''}`
-                    ].map((presetUri) => {
-                      const isSelected = (customRedirectUri || resolvedRedirectUri) === presetUri;
-                      const isLocalHost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-                      const label = presetUri.includes('5000') 
-                        ? (connectModalPlatform === 'tumblr' && isLocalHost ? 'Port 5000 (Recommended)' : 'Port 5000 (Gateway)') 
-                        : presetUri.includes('5180') 
-                        ? 'Port 5180 (Client)' 
-                        : 'Production (Render)';
-                      return (
-                        <button
-                          key={presetUri}
-                          type="button"
-                          onClick={() => setCustomRedirectUri(presetUri)}
-                          style={{
-                            background: isSelected ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255, 255, 255, 0.08)',
-                            border: isSelected ? '1px solid #818cf8' : '1px solid rgba(255, 255, 255, 0.16)',
-                            color: isSelected ? '#ffffff' : '#cbd5e1',
-                            borderRadius: '6px',
-                            padding: '3px 9px',
-                            fontSize: '11px',
-                            fontWeight: isSelected ? '700' : '500',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                          }}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
+                    {(() => {
+                      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+                      const presets = [
+                        `http://localhost:5000${currentConfig.callbackPath || ''}`,
+                        `http://localhost:5180${currentConfig.callbackPath || ''}`,
+                        `https://nexus-os-qg3c.onrender.com${currentConfig.callbackPath || ''}`
+                      ];
+                      if (currentOrigin && !presets.some(p => p.startsWith(currentOrigin))) {
+                        presets.push(`${currentOrigin}${currentConfig.callbackPath || ''}`);
+                      }
+                      return presets.map((presetUri) => {
+                        const isSelected = (customRedirectUri || resolvedRedirectUri) === presetUri;
+                        const isLocalHost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+                        const label = presetUri.includes('5000') 
+                          ? (connectModalPlatform === 'tumblr' && isLocalHost ? 'Port 5000 (Recommended)' : 'Port 5000 (Gateway)') 
+                          : presetUri.includes('5180') 
+                          ? 'Port 5180 (Client)' 
+                          : presetUri.includes('onrender.com')
+                          ? 'Production (Render)'
+                          : 'Custom Domain';
+                        return (
+                          <button
+                            key={presetUri}
+                            type="button"
+                            onClick={() => setCustomRedirectUri(presetUri)}
+                            style={{
+                              background: isSelected ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255, 255, 255, 0.08)',
+                              border: isSelected ? '1px solid #818cf8' : '1px solid rgba(255, 255, 255, 0.16)',
+                              color: isSelected ? '#ffffff' : '#cbd5e1',
+                              borderRadius: '6px',
+                              padding: '3px 9px',
+                              fontSize: '11px',
+                              fontWeight: isSelected ? '700' : '500',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {label}
+                          </button>
+                        );
+                      });
+                    })()}
+                  </div>
+
+                  {/* Alternative quick-switch options */}
+                  <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.09)', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ color: '#94a3b8' }}>
+                      Don't have {currentConfig.name} API developer credentials configured yet?
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveConnectTab('token')}
+                        style={{ background: 'transparent', border: '1px solid #818cf8', color: '#a5b4fc', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        🔑 Use Access Token
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveConnectTab('instant')}
+                        style={{ background: 'transparent', border: '1px solid #10b981', color: '#6ee7b7', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        ⚡ Offline Demo
+                      </button>
+                    </div>
                   </div>
 
                   <p className="connect-hint-text">

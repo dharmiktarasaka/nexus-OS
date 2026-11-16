@@ -138,8 +138,11 @@ if (fs.existsSync(socialServerPath)) {
     CENTRAL_JWT_SECRET: UNIFIED_JWT_SECRET,
     CRM_JWT_SECRET: UNIFIED_CRM_SECRET,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
-    CLIENT_URL: process.env.CLIENT_URL || (isProduction ? '' : 'http://localhost:5180'),
-    BACKEND_URL: process.env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL || (isProduction ? '' : `http://localhost:${GATEWAY_PORT}`)
+    CLIENT_URL: process.env.CLIENT_URL || process.env.RENDER_EXTERNAL_URL || (process.env.DEPLOY_DOMAIN ? `https://${process.env.DEPLOY_DOMAIN}` : '') || (isProduction ? '' : 'http://localhost:5180'),
+    BACKEND_URL: process.env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL || (process.env.DEPLOY_DOMAIN ? `https://${process.env.DEPLOY_DOMAIN}` : '') || (isProduction ? '' : `http://localhost:${GATEWAY_PORT}`),
+    DEPLOY_DOMAIN: process.env.DEPLOY_DOMAIN || process.env.PRIMARY_DOMAIN || 'tarasaka.com',
+    PRIMARY_DOMAIN: process.env.PRIMARY_DOMAIN || process.env.DEPLOY_DOMAIN || 'tarasaka.com',
+    RENDER_EXTERNAL_URL: process.env.RENDER_EXTERNAL_URL || '',
   });
 }
 
