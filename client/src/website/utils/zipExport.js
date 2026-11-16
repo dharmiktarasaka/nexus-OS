@@ -7,14 +7,23 @@ export async function exportProjectToZip(project) {
 
   const zip = new JSZip();
 
-  // 1. index.html
-  zip.file('index.html', project.html || '<!DOCTYPE html><html><body></body></html>');
+  // Multi-file workspace packaging
+  if (Array.isArray(project.files) && project.files.length > 0) {
+    for (const f of project.files) {
+      if (f.path && f.content !== undefined) {
+        zip.file(f.path, f.content);
+      }
+    }
+  } else {
+    // 1. index.html
+    zip.file('index.html', project.html || '<!DOCTYPE html><html><body></body></html>');
 
-  // 2. styles.css
-  zip.file('styles.css', project.css || '/* styles */');
+    // 2. styles.css
+    zip.file('styles.css', project.css || '/* styles */');
 
-  // 3. script.js
-  zip.file('script.js', project.js || '// script');
+    // 3. script.js
+    zip.file('script.js', project.js || '// script');
+  }
 
   // 4. README.md
   const readmeContent = `# ${project.name || 'Exported Website'}

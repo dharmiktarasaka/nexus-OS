@@ -185,6 +185,19 @@ async function createProject(data) {
   const now = new Date();
   const resolvedOwner = data.ownerId || data.userId || 'anonymous';
 
+  const initialHtml = data.html || '<!DOCTYPE html><html><body><h1>Empty Project</h1></body></html>';
+  const initialCss = data.css || '/* Empty CSS */';
+  const initialJs = data.js || '// Empty JS';
+
+  let initialFiles = data.files;
+  if (!Array.isArray(initialFiles) || initialFiles.length === 0) {
+    initialFiles = [
+      { path: 'index.html', content: initialHtml, language: 'html', updatedAt: now },
+      { path: 'styles.css', content: initialCss, language: 'css', updatedAt: now },
+      { path: 'script.js', content: initialJs, language: 'javascript', updatedAt: now }
+    ];
+  }
+
   const projectPayload = {
     id: projectId,
     ownerId: resolvedOwner,
@@ -194,9 +207,14 @@ async function createProject(data) {
     category: data.category || 'general',
     tagline: data.tagline || '',
     prompt: data.prompt || '',
-    html: data.html || '<!DOCTYPE html><html><body><h1>Empty Project</h1></body></html>',
-    css: data.css || '/* Empty CSS */',
-    js: data.js || '// Empty JS',
+    html: initialHtml,
+    css: initialCss,
+    js: initialJs,
+    files: initialFiles,
+    conversation: data.conversation || [],
+    model: data.model || 'claude-3-5-sonnet-20241022',
+    tokenUsage: data.tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCostUSD: 0 },
+    buildErrors: data.buildErrors || [],
     seo: data.seo || {
       metaTitle: data.name || 'Untitled Website',
       metaDescription: data.tagline || '',
@@ -248,6 +266,16 @@ async function updateProject(id, updateData, userId) {
   const filter = { id };
   if (userId && userId !== 'all') {
     filter.$or = [{ userId: String(userId) }, { ownerId: String(userId) }];
+  }
+
+  // Ensure files and html/css/js stay synchronized in updateData
+  if (Array.isArray(updateData.files) && updateData.files.length > 0) {
+    const htmlFile = updateData.files.find(f => f.path === 'index.html') || updateData.files.find(f => f.path.endsWith('.html'));
+    const cssFile = updateData.files.find(f => f.path === 'styles.css') || updateData.files.find(f => f.path.endsWith('.css'));
+    const jsFile = updateData.files.find(f => f.path === 'script.js' || f.path === 'app.js') || updateData.files.find(f => f.path.endsWith('.js'));
+    if (htmlFile && htmlFile.content && !updateData.html) updateData.html = htmlFile.content;
+    if (cssFile && cssFile.content && !updateData.css) updateData.css = cssFile.content;
+    if (jsFile && jsFile.content && !updateData.js) updateData.js = jsFile.content;
   }
 
   // 1. Update in MongoDB

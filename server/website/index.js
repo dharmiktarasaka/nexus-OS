@@ -9,6 +9,7 @@ const { connectDB, isMongoConnected, getDatabaseName } = require('./db');
 const authRoutes = require('./authRoutes');
 const User = require('./models/User');
 const { analyzeUserPrompt, generateWebsite, refineWebsite } = require('./geminiService');
+const { runClaudeAgentStream, validateProjectWorkspace } = require('./claudeAgentService');
 const {
   getAllProjects,
   getProjectById,
@@ -104,6 +105,8 @@ app.get('/api/health', async (req, res) => {
         projectCount: projects.length
       },
       geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
+      claudeConfigured: Boolean(process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY),
+      claudeModel: process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022',
       firebaseConfigured: Boolean(process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_API_KEY),
       environment: process.env.NODE_ENV || 'development'
     });
@@ -208,6 +211,162 @@ app.delete('/api/projects/:id', async (req, res) => {
     res.json({ success: true, message: 'Project deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete project: ' + err.message });
+  }
+});
+
+// Duplicate Project Endpoint
+app.post('/api/projects/:id/duplicate', async (req, res) => {
+  try {
+    const { userId, userEmail } = resolveUser(req);
+    const project = await getProjectById(req.params.id, userId);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found or unauthorized' });
+    }
+
+    const duplicated = await createProject({
+      name: `${project.name} (Copy)`,
+      category: project.category,
+      tagline: project.tagline,
+      prompt: project.prompt,
+      ownerId: userId || project.ownerId,
+      userId: userId || project.userId,
+      userEmail: userEmail || project.userEmail,
+      html: project.html,
+      css: project.css,
+      js: project.js,
+      files: project.files || [],
+      conversation: project.conversation || [],
+      model: project.model,
+      provider: project.provider
+    });
+
+    res.status(201).json(duplicated);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to duplicate project: ' + err.message });
+  }
+});
+
+// Project Workspace Files Retrieval Endpoint
+app.get('/api/projects/:id/files', async (req, res) => {
+  try {
+    const { userId } = resolveUser(req);
+    const project = await getProjectById(req.params.id, userId);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found or unauthorized' });
+    }
+
+    let files = project.files || [];
+    if (files.length === 0) {
+      files = [
+        { path: 'index.html', content: project.html || '', language: 'html' },
+        { path: 'styles.css', content: project.css || '', language: 'css' },
+        { path: 'script.js', content: project.js || '', language: 'javascript' }
+      ];
+    }
+
+    res.json({
+      projectId: project.id,
+      name: project.name,
+      files,
+      html: project.html,
+      css: project.css,
+      js: project.js,
+      model: project.model || 'claude-3-5-sonnet-20241022',
+      tokenUsage: project.tokenUsage,
+      buildErrors: project.buildErrors || [],
+      conversation: project.conversation || []
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve project files: ' + err.message });
+  }
+});
+
+// Update Project Workspace Files directly
+app.put('/api/projects/:id/files', async (req, res) => {
+  try {
+    const { userId } = resolveUser(req);
+    const { files } = req.body;
+    if (!Array.isArray(files)) {
+      return res.status(400).json({ error: 'files must be an array' });
+    }
+
+    const updated = await updateProject(req.params.id, { files }, userId);
+    if (!updated) {
+      return res.status(404).json({ error: 'Project not found or unauthorized' });
+    }
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update project files: ' + err.message });
+  }
+});
+
+// Run Build & Syntax Diagnostics on Project Files
+app.post('/api/projects/:id/build', async (req, res) => {
+  try {
+    const { userId } = resolveUser(req);
+    const project = await getProjectById(req.params.id, userId);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found or unauthorized' });
+    }
+
+    const filesMap = new Map();
+    if (Array.isArray(project.files) && project.files.length > 0) {
+      project.files.forEach(f => filesMap.set(f.path, f));
+    } else {
+      if (project.html) filesMap.set('index.html', { path: 'index.html', content: project.html, language: 'html' });
+      if (project.css) filesMap.set('styles.css', { path: 'styles.css', content: project.css, language: 'css' });
+      if (project.js) filesMap.set('script.js', { path: 'script.js', content: project.js, language: 'javascript' });
+    }
+
+    const errors = validateProjectWorkspace(filesMap);
+    await updateProject(req.params.id, { buildErrors: errors }, userId);
+
+    res.json({
+      status: errors.length === 0 ? 'clean' : 'has_errors',
+      errors,
+      fileCount: filesMap.size,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Build diagnostics failed: ' + err.message });
+  }
+});
+
+// REAL ANTHROPIC CLAUDE CODING AGENT STREAMING SSE ENDPOINT
+app.post('/api/agent/chat/stream', async (req, res) => {
+  const { projectId, prompt, model, anthropicKey } = req.body;
+  const { userId } = resolveUser(req);
+  const customApiKey = req.headers['x-anthropic-key'] || anthropicKey;
+
+  if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+    return res.status(400).json({ error: 'A descriptive prompt instruction is required' });
+  }
+  if (!projectId) {
+    return res.status(400).json({ error: 'projectId is required' });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+  try {
+    await runClaudeAgentStream({
+      projectId,
+      userId,
+      userPrompt: prompt.trim(),
+      model: model || process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022',
+      customApiKey,
+      res
+    });
+    res.end();
+  } catch (err) {
+    console.error('[API /agent/chat/stream] Error:', err);
+    try {
+      res.write(`event: error\ndata: ${JSON.stringify({ message: err.message })}\n\n`);
+      res.end();
+    } catch (_e) {}
   }
 });
 
@@ -317,9 +476,18 @@ app.get('/api/projects/:id/export', async (req, res) => {
     }
 
     const zip = new JSZip();
-    zip.file('index.html', project.html || '<!DOCTYPE html><html><body></body></html>');
-    zip.file('styles.css', project.css || '/* styles */');
-    zip.file('script.js', project.js || '// script');
+
+    if (Array.isArray(project.files) && project.files.length > 0) {
+      for (const file of project.files) {
+        if (file.path && file.content !== undefined) {
+          zip.file(file.path, file.content);
+        }
+      }
+    } else {
+      zip.file('index.html', project.html || '<!DOCTYPE html><html><body></body></html>');
+      zip.file('styles.css', project.css || '/* styles */');
+      zip.file('script.js', project.js || '// script');
+    }
 
     const readmeContent = `# ${project.name}
 
@@ -377,8 +545,20 @@ app.get('/api/preview/:id', async (req, res) => {
     const editorUrl = `${clientUrl}/apps/website-builder/editor/${project.id}`;
 
     let html = project.html || '<!DOCTYPE html><html><head><title>Website</title></head><body><h1>Empty Website</h1></body></html>';
-    const cssTag = project.css ? `<style id="nexus-injected-css">\n${project.css}\n</style>` : '';
-    const jsTag = project.js ? `<script id="nexus-injected-js">\n${project.js}\n</script>` : '';
+    let css = project.css || '';
+    let js = project.js || '';
+
+    if (Array.isArray(project.files) && project.files.length > 0) {
+      const indexFile = project.files.find(f => f.path === 'index.html') || project.files.find(f => f.path.endsWith('.html'));
+      if (indexFile && indexFile.content) html = indexFile.content;
+      const cssFile = project.files.find(f => f.path === 'styles.css') || project.files.find(f => f.path.endsWith('.css'));
+      if (cssFile && cssFile.content) css = cssFile.content;
+      const jsFile = project.files.find(f => f.path === 'script.js' || f.path === 'app.js') || project.files.find(f => f.path.endsWith('.js'));
+      if (jsFile && jsFile.content) js = jsFile.content;
+    }
+
+    const cssTag = css ? `<style id="nexus-injected-css">\n${css}\n</style>` : '';
+    const jsTag = js ? `<script id="nexus-injected-js">\n${js}\n</script>` : '';
 
     const previewBanner = `
     <div id="nexus-preview-banner" style="position:fixed;bottom:16px;right:16px;z-index:999999;background:rgba(15,23,42,0.92);backdrop-filter:blur(12px);border:1px solid rgba(59,130,246,0.3);color:#fff;padding:10px 18px;border-radius:14px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.4);font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;gap:12px;font-size:12px;">
