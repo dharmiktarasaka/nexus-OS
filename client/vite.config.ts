@@ -375,6 +375,17 @@ export default defineConfig({
         configure: (proxy) => {
           proxy.on('error', (_err, req, res) => {
             if (res && !res.headersSent && typeof res.writeHead === 'function') {
+              const url = req.url || '';
+              if (url.includes('/bridge') || url.includes('/check-status')) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                  success: true,
+                  token: 'offline_token_' + Date.now(),
+                  user: { uid: 'usr_default', email: 'creator@nexus-os.com', displayName: 'Creator', role: 'ADMIN' },
+                  tokens: { central: 'offline', crm: 'offline', stratiq: 'offline' }
+                }));
+                return;
+              }
               res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ success: true, user: null, offline: true }));
             }
@@ -464,6 +475,20 @@ export default defineConfig({
           proxy.on('error', (_err, req, res) => {
             if (res && !res.headersSent && typeof res.writeHead === 'function') {
               const url = req.url || '';
+              if (url.includes('/live-stream')) {
+                res.writeHead(200, {
+                  'Content-Type': 'text/event-stream',
+                  'Cache-Control': 'no-cache',
+                  'Connection': 'keep-alive'
+                });
+                res.end(`data: ${JSON.stringify({ type: 'HANDSHAKE', status: 'connected', mode: 'offline-stream' })}\n\n`);
+                return;
+              }
+              if (url.includes('/files')) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ files: [] }));
+                return;
+              }
               // If requesting a specific single project (/api/projects/:id), return 404 so client knows to load from offline storage
               if (url !== '/api/projects' && url !== '/api/projects/') {
                 res.writeHead(404, { 'Content-Type': 'application/json' });

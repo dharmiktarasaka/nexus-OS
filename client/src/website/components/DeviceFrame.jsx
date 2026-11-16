@@ -34,26 +34,35 @@ export default function DeviceFrame({ html, css, js, title, subdomain, customDom
 
     let doc = effectiveHtml;
 
+    // Ensure explicit UTF-8 encoding in preview iframe to prevent surrogate pair / emoji syntax errors
+    if (!doc.includes('charset=')) {
+      if (doc.includes('<head>')) {
+        doc = doc.replace('<head>', () => '<head>\n  <meta charset="UTF-8">');
+      } else {
+        doc = `<meta charset="UTF-8">\n${doc}`;
+      }
+    }
+
     // Strip out relative external file links (styles.css & script.js) to eliminate 404 / ERR_CONNECTION_REFUSED in srcdoc
     doc = doc.replace(/<link\b[^>]*\bhref=["'](?:\.?\/)?styles?\.css["'][^>]*\/?>/gi, '');
     doc = doc.replace(/<script\b[^>]*\bsrc=["'](?:\.?\/)?scripts?\.js["'][^>]*>\s*<\/script>/gi, '');
 
-    // Inject CSS into <head>
+    // Inject CSS into <head> using function replacer to prevent $ replacement token corruption
     if (effectiveCss && effectiveCss.trim()) {
       const styleTag = `<style id="injected-studio-css">\n${effectiveCss}\n</style>`;
       if (doc.includes('</head>')) {
-        doc = doc.replace('</head>', `${styleTag}\n</head>`);
+        doc = doc.replace('</head>', () => `${styleTag}\n</head>`);
       } else {
         doc = `${styleTag}\n${doc}`;
       }
     }
 
-    // Safely escape any internal </script> tags in JS to prevent parser syntax errors
+    // Safely escape any internal </script> tags in JS using function replacer to prevent $ token expansion
     const safeJs = (effectiveJs || '').replace(/<\/script/gi, '<\\/script');
     if (safeJs.trim()) {
       const scriptTag = `<script id="injected-studio-js">\ntry {\n${safeJs}\n} catch (err) {\n  console.warn('[Preview JS Error]', err);\n}\n</script>`;
       if (doc.includes('</body>')) {
-        doc = doc.replace('</body>', `${scriptTag}\n</body>`);
+        doc = doc.replace('</body>', () => `${scriptTag}\n</body>`);
       } else {
         doc = `${doc}\n${scriptTag}`;
       }

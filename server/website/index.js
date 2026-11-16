@@ -176,6 +176,38 @@ app.get('/api/projects', async (req, res) => {
   }
 });
 
+// REAL-TIME LIVE SYNCHRONIZATION STREAM (Server-Sent Events)
+// Must be registered BEFORE /api/projects/:id so Express does not treat 'live-stream' as a project ID parameter!
+app.get('/api/projects/live-stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+  // Send initial handshake
+  res.write(`data: ${JSON.stringify({ type: 'HANDSHAKE', status: 'connected', timestamp: Date.now() })}\n\n`);
+
+  const onProjectChange = (eventPayload) => {
+    try {
+      res.write(`data: ${JSON.stringify({ type: 'PROJECT_EVENT', ...eventPayload })}\n\n`);
+    } catch (err) {}
+  };
+
+  projectEvents.on('change', onProjectChange);
+
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(`: heartbeat\n\n`);
+    } catch (e) {}
+  }, 15000);
+
+  req.on('close', () => {
+    projectEvents.off('change', onProjectChange);
+    clearInterval(heartbeat);
+  });
+});
+
 app.get('/api/projects/:id', async (req, res) => {
   try {
     const { userId } = resolveUser(req);
@@ -925,37 +957,6 @@ app.get('/api/mcp/health', (req, res) => {
   });
 });
 
-// 5. REAL-TIME LIVE SYNCHRONIZATION STREAM (Server-Sent Events)
-// Broadcasts website changes to Dashboard and Editor canvas in real-time
-app.get('/api/projects/live-stream', (req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  if (typeof res.flushHeaders === 'function') res.flushHeaders();
-
-  // Send initial handshake
-  res.write(`data: ${JSON.stringify({ type: 'HANDSHAKE', status: 'connected', timestamp: Date.now() })}\n\n`);
-
-  const onProjectChange = (eventPayload) => {
-    try {
-      res.write(`data: ${JSON.stringify({ type: 'PROJECT_EVENT', ...eventPayload })}\n\n`);
-    } catch (err) {}
-  };
-
-  projectEvents.on('change', onProjectChange);
-
-  const heartbeat = setInterval(() => {
-    try {
-      res.write(`: heartbeat\n\n`);
-    } catch (e) {}
-  }, 15000);
-
-  req.on('close', () => {
-    projectEvents.off('change', onProjectChange);
-    clearInterval(heartbeat);
-  });
-});
 
 // 6. ANTHROPIC MCP SSE TRANSPORT (Official specification for Claude.ai Web Chatbot & Remote MCP clients)
 const mcpSseSessions = new Map();

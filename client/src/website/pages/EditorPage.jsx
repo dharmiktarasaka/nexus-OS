@@ -212,6 +212,7 @@ export default function EditorPage() {
   // Real-time EventSource listener
   useEffect(() => {
     let evt = null;
+    let errCount = 0;
     try {
       evt = new EventSource(getWebsiteApiUrl('/api/projects/live-stream'));
       evt.onmessage = (e) => {
@@ -232,6 +233,13 @@ export default function EditorPage() {
             setTimeout(() => setLiveToast(null), 4000);
           }
         } catch (_err) {}
+      };
+
+      evt.onerror = () => {
+        errCount++;
+        if (errCount >= 3) {
+          evt.close();
+        }
       };
     } catch (_e) {}
 

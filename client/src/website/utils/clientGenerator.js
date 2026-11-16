@@ -597,6 +597,95 @@ export function createClientFallbackProject(prompt = '', category = 'general', b
         if (window.showToast) window.showToast('🐾 Personalized nutrition regimen locked! Welcome to PawHaven.');
       });
     `;
+  } else if (widgetType === 'farm') {
+    widgetHTML = `
+      <div class="widget-interactive-box">
+        <div class="calculator-grid">
+          <div class="calc-input-pane">
+            <h3>Interactive Farm Yield & Harvest Estimator</h3>
+            <p>Input your acreage and crop variety to estimate seasonal yield, organic farm-gate revenue, and water savings.</p>
+
+            <div class="input-field">
+              <label>Farm Plot Size: <strong id="farmAcresVal">5</strong> Acres</label>
+              <input type="range" id="farmAcres" min="1" max="50" value="5" class="slider-input">
+            </div>
+
+            <div class="input-field">
+              <label>Crop Category</label>
+              <select id="farmCrop" class="select-input">
+                <option value="veggies" selected>Seasonal Organic Vegetables ($2.50/lb avg)</option>
+                <option value="heirloom">Heirloom Heritage Seeds & Herbs ($4.20/lb avg)</option>
+                <option value="orchard">Orchard Fruits & Single-Source Honey ($3.80/lb avg)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="calc-output-pane">
+            <div class="result-card">
+              <span class="result-label">Estimated Seasonal Harvest Yield</span>
+              <span class="result-number" id="farmYield">15,000 lbs</span>
+              <span class="result-sub">Optimized via bio-dynamic composting</span>
+            </div>
+
+            <div class="result-details">
+              <div class="detail-row">
+                <span>Projected Gross Harvest Value:</span>
+                <strong id="farmRevenue">$37,500</strong>
+              </div>
+              <div class="detail-row">
+                <span>Drip Irrigation Water Savings:</span>
+                <strong id="farmWater">62% conserved</strong>
+              </div>
+              <div class="detail-row">
+                <span>Organic Soil Certification:</span>
+                <strong>100% Regenerative Non-GMO</strong>
+              </div>
+            </div>
+
+            <button class="btn btn-primary btn-block" id="claimFarmPlanBtn">
+              <span>Reserve Seed Supply & Farm Consultation</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    widgetJS = `
+      const acresSlider = document.getElementById('farmAcres');
+      const cropSelect = document.getElementById('farmCrop');
+
+      function calculateFarm() {
+        const acres = parseFloat(acresSlider?.value || 5);
+        const crop = cropSelect?.value || 'veggies';
+
+        if (document.getElementById('farmAcresVal')) document.getElementById('farmAcresVal').textContent = acres;
+
+        let multiplier = 3000;
+        let pricePerLb = 2.5;
+
+        if (crop === 'heirloom') {
+          multiplier = 2100;
+          pricePerLb = 4.2;
+        } else if (crop === 'orchard') {
+          multiplier = 3800;
+          pricePerLb = 3.8;
+        }
+
+        const totalYield = Math.round(acres * multiplier);
+        const revenue = Math.round(totalYield * pricePerLb);
+
+        if (document.getElementById('farmYield')) document.getElementById('farmYield').textContent = totalYield.toLocaleString() + ' lbs';
+        if (document.getElementById('farmRevenue')) document.getElementById('farmRevenue').textContent = '$' + revenue.toLocaleString();
+        if (document.getElementById('farmWater')) document.getElementById('farmWater').textContent = Math.round(55 + (acres * 0.2)) + '% conserved';
+      }
+
+      [acresSlider, cropSelect].forEach(el => el?.addEventListener('input', calculateFarm));
+      calculateFarm();
+
+      document.getElementById('claimFarmPlanBtn')?.addEventListener('click', () => {
+        if (window.showToast) window.showToast('Harvest consultation booked! Farm specialist dispatched.');
+      });
+    `;
   } else if (widgetType === 'food') {
     widgetHTML = `
       <div class="widget-interactive-box">

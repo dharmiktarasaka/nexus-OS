@@ -77,8 +77,13 @@ export default function ClaudeLiveConsole({ currentProjectId = null, onProjectUp
         } catch (_err) {}
       };
 
+      let failureCount = 0;
       eventSource.onerror = () => {
         setIsConnected(false);
+        failureCount++;
+        if (failureCount >= 3) {
+          eventSource.close();
+        }
       };
     } catch (_err) {
       setIsConnected(false);
