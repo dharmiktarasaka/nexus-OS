@@ -116,7 +116,7 @@ export const Sidebar: React.FC = () => {
           <NavLink
             to="/"
             onClick={() => setMobileSidebarOpen(false)}
-            title={isCollapsed ? 'NEXUS OS Platform' : undefined}
+            title={isCollapsed ? 'SYS Developed by Tarasaka' : undefined}
             className={`flex items-center gap-3 overflow-hidden ${
               isCollapsed ? 'justify-center' : ''
             }`}
@@ -126,11 +126,12 @@ export const Sidebar: React.FC = () => {
             </div>
             {!isCollapsed && (
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white truncate">
-                  NEXUS OS
+                <span className="text-sm font-black tracking-wider text-slate-900 dark:text-white truncate flex items-center gap-1.5">
+                  SYS
+                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">PRO</span>
                 </span>
-                <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                  Business Platform
+                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 tracking-tight">
+                  Developed by Tarasaka
                 </span>
               </div>
             )}

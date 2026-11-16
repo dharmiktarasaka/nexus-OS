@@ -33,11 +33,24 @@ export const RegisterPage: React.FC = () => {
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white shadow-xl shadow-indigo-500/25">
           <Command className="w-6 h-6" />
         </div>
-        <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-          Create Executive Workspace
+        <div className="space-y-1">
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-2xl font-black tracking-tight text-slate-900 dark:text-white font-mono">
+              SYS
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-500 border border-indigo-500/30 tracking-wider">
+              ENTERPRISE
+            </span>
+          </div>
+          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+            Developed by <span className="text-indigo-600 dark:text-indigo-400 font-bold">Tarasaka</span>
+          </p>
+        </div>
+        <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white pt-2">
+          Create Your Workspace
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Get instant access to CRM, Social Media, Website Studio & Strategic Analytics
+          Get unified access to Website Studio, CRM, Social Hub & STRATIQ AI
         </p>
       </div>
 
