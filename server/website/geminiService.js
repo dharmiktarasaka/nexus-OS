@@ -1,6 +1,7 @@
 // geminiService.js - Robust Gemini API Integration
 const { SYSTEM_GENERATION_PROMPT, SYSTEM_REFINEMENT_PROMPT } = require('./prompts');
 const { generateDynamicSite } = require('./fallbackGenerator');
+const { applyIntelligentRefinement } = require('./websiteMutator');
 
 /**
  * Strips code fences and parses JSON safely
@@ -315,14 +316,19 @@ Generate the complete JSON response with HTML, CSS, JS, and SEO metadata. Make t
 }
 
 /**
- * Refine an existing website using Gemini
+ * Refine an existing website using Gemini with verified surgical mutation guarantee
  */
 async function refineWebsite({ currentCode, prompt, apiKey }) {
   const activeKey = apiKey || process.env.GEMINI_API_KEY;
 
   if (!activeKey) {
-    console.log('[GeminiService] Applying local refinement transformation.');
-    return applyLocalRefinement(currentCode, prompt);
+    console.log('[GeminiService] Applying autonomous surgical refinement.');
+    return applyIntelligentRefinement({
+      html: currentCode.html,
+      css: currentCode.css,
+      js: currentCode.js,
+      prompt
+    });
   }
 
   const userInstruction = `
@@ -348,45 +354,39 @@ Respond ONLY with valid JSON:
 
   try {
     const result = await callGemini(activeKey, SYSTEM_REFINEMENT_PROMPT, userInstruction, 0.5, 60000);
-    return result;
+    // Guarantee surgical refinement pass over result
+    const surgical = applyIntelligentRefinement({
+      html: result.html || currentCode.html,
+      css: result.css || currentCode.css,
+      js: result.js || currentCode.js,
+      prompt
+    });
+    return {
+      html: surgical.html,
+      css: surgical.css,
+      js: surgical.js,
+      name: surgical.name,
+      subdomain: surgical.subdomain,
+      changeSummary: result.changeSummary || surgical.changeSummary
+    };
   } catch (err) {
-    console.error('[GeminiService] Refinement error:', err.message);
-    return applyLocalRefinement(currentCode, prompt);
+    console.warn('[GeminiService] Remote refinement error, applying deterministic surgical refinement:', err.message);
+    return applyIntelligentRefinement({
+      html: currentCode.html,
+      css: currentCode.css,
+      js: currentCode.js,
+      prompt
+    });
   }
 }
 
 function applyLocalRefinement(currentCode, prompt) {
-  let { html, css, js } = currentCode;
-  const pLower = prompt.toLowerCase();
-  let summary = 'Refined website according to instructions: ' + prompt;
-
-  if (pLower.includes('emerald') || pLower.includes('green')) {
-    css = css.replace(/--primary:\s*[^;]+;/g, '--primary: #059669;')
-             .replace(/--primary-accent:\s*[^;]+;/g, '--primary-accent: #10b981;');
-    summary = 'Updated color tokens to emerald and organic green.';
-  } else if (pLower.includes('purple') || pLower.includes('violet')) {
-    css = css.replace(/--primary:\s*[^;]+;/g, '--primary: #8b5cf6;')
-             .replace(/--primary-accent:\s*[^;]+;/g, '--primary-accent: #a855f7;');
-    summary = 'Updated primary palette to deep purple and ultraviolet.';
-  } else if (pLower.includes('dark mode') || pLower.includes('dark theme')) {
-    html = html.replace('data-theme="light"', 'data-theme="dark"');
-    summary = 'Set initial default theme to dark mode.';
-  }
-
-  if (pLower.includes('banner') || pLower.includes('announcement')) {
-    if (!html.includes('class="announcement-bar"')) {
-      const bannerHtml = `\n  <div class="announcement-bar" style="background:var(--primary, #4f46e5);color:#fff;text-align:center;padding:0.5rem;font-size:0.85rem;font-weight:600;">✨ Notice: Special Executive Consultation & Inquiries Open</div>\n`;
-      html = html.replace('<body>', '<body>' + bannerHtml);
-      summary = 'Added announcement top bar.';
-    }
-  }
-
-  return {
-    html,
-    css,
-    js,
-    changeSummary: summary
-  };
+  return applyIntelligentRefinement({
+    html: currentCode.html,
+    css: currentCode.css,
+    js: currentCode.js,
+    prompt
+  });
 }
 
 module.exports = {

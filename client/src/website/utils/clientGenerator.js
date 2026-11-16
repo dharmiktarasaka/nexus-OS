@@ -89,7 +89,81 @@ export function createClientFallbackProject(prompt = '', category = 'general', b
     widgetTitle = 'Interactive Aquarium Dimension & Volume Estimator';
     widgetSub = 'Calculate recommended water volume, filtration flow rate, and safe biological fish capacity in real time.';
     widgetType = 'fish';
-  } else if (p.includes('pet') || p.includes('dog') || p.includes('cat') || p.includes('puppy') || p.includes('vet') || p.includes('veterinary')) {
+  } else if (p.includes('cat') || p.includes('kitten') || p.includes('feline')) {
+    topic = 'pet';
+    defaultBrand = 'PurrHaven Feline Sanctuary & Luxury Cat Care';
+    defaultTagline = 'Premium Feline Wellness, Scratching Posts, Organic Nutrition & Care Essentials';
+    defaultCategory = 'Luxury Feline Care & Pet Wellness';
+    primaryColor = '#0f766e';
+    accentColor = '#f59e0b';
+    heroImage = 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1200&q=80';
+    aboutImage = 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=1200&q=80';
+
+    teamMembers = [
+      { name: 'Dr. Sarah Jenkins, DVM', role: 'Feline Internal Medicine Specialist', photo: 'https://images.unsplash.com/photo-1594824813633-890f848a6056?auto=format&fit=crop&w=400&q=80', bio: 'Board-certified veterinarian specializing in feline wellness and stress-free care.' },
+      { name: 'Liam Montgomery', role: 'Cat Nutritionist & Formulation Lead', photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80', bio: 'Formulating grain-free, high-moisture organic meal plans for urinary and kidney health.' },
+      { name: 'Chloe Delacroix', role: 'Feline Behavioral & Enrichment Lead', photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80', bio: 'Specialist in vertical territory design, multi-tier cat trees, and claw health.' }
+    ];
+
+    services = [
+      { title: 'Multi-Tier Sisal Scratching Towers', tag: 'Furniture', img: 'https://images.unsplash.com/photo-1545249390-6bdfa286032f?auto=format&fit=crop&w=800&q=80', desc: 'Heavy-duty solid wood cat trees wrapped in 100% natural Brazilian sisal for claw health.', check: ['Solid Birch Plywood Core', 'Replaceable Sisal Pillars', 'Wall Safety Anchor Kit'] },
+      { title: 'Ergonomic Whisker-Relief Feeding Station', tag: 'Feeding', img: 'https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?auto=format&fit=crop&w=800&q=80', desc: 'Elevated lead-free ceramic bowls designed to prevent whisker fatigue and improve digestion.', check: ['Veterinary Tilt Angle', 'Food-Grade Glazed Ceramic', 'Non-Slip Bamboo Base'] },
+      { title: 'Gentle Feline Grooming & De-Shedding Kits', tag: 'Grooming', img: 'https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=800&q=80', desc: 'Soft silicone bristle brushes and stainless-steel undercoat rakes for coat shine.', check: ['Static-Free Silicone Teeth', 'Undercoat Dematting Blade', 'Self-Cleaning Ejector'] },
+      { title: 'Orthopedic Calming Memory Perches', tag: 'Comfort', img: 'https://images.unsplash.com/photo-1561948955-570b270e7c36?auto=format&fit=crop&w=800&q=80', desc: 'Self-warming faux-fur cat beds and window-mounted suction hammocks with 40lb capacity.', check: ['Medical Memory Foam Core', 'Removable Washable Cover', 'Industrial Suction Tested'] },
+      { title: 'Organic Freeze-Dried Salmon & Catnip', tag: 'Nutrition', img: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=800&q=80', desc: 'Single-ingredient wild Alaskan salmon and organic Canadian catnip for peak vitality.', check: ['Zero Fillers or By-Products', 'Rich in Omega-3 EPA/DHA', 'Certified Organic Catnip'] },
+      { title: 'Automated Smart Laser & Sisal Toys', tag: 'Enrichment', img: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=800&q=80', desc: 'Rechargeable interactive rolling balls and feather teasers to stimulate natural hunting instincts.', check: ['USB-C Fast Rechargeable', 'Auto Shut-off Sleep Mode', 'Whisper-Quiet Electric Motor'] }
+    ];
+
+    gallery = [
+      { title: 'Playful British Shorthair Companion', cat: 'Featured', img: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=800&q=80' },
+      { title: 'Ginger Tabby on Sisal Perch', cat: 'Signature', img: 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=800&q=80' },
+      { title: 'Multi-Level Luxury Sisal Cat Tree', cat: 'Featured', img: 'https://images.unsplash.com/photo-1545249390-6bdfa286032f?auto=format&fit=crop&w=800&q=80' },
+      { title: 'Ceramic Whisker-Friendly Bowls', cat: 'Signature', img: 'https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?auto=format&fit=crop&w=800&q=80' },
+      { title: 'Plush Memory Foam Feline Bed', cat: 'Recent', img: 'https://images.unsplash.com/photo-1561948955-570b270e7c36?auto=format&fit=crop&w=800&q=80' },
+      { title: 'Curious Bengal Kitten at Play', cat: 'Recent', img: 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=800&q=80' }
+    ];
+
+    widgetTitle = 'Personalized Feline Calorie & Feeding Calculator';
+    widgetSub = 'Input your cat’s age, weight, and activity level to compute recommended daily calories and hydration requirements.';
+    widgetType = 'pet';
+  } else if (p.includes('farm') || p.includes('agri') || p.includes('crop') || p.includes('harvest') || p.includes('fertilizer') || p.includes('seed')) {
+    topic = 'farm';
+    defaultBrand = 'Verdant Harvest Farm & Agro Organics';
+    defaultTagline = 'Direct-From-Harvest Organic Produce, Certified Non-GMO Seeds & Sustainable Agro Solutions';
+    defaultCategory = 'Organic Agriculture & Farm Products E-Commerce';
+    primaryColor = '#15803d';
+    accentColor = '#ca8a04';
+    heroImage = 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1200&q=80';
+    aboutImage = 'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=1200&q=80';
+
+    teamMembers = [
+      { name: 'Dr. Joseph Callahan', role: 'Master Agronomist & Founder', photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80', bio: '30+ years practicing regenerative organic farming and heirloom seed conservation.' },
+      { name: 'Ananya Sharma', role: 'Head of Soil Microbiology & Bio-Inputs', photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80', bio: 'Formulating bio-dynamic compost teas and natural microbial soil regenerators.' },
+      { name: 'Mateo Morales', role: 'Director of Harvest & Supply Chain', photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80', bio: 'Ensuring same-day temperature-controlled farm-to-door distribution.' }
+    ];
+
+    services = [
+      { title: 'Farm-Fresh Organic Harvest Crates', tag: '$45 • Farm Direct', img: 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=800&q=80', desc: 'Hand-picked organic seasonal vegetables, heirloom greens, and orchard fruits delivered fresh.', check: ['Harvested within 24 Hours', '100% Pesticide-Free Certified', 'Customizable Veggie Box'] },
+      { title: 'Certified Non-GMO Heirloom Seed Vaults', tag: '$38 • 25 Varieties', img: 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=800&q=80', desc: 'Open-pollinated, high-germination vegetable and herb seeds sealed for 5+ year preservation.', check: ['98%+ Germination Rate', 'Non-Hybrid & Open-Pollinated', 'Complete Planting Calendar'] },
+      { title: 'Organic Bio-Dynamic Compost & Minerals', tag: '$24 • 100% Organic', img: 'https://images.unsplash.com/photo-1585314062340-f1a5a7c9328d?auto=format&fit=crop&w=800&q=80', desc: 'Enriched microbial worm castings and volcanic rock dust to restore living soil vitality.', check: ['Living Mycorrhizal Fungi', 'Rich in Humic & Fulvic Acids', 'Zero Weed Seed Guarantee'] },
+      { title: 'Botanical Neem & Eco Pest Defense', tag: '$19 • Pollinator Safe', img: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=800&q=80', desc: 'Cold-pressed virgin neem oil and beneficial microbial sprays that defend crops without harming bees.', check: ['OMRI Organic Listed', 'Safe for Pollinators', 'Broad-Spectrum Protection'] },
+      { title: 'Solar-Powered Precision Drip Kits', tag: '$89 • Water Saving', img: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=800&q=80', desc: 'Automated pressure-compensating drip emitters providing 65% water reduction for homesteads.', check: ['Integrated Solar Timer', 'Anti-Clogging Emitters', 'Covers Up to 500 Sq Ft'] },
+      { title: 'Raw Farmstead Single-Origin Honey', tag: '$16 • 100% Pure', img: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=800&q=80', desc: 'Unfiltered, unpasteurized honey harvested straight from our clover and wildflower farm apiaries.', check: ['Cold-Extracted & Raw', 'Natural Pollen & Propolis', 'Sustainable Bee Stewardship'] }
+    ];
+
+    gallery = [
+      { title: 'Fresh Organic Harvest Box', cat: 'Harvest', img: 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=800&q=80' },
+      { title: 'Certified Heirloom Seeds', cat: 'Seeds', img: 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=800&q=80' },
+      { title: 'Rich Organic Soil Compost', cat: 'Soil', img: 'https://images.unsplash.com/photo-1585314062340-f1a5a7c9328d?auto=format&fit=crop&w=800&q=80' },
+      { title: 'Precision Drip Irrigation Field', cat: 'Equipment', img: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=800&q=80' },
+      { title: 'Single-Source Farmstead Honey', cat: 'Produce', img: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=800&q=80' },
+      { title: 'Sunlit Hydroponic Greenhouse', cat: 'Nursery', img: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=800&q=80' }
+    ];
+
+    widgetTitle = 'Interactive Farm Yield & Harvest Estimation Tool';
+    widgetSub = 'Input your farm plot size and crop type to estimate seasonal yield, water requirement, and projected harvest value.';
+    widgetType = 'farm';
+  } else if (p.includes('pet') || p.includes('dog') || p.includes('puppy') || p.includes('vet') || p.includes('veterinary')) {
     topic = 'pet';
     defaultBrand = 'PawHaven Wellness & Nutrition';
     defaultTagline = 'Holistic Nutrition, Preventive Healthcare & Loving Concierge Pet Care';

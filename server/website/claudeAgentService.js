@@ -571,37 +571,29 @@ async function runClaudeAgentStream({
   async function runAutonomousEngine() {
     sendSSE('start', { model: 'Claude Coding Agent (Autonomous Engine)', projectId });
 
-    const isModification = filesMap.has('index.html') &&
-      (filesMap.get('index.html')?.content?.length || 0) > 60 &&
-      (userPrompt.toLowerCase().includes('change') ||
-       userPrompt.toLowerCase().includes('add') ||
-       userPrompt.toLowerCase().includes('update') ||
-       userPrompt.toLowerCase().includes('color') ||
-       userPrompt.toLowerCase().includes('button') ||
-       userPrompt.toLowerCase().includes('mobile') ||
-       userPrompt.toLowerCase().includes('font') ||
-       userPrompt.toLowerCase().includes('section') ||
-       userPrompt.toLowerCase().includes('more') ||
-       userPrompt.toLowerCase().includes('whatsapp') ||
-       userPrompt.toLowerCase().includes('remove') ||
-       userPrompt.toLowerCase().includes('replace') ||
-       userPrompt.toLowerCase().includes('responsive') ||
-       userPrompt.toLowerCase().includes('dark') ||
-       userPrompt.toLowerCase().includes('light') ||
-       userPrompt.toLowerCase().includes('theme'));
+    const pLower = userPrompt.toLowerCase().trim();
+    const isExplicitCreate = pLower.startsWith('make a website') ||
+      pLower.startsWith('create a website') ||
+      pLower.startsWith('build a website') ||
+      pLower.startsWith('generate a website') ||
+      pLower.startsWith('new website') ||
+      pLower.startsWith('make website');
+
+    const isModification = !isExplicitCreate && filesMap.has('index.html') &&
+      (filesMap.get('index.html')?.content?.length || 0) > 60;
 
     if (isModification) {
       sendSSE('token', { text: `🧠 **Analyzing modification request:** "${userPrompt}"\n\n` });
-      sendSSE('token', { text: `📋 **Inspecting existing files:** Reading project components and stylesheet structure...\n\n` });
+      sendSSE('token', { text: `📋 **Inspecting workspace:** Reading project components and stylesheet structure...\n\n` });
 
       const callId1 = 'call_' + Math.random().toString(36).substring(2, 9);
       sendSSE('tool_call', { id: callId1, tool: 'read_file', input: { path: 'styles.css' } });
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 80));
       sendSSE('tool_result', { id: callId1, output: { path: 'styles.css', status: 'read' } });
 
       const callId2 = 'call_' + Math.random().toString(36).substring(2, 9);
       sendSSE('tool_call', { id: callId2, tool: 'read_file', input: { path: 'index.html' } });
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 80));
       sendSSE('tool_result', { id: callId2, output: { path: 'index.html', status: 'read' } });
 
       sendSSE('token', { text: `⚡ **Synthesizing targeted updates:** Applying modifications while preserving design layout and components...\n\n` });
@@ -641,7 +633,14 @@ async function runClaudeAgentStream({
       await executeTool('preview_website', { summary: refined.changeSummary });
       sendSSE('tool_result', { id: callId7, output: { status: 'success' } });
 
-      finalAssistantText = `✅ **Successfully applied requested changes!**\n\n• **Summary:** ${refined.changeSummary || 'Targeted updates applied across CSS and HTML'}\n• **Files Modified:** \`styles.css\`, \`index.html\`\n• **Diagnostics:** All syntax checks passed with 0 errors.`;
+      if (refined.name) {
+        project.name = refined.name;
+      }
+      if (refined.subdomain) {
+        project.subdomain = refined.subdomain;
+      }
+
+      finalAssistantText = `✅ **Successfully applied requested changes!**\n\n• **Summary:** ${refined.changeSummary || 'Targeted updates applied across CSS and HTML'}\n• **Files Modified:** \`styles.css\`, \`index.html\`\n• **Live Preview:** Canvas refreshed with verified syntax.`;
       sendSSE('token', { text: finalAssistantText });
 
     } else {

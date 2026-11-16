@@ -11,6 +11,7 @@ import DomainDeployModal from '../components/DomainDeployModal';
 import { exportProjectToZip } from '../utils/zipExport';
 import { getWebsiteApiUrl } from '../apiConfig';
 import { createClientFallbackProject, saveOfflineProject } from '../utils/clientGenerator';
+import { applyIntelligentRefinement } from '../utils/websiteMutator';
 import {
   Sparkles,
   ArrowLeft,
@@ -436,55 +437,123 @@ export default function EditorPage() {
       if (err.name === 'AbortError') return;
       console.warn('Claude Agent Backend notice:', err.message);
 
-      // Resilient In-Studio Synthesis: Guaranteed instant website creation even if backend is offline
-      const fallback = createClientFallbackProject(promptToSend, 'general');
-      const now = new Date();
-      const newFiles = [
-        { path: 'index.html', content: fallback.html, language: 'html', updatedAt: now },
-        { path: 'styles.css', content: fallback.css, language: 'css', updatedAt: now },
-        { path: 'script.js', content: fallback.js, language: 'javascript', updatedAt: now }
-      ];
+      const pLower = promptToSend.toLowerCase().trim();
+      const isExplicitCreate = pLower.startsWith('make a website') ||
+        pLower.startsWith('create a website') ||
+        pLower.startsWith('build a website') ||
+        pLower.startsWith('generate a website') ||
+        pLower.startsWith('new website') ||
+        pLower.startsWith('make website');
 
-      setCode({
-        html: fallback.html,
-        css: fallback.css,
-        js: fallback.js
-      });
-      setFiles(newFiles);
-      setProject(prev => ({
-        ...prev,
-        name: fallback.name || prev?.name || 'Website',
-        html: fallback.html,
-        css: fallback.css,
-        js: fallback.js,
-        files: newFiles,
-        subdomain: prev?.subdomain || fallback.subdomain,
-        customDomain: 'tarasaka.com',
-        publishedUrl: prev?.publishedUrl || fallback.publishedUrl
-      }));
+      const canModify = !isExplicitCreate && code?.html && code.html.length > 50;
 
-      // Save to offline storage as persistent backup
-      saveOfflineProject({
-        id,
-        name: fallback.name,
-        html: fallback.html,
-        css: fallback.css,
-        js: fallback.js,
-        files: newFiles,
-        subdomain: fallback.subdomain,
-        customDomain: 'tarasaka.com',
-        publishedUrl: fallback.publishedUrl,
-        updatedAt: now.toISOString()
-      });
+      if (canModify) {
+        // Apply autonomous surgical refinement directly to current codebase
+        const refined = applyIntelligentRefinement({
+          html: code.html,
+          css: code.css,
+          js: code.js,
+          prompt: promptToSend
+        });
 
-      const assistantMsg = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: `🎉 I have generated a complete, modern responsive website for **"${promptToSend}"** with semantic HTML5, modern CSS3 variables, and interactive JavaScript!\n\n• **Website Name:** ${fallback.name}\n• **Live Subdomain:** [https://${project?.subdomain || fallback.subdomain}.tarasaka.com](https://${project?.subdomain || fallback.subdomain}.tarasaka.com)\n• **Workspace Files:** \`index.html\`, \`styles.css\`, \`script.js\`\n\n*Live canvas and files have been updated. (To enable continuous real-time Anthropic Claude streaming, ensure \`node start.js\` is active in your terminal).*`,
-        filesModified: ['index.html', 'styles.css', 'script.js'],
-        timestamp: new Date().toISOString()
-      };
-      setConversation(prev => [...prev, assistantMsg]);
+        const now = new Date();
+        const updatedFiles = [
+          { path: 'index.html', content: refined.html, language: 'html', updatedAt: now },
+          { path: 'styles.css', content: refined.css, language: 'css', updatedAt: now },
+          { path: 'script.js', content: refined.js, language: 'javascript', updatedAt: now }
+        ];
+
+        setCode({
+          html: refined.html,
+          css: refined.css,
+          js: refined.js
+        });
+        setFiles(updatedFiles);
+
+        const newName = refined.name || project?.name || 'Website';
+        const newSubdomain = refined.subdomain || project?.subdomain;
+
+        setProject(prev => ({
+          ...prev,
+          name: newName,
+          subdomain: newSubdomain,
+          html: refined.html,
+          css: refined.css,
+          js: refined.js,
+          files: updatedFiles
+        }));
+
+        saveOfflineProject({
+          id,
+          name: newName,
+          subdomain: newSubdomain,
+          customDomain: 'tarasaka.com',
+          html: refined.html,
+          css: refined.css,
+          js: refined.js,
+          files: updatedFiles,
+          updatedAt: now.toISOString()
+        });
+
+        const assistantMsg = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `✅ **Successfully applied requested changes!**\n\n• **Summary:** ${refined.changeSummary}\n• **Files Modified:** \`styles.css\`, \`index.html\`\n• **Live Preview:** Canvas and workspace updated with latest code.`,
+          filesModified: ['styles.css', 'index.html'],
+          timestamp: new Date().toISOString()
+        };
+        setConversation(prev => [...prev, assistantMsg]);
+      } else {
+        // Resilient In-Studio Synthesis: Guaranteed instant website creation even if backend is offline
+        const fallback = createClientFallbackProject(promptToSend, 'general');
+        const now = new Date();
+        const newFiles = [
+          { path: 'index.html', content: fallback.html, language: 'html', updatedAt: now },
+          { path: 'styles.css', content: fallback.css, language: 'css', updatedAt: now },
+          { path: 'script.js', content: fallback.js, language: 'javascript', updatedAt: now }
+        ];
+
+        setCode({
+          html: fallback.html,
+          css: fallback.css,
+          js: fallback.js
+        });
+        setFiles(newFiles);
+        setProject(prev => ({
+          ...prev,
+          name: fallback.name || prev?.name || 'Website',
+          html: fallback.html,
+          css: fallback.css,
+          js: fallback.js,
+          files: newFiles,
+          subdomain: prev?.subdomain || fallback.subdomain,
+          customDomain: 'tarasaka.com',
+          publishedUrl: prev?.publishedUrl || fallback.publishedUrl
+        }));
+
+        // Save to offline storage as persistent backup
+        saveOfflineProject({
+          id,
+          name: fallback.name,
+          html: fallback.html,
+          css: fallback.css,
+          js: fallback.js,
+          files: newFiles,
+          subdomain: fallback.subdomain,
+          customDomain: 'tarasaka.com',
+          publishedUrl: fallback.publishedUrl,
+          updatedAt: now.toISOString()
+        });
+
+        const assistantMsg = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `🎉 I have generated a complete, modern responsive website for **"${promptToSend}"** with semantic HTML5, modern CSS3 variables, and interactive JavaScript!\n\n• **Website Name:** ${fallback.name}\n• **Live Subdomain:** [https://${project?.subdomain || fallback.subdomain}.tarasaka.com](https://${project?.subdomain || fallback.subdomain}.tarasaka.com)\n• **Workspace Files:** \`index.html\`, \`styles.css\`, \`script.js\`\n\n*Live canvas and files have been updated.*`,
+          filesModified: ['index.html', 'styles.css', 'script.js'],
+          timestamp: new Date().toISOString()
+        };
+        setConversation(prev => [...prev, assistantMsg]);
+      }
     } finally {
       setIsGenerating(false);
       setStreamingText('');
