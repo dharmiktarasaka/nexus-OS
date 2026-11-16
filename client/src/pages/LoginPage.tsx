@@ -46,7 +46,7 @@ export const LoginPage: React.FC = () => {
   const [resetSent, setResetSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { loginWithEmail, loginWithGoogle, registerWithEmail, loginAsDemoExecutive, resetPassword } = useAuth();
+  const { loginWithEmail, loginWithGoogle, registerWithEmail, resetPassword } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -201,18 +201,6 @@ export const LoginPage: React.FC = () => {
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Google sign-in was cancelled or encountered an error.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async () => {
-    setLoading(true);
-    try {
-      await loginAsDemoExecutive();
-      navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Failed to enter demo session.');
     } finally {
       setLoading(false);
     }
@@ -554,19 +542,6 @@ export const LoginPage: React.FC = () => {
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
-
-          {/* Instant 1-Click Executive Demo */}
-          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
-            <button
-              type="button"
-              onClick={handleDemoLogin}
-              disabled={loading}
-              className="w-full py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 border border-indigo-500/30 text-xs font-bold text-indigo-600 dark:text-indigo-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs group hover:border-indigo-500/60"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500 group-hover:rotate-12 transition-transform" />
-              <span>⚡ Instant 1-Click Executive Demo (Explore Without Sign-In)</span>
-            </button>
-          </div>
         </div>
 
         {/* Security & Tarasaka Trust Footer */}
