@@ -337,7 +337,8 @@ async function executeTool(name, args) {
               `• **Category:** ${created.category}`,
               `• **Tagline:** *${created.tagline || 'Modern responsive web experience'}*`,
               ``,
-              `🔗 **Live Links:**`,
+              `🔗 **Live Links & Domain:**`,
+              `• **🌐 Live tarasaka.com Subdomain:** [https://${created.subdomain || 'site'}.tarasaka.com](https://${created.subdomain || 'site'}.tarasaka.com)`,
               `• **Interactive Studio Editor:** [Open in Nexus OS Editor](${editorUrl})`,
               `• **Full Standalone Preview:** [Open Live Preview](${previewUrl})`,
               ``,
@@ -418,7 +419,8 @@ async function executeTool(name, args) {
               `• **Project ID:** \`${projectId}\``,
               `• **Change Summary:** ${refined.changeSummary || 'Applied requested styling and component refinements.'}`,
               ``,
-              `🔗 **Updated Links:**`,
+              `🔗 **Updated Links & Domain:**`,
+              `• **🌐 Live tarasaka.com Subdomain:** [https://${updated.subdomain || 'site'}.tarasaka.com](https://${updated.subdomain || 'site'}.tarasaka.com)`,
               `• **Studio Editor:** [Open in Nexus OS Editor](${editorUrl})`,
               `• **Live Preview:** [Open Live Preview](${previewUrl})`
             ].join('\n')

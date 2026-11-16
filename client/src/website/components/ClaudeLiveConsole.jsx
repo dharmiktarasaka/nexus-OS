@@ -168,6 +168,10 @@ export default function ClaudeLiveConsole({ currentProjectId = null, onProjectUp
     if (successProject) {
       addLog(`✓ Website "${successProject.name}" synthesized and saved!`, 'success');
       addLog(`✓ Live canvas updated in real time!`, 'success');
+      const sub = successProject.subdomain || 'site';
+      const dom = successProject.customDomain || 'tarasaka.com';
+      const liveUrl = successProject.publishedUrl || `https://${sub}.${dom}`;
+      addLog(`🚀 [Auto-Deployed] Live URL: ${liveUrl}`, 'success');
       setLastBuiltProject(successProject);
       if (onProjectUpdated) {
         onProjectUpdated({
@@ -529,7 +533,27 @@ export default function ClaudeLiveConsole({ currentProjectId = null, onProjectUp
                 <CheckCircle2 size={13} />
                 <span>Active: <strong>{lastBuiltProject.name}</strong></span>
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <a
+                  href={lastBuiltProject.publishedUrl || `https://${lastBuiltProject.subdomain || 'site'}.${lastBuiltProject.customDomain || 'tarasaka.com'}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    color: '#34d399',
+                    textDecoration: 'none',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'rgba(16, 185, 129, 0.18)',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(16, 185, 129, 0.35)'
+                  }}
+                  title="Open live website on tarasaka.com subdomain"
+                >
+                  🌐 {lastBuiltProject.subdomain || 'live'}.tarasaka.com ↗
+                </a>
                 <a
                   href={`/apps/website-builder/editor/${lastBuiltProject.id}`}
                   style={{
@@ -541,7 +565,7 @@ export default function ClaudeLiveConsole({ currentProjectId = null, onProjectUp
                     gap: '3px'
                   }}
                 >
-                  Open Studio ↗
+                  Editor ↗
                 </a>
                 <a
                   href={`/api/preview/${lastBuiltProject.id}`}

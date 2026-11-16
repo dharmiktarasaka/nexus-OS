@@ -7,6 +7,7 @@ import ClaudeLiveConsole from '../components/ClaudeLiveConsole';
 import SettingsModal from '../components/SettingsModal';
 import DocsModal from '../components/DocsModal';
 import TemplatesModal from '../components/TemplatesModal';
+import DomainDeployModal from '../components/DomainDeployModal';
 import { exportProjectToZip } from '../utils/zipExport';
 import { getWebsiteApiUrl } from '../apiConfig';
 import { createClientFallbackProject, saveOfflineProject } from '../utils/clientGenerator';
@@ -94,6 +95,7 @@ export default function EditorPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDocsOpen, setIsDocsOpen] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+  const [isDomainModalOpen, setIsDomainModalOpen] = useState(false);
 
   // References
   const chatScrollRef = useRef(null);
@@ -618,8 +620,39 @@ export default function EditorPage() {
           </div>
         </div>
 
-        {/* Right Actions: Save, Duplicate, Export */}
+        {/* Right Actions: Live Subdomain Pill, Save, Duplicate, Export */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Live Subdomain & Deploy to tarasaka.com */}
+          <button
+            onClick={() => setIsDomainModalOpen(true)}
+            title="Automatic tarasaka.com Subdomain Deployment"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              borderRadius: '8px',
+              border: '1px solid rgba(59, 130, 246, 0.4)',
+              background: 'rgba(37, 99, 235, 0.15)',
+              color: '#60a5fa',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            <Globe size={14} color="#60a5fa" />
+            <span>{project?.subdomain ? `${project.subdomain}.tarasaka.com` : 'tarasaka.com Domain'}</span>
+            <span
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: '#10b981',
+                boxShadow: '0 0 6px #10b981'
+              }}
+            />
+          </button>
+
           <button
             className={`btn-studio-save ${savedTick ? 'saved' : ''}`}
             onClick={handleManualSave}
@@ -768,8 +801,12 @@ export default function EditorPage() {
             </div>
           )}
 
-          {/* Sidebar Bottom Nav: Templates, Settings, Docs */}
+          {/* Sidebar Bottom Nav: Domain, Templates, Settings, Docs */}
           <div className="sidebar-section" style={{ borderBottom: 'none' }}>
+            <button className="sidebar-btn" onClick={() => setIsDomainModalOpen(true)}>
+              <Globe size={15} color="#3b82f6" />
+              <span>tarasaka.com Domain</span>
+            </button>
             <button className="sidebar-btn" onClick={() => setIsTemplatesOpen(true)}>
               <Layout size={15} color="#2563eb" />
               <span>Website Templates</span>
@@ -1168,6 +1205,15 @@ export default function EditorPage() {
       <ClaudeLiveConsole currentProjectId={id} onProjectUpdated={fetchProjectAndList} />
 
       {/* Modals */}
+      <DomainDeployModal
+        isOpen={isDomainModalOpen}
+        onClose={() => setIsDomainModalOpen(false)}
+        project={project}
+        onSubdomainUpdated={(updatedProject) => {
+          setProject(prev => ({ ...prev, ...updatedProject }));
+          setLiveToast(`✓ Subdomain updated to ${updatedProject.subdomain}.tarasaka.com!`);
+        }}
+      />
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       <DocsModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
       <TemplatesModal

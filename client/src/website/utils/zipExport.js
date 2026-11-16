@@ -32,6 +32,7 @@ ${project.tagline || 'Crafted with PulseStudio AI'}
 
 ## Project Summary
 - **Category:** ${project.category || 'General'}
+- **Live tarasaka.com URL:** https://${project.subdomain || 'site'}.${project.customDomain || 'tarasaka.com'}
 - **Generated On:** ${project.createdAt || new Date().toISOString()}
 - **Synthesis Engine:** ${project.provider || 'AI Website Builder'}
 

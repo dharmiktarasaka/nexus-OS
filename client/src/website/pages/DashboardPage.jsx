@@ -20,7 +20,8 @@ import {
   Code2,
   Globe,
   ArrowRight,
-  Bot
+  Bot,
+  ExternalLink
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -172,10 +173,11 @@ export default function DashboardPage() {
   };
 
   // Dynamic categories computed from active projects
-  const uniqueCategories = Array.from(new Set(projects.map(p => p.category).filter(Boolean)));
+  const projectList = Array.isArray(projects) ? projects : [];
+  const uniqueCategories = Array.from(new Set(projectList.map(p => p.category).filter(Boolean)));
   const categoryList = ['all', ...uniqueCategories];
 
-  const filteredProjects = projects.filter(p => {
+  const filteredProjects = projectList.filter(p => {
     const matchesSearch = (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
                           (p.tagline || '').toLowerCase().includes(search.toLowerCase()) ||
                           (p.category || '').toLowerCase().includes(search.toLowerCase());
@@ -184,7 +186,7 @@ export default function DashboardPage() {
   });
 
   const totalKb = Math.round(
-    projects.reduce(
+    projectList.reduce(
       (acc, p) => acc + (p.codeLength?.html || 0) + (p.codeLength?.css || 0) + (p.codeLength?.js || 0),
       0
     ) / 1024
@@ -417,6 +419,33 @@ export default function DashboardPage() {
                   </div>
 
                   <p className="project-tagline">{p.tagline || p.prompt?.slice(0, 110) || 'AI Generated Website'}</p>
+
+                  {/* Live tarasaka.com Subdomain Pill */}
+                  <div style={{ margin: '8px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <a
+                      href={p.publishedUrl || `https://${p.subdomain || 'site'}.${p.customDomain || 'tarasaka.com'}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: '#34d399',
+                        background: 'rgba(16, 185, 129, 0.12)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        borderRadius: '6px',
+                        padding: '3px 8px',
+                        textDecoration: 'none'
+                      }}
+                      title="Visit live published website on tarasaka.com"
+                    >
+                      <Globe size={11} color="#10b981" />
+                      <span>{p.subdomain || 'site'}.tarasaka.com</span>
+                      <ExternalLink size={10} />
+                    </a>
+                  </div>
 
                   <div className="card-metrics">
                     <div className="metric-pill">

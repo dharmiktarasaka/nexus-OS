@@ -3141,6 +3141,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 `;
 
+  const subdomainSlug = (brandName || 'site').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 26) || 'site';
+  const subdomain = `${subdomainSlug}-${Math.random().toString(36).substring(2, 5)}`;
+
   return {
     id: projectId,
     name: brandName,
@@ -3152,6 +3155,11 @@ document.addEventListener('DOMContentLoaded', () => {
     html,
     css,
     js,
+    subdomain,
+    customDomain: 'tarasaka.com',
+    isPublished: true,
+    publishedUrl: `https://${subdomain}.tarasaka.com`,
+    deployedAt: now.toISOString(),
     seo: {
       metaTitle: `${brandName} | ${tagline.slice(0, 55)}`,
       metaDescription: `${brandName} provides industry-leading solutions for ${finalCategory}. Explore our interactive suite.`,

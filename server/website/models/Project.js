@@ -117,6 +117,30 @@ const projectSchema = new mongoose.Schema(
     provider: {
       type: String,
       default: 'default'
+    },
+    // Automatic tarasaka.com Subdomain Deployment
+    subdomain: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      index: true
+    },
+    customDomain: {
+      type: String,
+      default: 'tarasaka.com',
+      trim: true
+    },
+    isPublished: {
+      type: Boolean,
+      default: true
+    },
+    publishedUrl: {
+      type: String,
+      default: ''
+    },
+    deployedAt: {
+      type: Date,
+      default: Date.now
     }
   },
   {
@@ -169,6 +193,11 @@ projectSchema.methods.toSummary = function () {
     seo: this.seo,
     provider: this.provider,
     model: this.model || 'claude-3-5-sonnet-20241022',
+    subdomain: this.subdomain || '',
+    customDomain: this.customDomain || 'tarasaka.com',
+    isPublished: this.isPublished !== false,
+    publishedUrl: this.publishedUrl || (this.subdomain ? `https://${this.subdomain}.tarasaka.com` : ''),
+    deployedAt: this.deployedAt || this.updatedAt,
     fileCount: Array.isArray(this.files) ? this.files.length : 3,
     tokenUsage: this.tokenUsage || { totalTokens: 0, estimatedCostUSD: 0 },
     codeLength: {

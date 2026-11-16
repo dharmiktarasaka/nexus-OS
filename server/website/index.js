@@ -13,11 +13,15 @@ const { runClaudeAgentStream, validateProjectWorkspace } = require('./claudeAgen
 const {
   getAllProjects,
   getProjectById,
+  getProjectBySubdomain,
+  isSubdomainAvailable,
+  generateUniqueSubdomain,
   createProject,
   updateProject,
   deleteProject,
   migrateFileProjectsToMongo,
-  projectEvents
+  projectEvents,
+  BASE_DOMAIN
 } = require('./projectsStorage');
 
 const jwt = require('jsonwebtoken');
@@ -81,6 +85,30 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+
+// Host Header Subdomain Router: automatically routes *.tarasaka.com or *.localhost to live website
+app.use(async (req, res, next) => {
+  const rawHost = req.headers['x-forwarded-host'] || req.headers.host || '';
+  const hostWithoutPort = rawHost.split(':')[0].toLowerCase();
+  const isTarasakaSub = hostWithoutPort.endsWith('.tarasaka.com') && hostWithoutPort !== 'tarasaka.com';
+  const isLocalhostSub = hostWithoutPort.endsWith('.localhost') && hostWithoutPort !== 'localhost';
+
+  if ((isTarasakaSub || isLocalhostSub) && !req.path.startsWith('/api') && !req.path.startsWith('/live') && !req.path.startsWith('/sites')) {
+    const subdomain = hostWithoutPort.split('.')[0];
+    const reserved = ['www', 'api', 'admin', 'app', 'crm', 'mail', 'portal', 'status'];
+    if (!reserved.includes(subdomain)) {
+      try {
+        const project = await getProjectBySubdomain(subdomain);
+        if (project) {
+          return renderLiveWebsite(project, req, res, req.path);
+        }
+      } catch (err) {
+        console.warn(`[Subdomain Router] Error looking up ${subdomain}:`, err.message);
+      }
+    }
+  }
+  next();
+});
 
 // Mount MongoDB Authentication Routes
 app.use('/api/auth', authRoutes);
@@ -525,6 +553,249 @@ This website is completely self-contained and ready to deploy:
   } catch (err) {
     console.error('[API /export] Error:', err);
     res.status(500).json({ error: 'Failed to create export ZIP: ' + err.message });
+  }
+});
+
+// ============================================================================
+// TARASAKA.COM SUBDOMAIN DEPLOYMENT & LIVE PRODUCTION WEBSITE SERVING
+// ============================================================================
+
+// Production Website Live Renderer for tarasaka.com Subdomains & Direct Links
+function renderLiveWebsite(project, req, res, subPath = '/') {
+  let requestedFile = (subPath || '/').replace(/^\/+/, '');
+  if (!requestedFile || requestedFile === '') {
+    requestedFile = 'index.html';
+  }
+
+  const files = Array.isArray(project.files) && project.files.length > 0 ? project.files : [
+    { path: 'index.html', content: project.html || '', language: 'html' },
+    { path: 'styles.css', content: project.css || '', language: 'css' },
+    { path: 'script.js', content: project.js || '', language: 'javascript' }
+  ];
+
+  // Handle specific static asset requests (e.g. styles.css, script.js, about.html)
+  const matchedFile = files.find(f => f.path.toLowerCase() === requestedFile.toLowerCase()) ||
+                      files.find(f => f.path.toLowerCase().endsWith('/' + requestedFile.toLowerCase()));
+
+  if (matchedFile && requestedFile !== 'index.html') {
+    if (requestedFile.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      return res.send(matchedFile.content || '');
+    } else if (requestedFile.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      return res.send(matchedFile.content || '');
+    } else if (requestedFile.endsWith('.json')) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      return res.send(matchedFile.content || '{}');
+    }
+    if (requestedFile.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.send(matchedFile.content || '');
+    }
+  }
+
+  // Render Index HTML with SEO, live styles/scripts and Tarasaka branding badge
+  const indexFile = files.find(f => f.path === 'index.html') || files.find(f => f.path.endsWith('.html'));
+  let html = (indexFile && indexFile.content) || project.html || '<!DOCTYPE html><html><head><title>Website</title></head><body><h1>Welcome</h1></body></html>';
+  let css = project.css || '';
+  let js = project.js || '';
+
+  const cssFile = files.find(f => f.path === 'styles.css' || f.path.endsWith('.css'));
+  if (cssFile && cssFile.content) css = cssFile.content;
+  const jsFile = files.find(f => f.path === 'script.js' || f.path.endsWith('.js'));
+  if (jsFile && jsFile.content) js = jsFile.content;
+
+  const hasLinkedCss = html.includes('styles.css') || html.includes('<style');
+  const hasLinkedJs = html.includes('script.js') || html.includes('<script');
+
+  const cssTag = (!hasLinkedCss && css) ? `<style id="tarasaka-live-styles">\n${css}\n</style>` : '';
+  const jsTag = (!hasLinkedJs && js) ? `<script id="tarasaka-live-script">\n${js}\n</script>` : '';
+
+  const domain = project.customDomain || BASE_DOMAIN || 'tarasaka.com';
+  const subdomain = project.subdomain || 'site';
+  const liveUrl = `https://${subdomain}.${domain}`;
+
+  // SEO Meta tags injection
+  const seoTitle = project.seo?.metaTitle || project.name || 'Tarasaka Website';
+  const seoDesc = project.seo?.metaDescription || project.tagline || 'Published on Tarasaka OS';
+  const seoTags = `
+  <meta name="description" content="${seoDesc.replace(/"/g, '&quot;')}">
+  <meta property="og:title" content="${seoTitle.replace(/"/g, '&quot;')}">
+  <meta property="og:description" content="${seoDesc.replace(/"/g, '&quot;')}">
+  <meta property="og:url" content="${liveUrl}">
+  <meta name="twitter:card" content="summary_large_image">
+  `;
+
+  // Sleek, minimal live badge at bottom-right
+  const liveBadge = `
+  <div id="tarasaka-subdomain-badge" style="position:fixed;bottom:14px;right:14px;z-index:9999999;background:rgba(15,23,42,0.92);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:6px 14px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,0.35);font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:500;">
+    <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 6px #10b981;"></span>
+    <span>Live on <a href="${liveUrl}" target="_blank" style="color:#60a5fa;text-decoration:none;font-weight:700;">${subdomain}.${domain}</a></span>
+    <button onclick="document.getElementById('tarasaka-subdomain-badge').style.display='none'" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:12px;padding:0 2px;margin-left:4px;line-height:1;" title="Dismiss">✕</button>
+  </div>
+  `;
+
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', `${seoTags}\n${cssTag}\n</head>`);
+  } else {
+    html = `${seoTags}\n${cssTag}\n${html}`;
+  }
+
+  if (html.includes('</body>')) {
+    html = html.replace('</body>', `${liveBadge}\n${jsTag}\n</body>`);
+  } else {
+    html = `${html}\n${liveBadge}\n${jsTag}`;
+  }
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
+}
+
+// Public live website routes (via /live/:subdomain or /sites/:subdomain)
+app.get(['/live/:subdomain', '/live/:subdomain/*', '/sites/:subdomain', '/sites/:subdomain/*'], async (req, res) => {
+  try {
+    const subdomain = req.params.subdomain;
+    const project = await getProjectBySubdomain(subdomain);
+    if (!project) {
+      return res.status(404).send(`<!DOCTYPE html><html><body style="font-family:system-ui,-apple-system,sans-serif;padding:60px 20px;text-align:center;background:#0f172a;color:#f8fafc;"><h2>Website Not Found</h2><p style="color:#94a3b8;">No published website was found for subdomain <strong>"${subdomain}.${BASE_DOMAIN || 'tarasaka.com'}"</strong>.</p><a href="https://${BASE_DOMAIN || 'tarasaka.com'}" style="color:#38bdf8;text-decoration:none;font-weight:600;">Go to Tarasaka OS ↗</a></body></html>`);
+    }
+    const subPath = req.params[0] || '/';
+    return renderLiveWebsite(project, req, res, subPath);
+  } catch (err) {
+    res.status(500).send(`<h1>Error loading website: ${err.message}</h1>`);
+  }
+});
+
+// Deploy / Publish Project Endpoint (Generates subdomain and attaches to tarasaka.com)
+app.post('/api/projects/:id/deploy', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = resolveUser(req);
+    const project = await getProjectById(id, userId || 'all');
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    let subdomain = project.subdomain;
+    if (!subdomain) {
+      subdomain = await generateUniqueSubdomain(project.name, project.id);
+    }
+
+    const domain = project.customDomain || BASE_DOMAIN || 'tarasaka.com';
+    const publishedUrl = `https://${subdomain}.${domain}`;
+    const directUrl = `https://${domain}/sites/${subdomain}`;
+    const localUrl = `http://localhost:${PORT}/live/${subdomain}`;
+
+    const updated = await updateProject(id, {
+      subdomain,
+      customDomain: domain,
+      isPublished: true,
+      publishedUrl,
+      deployedAt: new Date()
+    }, userId || 'all');
+
+    res.json({
+      success: true,
+      message: `Website successfully deployed to ${subdomain}.${domain}!`,
+      subdomain,
+      domain,
+      publishedUrl,
+      directUrl,
+      localUrl,
+      deployedAt: updated.deployedAt || new Date(),
+      project: updated
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update Custom Subdomain Endpoint
+app.put('/api/projects/:id/subdomain', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subdomain } = req.body;
+    const { userId } = resolveUser(req);
+
+    if (!subdomain || typeof subdomain !== 'string') {
+      return res.status(400).json({ error: 'Subdomain is required' });
+    }
+
+    const clean = subdomain.toLowerCase().trim();
+    if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(clean)) {
+      return res.status(400).json({ error: 'Subdomain must be 3-63 characters, containing only letters, numbers, and hyphens (cannot start or end with a hyphen).' });
+    }
+
+    const available = await isSubdomainAvailable(clean, id);
+    if (!available) {
+      return res.status(409).json({ error: `The subdomain "${clean}.${BASE_DOMAIN || 'tarasaka.com'}" is already taken or reserved. Please choose another.` });
+    }
+
+    const domain = BASE_DOMAIN || 'tarasaka.com';
+    const publishedUrl = `https://${clean}.${domain}`;
+    const updated = await updateProject(id, {
+      subdomain: clean,
+      customDomain: domain,
+      publishedUrl,
+      deployedAt: new Date(),
+      isPublished: true
+    }, userId || 'all');
+
+    res.json({
+      success: true,
+      message: `Subdomain successfully updated to ${clean}.${domain}!`,
+      subdomain: clean,
+      domain,
+      publishedUrl,
+      directUrl: `https://${domain}/sites/${clean}`,
+      project: updated
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get Project Deployment Status
+app.get('/api/projects/:id/deployment', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const project = await getProjectById(id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const domain = project.customDomain || BASE_DOMAIN || 'tarasaka.com';
+    const subdomain = project.subdomain || '';
+    const publishedUrl = subdomain ? `https://${subdomain}.${domain}` : '';
+    const directUrl = subdomain ? `https://${domain}/sites/${subdomain}` : '';
+    const localUrl = subdomain ? `http://localhost:${PORT}/live/${subdomain}` : '';
+
+    res.json({
+      subdomain,
+      domain,
+      isPublished: project.isPublished !== false,
+      publishedUrl,
+      directUrl,
+      localUrl,
+      deployedAt: project.deployedAt || project.updatedAt
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Check Subdomain Availability Endpoint
+app.get('/api/subdomain/check/:subdomain', async (req, res) => {
+  try {
+    const { subdomain } = req.params;
+    const excludeId = req.query.excludeId;
+    const available = await isSubdomainAvailable(subdomain, excludeId);
+    res.json({
+      subdomain: subdomain.toLowerCase().trim(),
+      domain: BASE_DOMAIN || 'tarasaka.com',
+      available,
+      fullUrl: `https://${subdomain.toLowerCase().trim()}.${BASE_DOMAIN || 'tarasaka.com'}`
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

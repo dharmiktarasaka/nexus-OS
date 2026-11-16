@@ -224,7 +224,24 @@ const gateway = http.createServer((req, res) => {
   let targetPort = 5050;
   let targetPath = urlPath;
 
-  if (urlPath.startsWith('/crm-api/')) {
+  // Check Host Header for Wildcard Subdomains on tarasaka.com or *.localhost
+  const rawHost = req.headers['x-forwarded-host'] || req.headers.host || '';
+  const hostWithoutPort = rawHost.split(':')[0].toLowerCase();
+  const isTarasakaSubdomain = hostWithoutPort.endsWith('.tarasaka.com') && hostWithoutPort !== 'tarasaka.com';
+  const isLocalhostSubdomain = hostWithoutPort.endsWith('.localhost') && hostWithoutPort !== 'localhost';
+
+  if (isTarasakaSubdomain || isLocalhostSubdomain) {
+    const parts = hostWithoutPort.split('.');
+    const subdomain = parts[0];
+    const reserved = ['www', 'api', 'admin', 'app', 'crm', 'mail', 'portal', 'status'];
+    if (!reserved.includes(subdomain)) {
+      targetPort = 5002;
+      targetPath = `/live/${subdomain}${urlPath === '/' ? '' : urlPath}`;
+    }
+  } else if (urlPath.startsWith('/live/') || urlPath.startsWith('/sites/')) {
+    targetPort = 5002;
+    targetPath = urlPath;
+  } else if (urlPath.startsWith('/crm-api/')) {
     targetPort = 5001;
     targetPath = urlPath.replace(/^\/crm-api/, '/api');
   } else if (urlPath.startsWith('/crm/')) {
@@ -233,6 +250,9 @@ const gateway = http.createServer((req, res) => {
   } else if (urlPath.startsWith('/uploads/')) {
     targetPort = 5001;
     targetPath = urlPath;
+  } else if (urlPath.startsWith('/api/auth/instagram')) {
+    targetPort = 5003;
+    targetPath = urlPath;
   } else if (
     urlPath.startsWith('/api/generate') ||
     urlPath.startsWith('/api/projects') ||
@@ -240,7 +260,10 @@ const gateway = http.createServer((req, res) => {
     urlPath.startsWith('/api/analyze-prompt') ||
     urlPath.startsWith('/api/database') ||
     urlPath.startsWith('/api/mcp') ||
-    urlPath.startsWith('/api/preview')
+    urlPath.startsWith('/api/preview') ||
+    urlPath.startsWith('/api/agent') ||
+    urlPath.startsWith('/api/subdomain') ||
+    (urlPath.startsWith('/api/auth') && !urlPath.startsWith('/api/auth/instagram'))
   ) {
     targetPort = 5002;
     targetPath = urlPath;
@@ -253,8 +276,7 @@ const gateway = http.createServer((req, res) => {
     urlPath.startsWith('/api/posts') ||
     urlPath.startsWith('/api/upload') ||
     urlPath.startsWith('/api/ai') ||
-    urlPath.startsWith('/api/social') ||
-    urlPath.startsWith('/api/auth/instagram')
+    urlPath.startsWith('/api/social')
   ) {
     targetPort = 5003;
     targetPath = urlPath.replace(/^\/social-api/, '/api');

@@ -345,6 +345,42 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       },
+      '/live': {
+        target: 'http://localhost:5002',
+        changeOrigin: true
+      },
+      '/sites': {
+        target: 'http://localhost:5002',
+        changeOrigin: true
+      },
+      '/api/subdomain': {
+        target: 'http://localhost:5002',
+        changeOrigin: true
+      },
+      '/api/agent': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (_err, req, res) => {
+            if (res && !res.headersSent && typeof res.writeHead === 'function') {
+              res.writeHead(502, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Website Builder backend (port 5002) is not running. Start it with: node start.js' }));
+            }
+          });
+        }
+      },
+      '/api/auth': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (_err, req, res) => {
+            if (res && !res.headersSent && typeof res.writeHead === 'function') {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true, user: null, offline: true }));
+            }
+          });
+        }
+      },
       '/api/generate': {
         target: 'http://localhost:5002',
         changeOrigin: true,
