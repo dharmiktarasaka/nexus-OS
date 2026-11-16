@@ -152,3 +152,46 @@ a.bg-crm-lime:hover {
   animation: pulseSubtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float-slow {
+  animation: floatSlow 4.5s ease-in-out infinite;
+}
+
+@keyframes floatReverse {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(8px); }
+}
+.animate-float-reverse {
+  animation: floatReverse 5.5s ease-in-out infinite;
+}
+
+@keyframes dashFlow {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+.animate-dash-flow {
+  stroke-dasharray: 6 6;
+  animation: dashFlow 1.8s linear infinite;
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spinSlow 20s linear infinite;
+}
+
+@keyframes pingSlow {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 0.2; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+.animate-ping-slow {
+  animation: pingSlow 3s ease-in-out infinite;
+}
+

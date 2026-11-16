@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Command,
@@ -17,12 +17,17 @@ import {
   Zap,
   Eye,
   EyeOff,
-  Building2,
   CheckCircle2,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  Sun,
+  Moon,
+  Activity,
+  Play,
+  Pause
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 type AuthMode = 'login' | 'register';
 type WorkflowStep = 'build' | 'crm' | 'social' | 'analytics';
@@ -30,6 +35,7 @@ type WorkflowStep = 'build' | 'crm' | 'social' | 'analytics';
 export const LoginPage: React.FC = () => {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [activeWorkflow, setActiveWorkflow] = useState<WorkflowStep>('build');
+  const [isAutoCycling, setIsAutoCycling] = useState(true);
 
   // Form State
   const [name, setName] = useState('');
@@ -41,8 +47,132 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const { loginWithEmail, loginWithGoogle, registerWithEmail, loginAsDemoExecutive, resetPassword } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
+  // Canvas ref for 2D animated interactive particles
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // -------------------------------------------------------------
+  // 2D ANIMATED PARTICLE NETWORK ENGINE (HTML5 Canvas)
+  // -------------------------------------------------------------
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    let width = (canvas.width = canvas.parentElement?.clientWidth || window.innerWidth);
+    let height = (canvas.height = canvas.parentElement?.clientHeight || window.innerHeight);
+
+    const handleResize = () => {
+      if (!canvas || !canvas.parentElement) return;
+      width = canvas.width = canvas.parentElement.clientWidth;
+      height = canvas.height = canvas.parentElement.clientHeight;
+    };
+    window.addEventListener('resize', handleResize);
+
+    // Particle nodes
+    const particleCount = Math.min(36, Math.floor((width * height) / 22000));
+    const particles = Array.from({ length: particleCount }).map(() => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.7,
+      vy: (Math.random() - 0.5) * 0.7,
+      radius: Math.random() * 2 + 1.5,
+      color: ['#4f46e5', '#3b82f6', '#10b981', '#8b5cf6'][Math.floor(Math.random() * 4)]
+    }));
+
+    let mouseX = -1000;
+    let mouseY = -1000;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseX = e.clientX - rect.left;
+      mouseY = e.clientY - rect.top;
+    };
+    canvas.addEventListener('mousemove', handleMouseMove);
+
+    // Render Loop
+    const render = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw connecting lines between nearby particles
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 130) {
+            const alpha = (1 - dist / 130) * 0.18;
+            ctx.strokeStyle = theme === 'dark' ? `rgba(129, 140, 248, ${alpha})` : `rgba(79, 70, 229, ${alpha * 1.5})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Draw and update particles
+      particles.forEach((p) => {
+        // Move
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Bounce off canvas edges
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
+
+        // Subtle mouse repulsion/attraction
+        const mdx = mouseX - p.x;
+        const mdy = mouseY - p.y;
+        const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+        if (mdist < 100) {
+          p.x -= (mdx / mdist) * 0.6;
+          p.y -= (mdy / mdist) * 0.6;
+        }
+
+        // Draw particle dot
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = theme === 'dark' ? 0.7 : 0.85;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      });
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', handleResize);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [theme]);
+
+  // -------------------------------------------------------------
+  // AUTO-CYCLING WORKFLOW PREVIEW (Cycles every 6 seconds)
+  // -------------------------------------------------------------
+  useEffect(() => {
+    if (!isAutoCycling) return;
+    const steps: WorkflowStep[] = ['build', 'crm', 'social', 'analytics'];
+    const interval = setInterval(() => {
+      setActiveWorkflow((prev) => {
+        const idx = steps.indexOf(prev);
+        return steps[(idx + 1) % steps.length];
+      });
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [isAutoCycling]);
+
+  // Form Handlers
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -52,9 +182,7 @@ export const LoginPage: React.FC = () => {
       if (authMode === 'login') {
         await loginWithEmail(email, password);
       } else {
-        if (!name.trim()) {
-          throw new Error('Please enter your full name.');
-        }
+        if (!name.trim()) throw new Error('Please enter your full name.');
         await registerWithEmail(name.trim(), email, password);
       }
       navigate('/');
@@ -107,7 +235,8 @@ export const LoginPage: React.FC = () => {
   // Workflow definitions showcasing facilities & benefits
   const workflowData = {
     build: {
-      badge: 'Step 1 • Creation',
+      stepNum: '01',
+      badge: 'Creation & Commerce',
       title: 'AI Website & Storefront Studio',
       highlight: 'Turn Ideas into Live High-Converting Sites in Seconds',
       description:
@@ -119,12 +248,13 @@ export const LoginPage: React.FC = () => {
         'Mobile, Tablet & Desktop responsive device simulator'
       ],
       metrics: 'Launch ready in < 60 seconds',
-      gradient: 'from-blue-600/20 via-indigo-600/10 to-transparent',
+      gradient: 'from-blue-500/10 via-indigo-500/5 to-transparent',
       accentColor: '#3b82f6',
       icon: Globe
     },
     crm: {
-      badge: 'Step 2 • Pipeline',
+      stepNum: '02',
+      badge: 'Leads & Conversions',
       title: 'High-Velocity Omnichannel CRM',
       highlight: 'Capture, Nurture & Convert Leads into Repeat Revenue',
       description:
@@ -136,12 +266,13 @@ export const LoginPage: React.FC = () => {
         'Team collaboration with multi-user assignment and status tags'
       ],
       metrics: '35% Higher Lead Conversion Rate',
-      gradient: 'from-emerald-600/20 via-teal-600/10 to-transparent',
+      gradient: 'from-emerald-500/10 via-teal-500/5 to-transparent',
       accentColor: '#10b981',
       icon: Users
     },
     social: {
-      badge: 'Step 3 • Growth',
+      stepNum: '03',
+      badge: 'Omnichannel Growth',
       title: 'Mediamation Multi-Channel Social Hub',
       highlight: 'Broadcast to Every Channel from One Unified Queue',
       description:
@@ -153,12 +284,13 @@ export const LoginPage: React.FC = () => {
         'AI caption writing & hashtag optimization assistant'
       ],
       metrics: 'Save 15+ Hours Every Week',
-      gradient: 'from-rose-600/20 via-pink-600/10 to-transparent',
+      gradient: 'from-rose-500/10 via-pink-500/5 to-transparent',
       accentColor: '#f43f5e',
       icon: Share2
     },
     analytics: {
-      badge: 'Step 4 • Strategy',
+      stepNum: '04',
+      badge: 'Strategy & Profits',
       title: 'STRATIQ AI Business Advisory',
       highlight: 'Enterprise Strategic Audits, SWOT & Growth Action Plans',
       description:
@@ -170,7 +302,7 @@ export const LoginPage: React.FC = () => {
         '1-Click Executive PDF & Excel Reports for Stakeholders'
       ],
       metrics: 'Uncover $50K+ in Growth Opportunities',
-      gradient: 'from-amber-600/20 via-orange-600/10 to-transparent',
+      gradient: 'from-amber-500/10 via-orange-500/5 to-transparent',
       accentColor: '#f59e0b',
       icon: Brain
     }
@@ -180,37 +312,34 @@ export const LoginPage: React.FC = () => {
   const CurrentIcon = currentWorkflow.icon;
 
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-white flex flex-col lg:flex-row overflow-x-hidden font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white flex flex-col lg:flex-row overflow-x-hidden font-sans selection:bg-indigo-600 selection:text-white transition-colors duration-200">
       {/* ============================================================== */}
       {/* LEFT COLUMN: Clean, High-Conversion Authentication Portal       */}
       {/* ============================================================== */}
-      <div className="w-full lg:w-[45%] xl:w-[42%] flex flex-col justify-between p-6 sm:p-10 lg:p-12 relative z-10 border-b lg:border-b-0 lg:border-r border-slate-800/80 bg-slate-950/95 backdrop-blur-xl">
-        {/* Ambient background glow */}
-        <div className="absolute top-0 left-0 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
-
-        {/* Brand Header */}
-        <div className="space-y-4">
+      <div className="w-full lg:w-[45%] xl:w-[42%] flex flex-col justify-between p-6 sm:p-10 lg:p-12 relative z-20 border-b lg:border-b-0 lg:border-r border-slate-200/90 dark:border-slate-800/90 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-xl lg:shadow-2xl">
+        {/* Top Header & Theme Switcher */}
+        <div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 ring-1 ring-white/20">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 ring-1 ring-indigo-500/20">
                 <Command className="w-6 h-6" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl font-black tracking-tight text-white font-mono">
+                  <span className="text-2xl font-black tracking-tight text-slate-900 dark:text-white font-mono">
                     SYS
                   </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 tracking-wider">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 tracking-wider">
                     v2.5
                   </span>
                 </div>
-                <p className="text-[11px] font-semibold text-slate-400 tracking-wide flex items-center gap-1">
+                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wide flex items-center gap-1">
                   <span>Developed by</span>
                   <a
                     href="https://tarasaka.com"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors underline decoration-indigo-500/40"
+                    className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-bold transition-colors underline decoration-indigo-500/40"
                   >
                     Tarasaka
                   </a>
@@ -218,28 +347,40 @@ export const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-semibold text-emerald-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>All Systems Operational</span>
+            <div className="flex items-center gap-2">
+              {/* Theme Toggle Button */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} theme`}
+                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+              >
+                {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              </button>
+
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/25 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Operational</span>
+              </div>
             </div>
           </div>
 
-          <div className="pt-4">
-            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
+          <div className="pt-6">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               {authMode === 'login' ? 'Welcome Back to Your Workspace' : 'Create Your Enterprise Workspace'}
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               {authMode === 'login'
-                ? 'Sign in to access your Websites, CRM, Social Campaigns, and AI Advisory in one place.'
+                ? 'Sign in to access Websites, CRM, Social Campaigns, and AI Advisory in one place.'
                 : 'Get instant, unrestricted access to the complete SYS ecosystem with unified SSO.'}
             </p>
           </div>
         </div>
 
-        {/* Authentication Card */}
+        {/* Form Body */}
         <div className="my-6 space-y-4">
           {/* Tab Switcher: Sign In vs Create Account */}
-          <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-900 border border-slate-800">
+          <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={() => {
@@ -248,8 +389,8 @@ export const LoginPage: React.FC = () => {
               }}
               className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 authMode === 'login'
-                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Sign In
@@ -262,8 +403,8 @@ export const LoginPage: React.FC = () => {
               }}
               className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 authMode === 'register'
-                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Create Account
@@ -272,25 +413,25 @@ export const LoginPage: React.FC = () => {
 
           {/* Feedback Alerts */}
           {error && (
-            <div className="p-3.5 rounded-xl bg-rose-950/50 border border-rose-800/80 flex items-start gap-2.5 text-xs text-rose-300 animate-in fade-in duration-200">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-300">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           {resetSent && (
-            <div className="p-3.5 rounded-xl bg-emerald-950/50 border border-emerald-800/80 flex items-start gap-2.5 text-xs text-emerald-300 animate-in fade-in duration-200">
-              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
-              <span>Password reset instructions have been sent to your email. Check your inbox.</span>
+            <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 flex items-start gap-2.5 text-xs text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>Password reset instructions sent. Please check your inbox.</span>
             </div>
           )}
 
-          {/* 1-Click Google Sign In */}
+          {/* Google Sign In */}
           <button
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 text-xs font-bold text-slate-200 hover:text-white transition-all shadow-sm cursor-pointer disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-300 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition-all shadow-2xs cursor-pointer disabled:opacity-60"
           >
             <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
               <path
@@ -314,84 +455,84 @@ export const LoginPage: React.FC = () => {
           </button>
 
           {/* Divider */}
-          <div className="relative my-2">
+          <div className="relative my-1">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-800" />
+              <div className="w-full border-t border-slate-200 dark:border-slate-800" />
             </div>
             <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-wider">
-              <span className="px-3 bg-slate-950 text-slate-500">
+              <span className="px-3 bg-white dark:bg-slate-900 text-slate-400">
                 Or with business email
               </span>
             </div>
           </div>
 
-          {/* Email / Password Form */}
+          {/* Form */}
           <form onSubmit={handleEmailSubmit} className="space-y-3.5">
             {authMode === 'register' && (
               <div>
-                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Full Name
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Alex Morgan"
-                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-hidden focus:border-indigo-500 transition-colors"
+                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:border-indigo-500 transition-colors"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Corporate Email Address
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="executive@company.com"
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-hidden focus:border-indigo-500 transition-colors"
+                  className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:border-indigo-500 transition-colors"
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-[11px] font-semibold text-slate-300">
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                   Password
                 </label>
                 {authMode === 'login' && (
                   <button
                     type="button"
                     onClick={handleForgotPassword}
-                    className="text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+                    className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
                   >
                     Forgot password?
                   </button>
                 )}
               </div>
               <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-hidden focus:border-indigo-500 transition-colors"
+                  className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:border-indigo-500 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -401,145 +542,230 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 hover:scale-[1.01] active:scale-[0.99]"
+              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 hover:scale-[1.01] active:scale-[0.99]"
             >
-              <span>{loading ? 'Authenticating...' : authMode === 'login' ? 'Sign In to SYS Workspace' : 'Create SYS Account'}</span>
+              <span>
+                {loading
+                  ? 'Authenticating...'
+                  : authMode === 'login'
+                  ? 'Sign In to SYS Workspace'
+                  : 'Create SYS Account'}
+              </span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
 
-          {/* Instant Executive Demo (1-Click Tour) */}
-          <div className="pt-3 border-t border-slate-800/80">
+          {/* Instant 1-Click Executive Demo */}
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={handleDemoLogin}
               disabled={loading}
-              className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-850 border border-indigo-500/30 text-xs font-bold text-indigo-300 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm group hover:border-indigo-500/60"
+              className="w-full py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-950 hover:bg-slate-200 dark:hover:bg-slate-800 border border-indigo-500/30 text-xs font-bold text-indigo-600 dark:text-indigo-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs group hover:border-indigo-500/60"
             >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400 group-hover:rotate-12 transition-transform" />
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500 group-hover:rotate-12 transition-transform" />
               <span>⚡ Instant 1-Click Executive Demo (Explore Without Sign-In)</span>
             </button>
           </div>
         </div>
 
         {/* Security & Tarasaka Trust Footer */}
-        <div className="pt-4 border-t border-slate-800/60 space-y-2">
-          <div className="flex items-center gap-2 text-[11px] text-slate-500">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80 space-y-1.5">
+          <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+            <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>256-bit AES Encryption • SOC-2 Compliant Architecture • Central SSO</span>
           </div>
-          <p className="text-[10px] text-slate-600">
+          <p className="text-[10px] text-slate-400 dark:text-slate-500">
             SYS Developed by Tarasaka. Operating across unified domains & dedicated tenant infrastructure.
           </p>
         </div>
       </div>
 
       {/* ============================================================== */}
-      {/* RIGHT COLUMN: Interactive Workflow, Facilities & Benefits       */}
+      {/* RIGHT COLUMN: 2D Animated Workflow, Facilities & Benefits       */}
       {/* ============================================================== */}
-      <div className="w-full lg:w-[55%] xl:w-[58%] p-6 sm:p-10 lg:p-12 xl:p-16 flex flex-col justify-between relative bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/40 overflow-y-auto">
-        {/* Ambient background effects */}
-        <div className="absolute top-1/4 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-10 left-10 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="w-full lg:w-[55%] xl:w-[58%] p-6 sm:p-10 lg:p-12 xl:p-16 flex flex-col justify-between relative bg-gradient-to-br from-indigo-50/70 via-slate-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/40 overflow-hidden">
+        {/* 2D Interactive Particle Canvas (60FPS Interactive Physics) */}
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 pointer-events-auto w-full h-full z-0 opacity-70"
+        />
+
+        {/* Floating 2D Live Micro-Cards for Visual Magnetism */}
+        <div className="hidden xl:block absolute top-8 right-8 z-10 animate-float-slow pointer-events-none">
+          <div className="px-3.5 py-2 rounded-2xl bg-white/95 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xl backdrop-blur-md flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs">
+              🛍️
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Storefront Live
+              </p>
+              <p className="text-xs font-bold text-slate-900 dark:text-white">
+                shop.tarasaka.com • $1,240 Today
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="hidden xl:block absolute bottom-12 right-12 z-10 animate-float-reverse pointer-events-none">
+          <div className="px-3.5 py-2 rounded-2xl bg-white/95 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xl backdrop-blur-md flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs">
+              ⚡
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Pipeline Automation
+              </p>
+              <p className="text-xs font-bold text-slate-900 dark:text-white">
+                +42 Deals Qualified • 98% Win Rate
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Hero Banner */}
         <div className="space-y-4 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-xs font-bold text-indigo-400">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 text-xs font-bold text-indigo-600 dark:text-indigo-400 shadow-2xs">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>The Autonomous All-in-One Enterprise Operating System</span>
+            <span>The Autonomous All-in-One Enterprise Platform</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black tracking-tight text-white leading-tight">
+          <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
             Build. Sell. Automate. Scale.
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-400 to-pink-400">
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-pink-600 dark:from-indigo-400 dark:via-violet-400 dark:to-pink-400">
               Without Leaving Your Workspace.
             </span>
           </h2>
 
-          <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
-            SYS developed by Tarasaka eliminates tool sprawl by consolidating your website builder, sales pipeline, social publishing, and AI strategic advisory into one unified, lightning-fast platform.
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
+            SYS developed by Tarasaka eliminates tool sprawl by consolidating your website builder, sales pipeline, social media command hub, and AI strategic advisory into one unified, lightning-fast platform.
           </p>
         </div>
 
-        {/* Interactive 4-Stage Workflow Selector */}
-        <div className="my-8 space-y-4 relative z-10">
+        {/* 2D Animated Workflow Visualizer & Interactive Pipeline Diagram */}
+        <div className="my-6 space-y-4 relative z-10">
+          {/* Header & Play/Pause controls */}
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-indigo-400" />
-              <span>How SYS Works • 4-Stage Operating Flow</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span>How SYS Works • 4-Stage Connected Workflow</span>
             </span>
-            <span className="text-[11px] text-indigo-400 font-semibold hidden sm:inline">
-              Click any stage to preview capabilities
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsAutoCycling(!isAutoCycling)}
+                className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                {isAutoCycling ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                <span>{isAutoCycling ? 'Auto-cycling' : 'Paused'}</span>
+              </button>
+            </div>
           </div>
 
-          {/* Workflow Stepper Pills */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {[
-              { id: 'build' as const, label: '1. Build & Store', icon: Globe },
-              { id: 'crm' as const, label: '2. CRM & Deals', icon: Users },
-              { id: 'social' as const, label: '3. Social Publish', icon: Share2 },
-              { id: 'analytics' as const, label: '4. AI Advisory', icon: Brain },
-            ].map((step) => {
-              const StepIcon = step.icon;
-              const isActive = activeWorkflow === step.id;
-              return (
-                <button
-                  key={step.id}
-                  type="button"
-                  onClick={() => setActiveWorkflow(step.id)}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1.5 relative overflow-hidden ${
-                    isActive
-                      ? 'bg-slate-900 border-indigo-500 shadow-lg shadow-indigo-500/20 ring-1 ring-indigo-500/50'
-                      : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {isActive && (
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-violet-500" />
-                  )}
-                  <StepIcon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-500'}`} />
-                  <span className={`text-xs font-bold ${isActive ? 'text-white' : 'text-slate-300'}`}>
-                    {step.label}
-                  </span>
-                </button>
-              );
-            })}
+          {/* 2D Animated Flow Diagram with Flowing SVG Energy Connectors */}
+          <div className="relative py-2">
+            {/* SVG Connecting Light Pulse Line */}
+            <svg
+              className="absolute top-1/2 left-0 w-full -translate-y-1/2 pointer-events-none hidden sm:block"
+              height="30"
+              style={{ overflow: 'visible' }}
+            >
+              <line
+                x1="12%"
+                y1="15"
+                x2="88%"
+                y2="15"
+                className="animate-dash-flow stroke-indigo-400 dark:stroke-indigo-500"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                opacity="0.75"
+              />
+            </svg>
+
+            {/* Stepper Pills (Clickable Nodes) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 relative z-10">
+              {[
+                { id: 'build' as const, label: '1. Build & Store', icon: Globe, color: '#3b82f6' },
+                { id: 'crm' as const, label: '2. CRM & Deals', icon: Users, color: '#10b981' },
+                { id: 'social' as const, label: '3. Social Publish', icon: Share2, color: '#f43f5e' },
+                { id: 'analytics' as const, label: '4. AI Advisory', icon: Brain, color: '#f59e0b' },
+              ].map((step) => {
+                const StepIcon = step.icon;
+                const isActive = activeWorkflow === step.id;
+                return (
+                  <button
+                    key={step.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveWorkflow(step.id);
+                      setIsAutoCycling(false);
+                    }}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1.5 relative overflow-hidden backdrop-blur-md ${
+                      isActive
+                        ? 'bg-white dark:bg-slate-900 border-indigo-500 shadow-lg shadow-indigo-500/15 ring-2 ring-indigo-500/30'
+                        : 'bg-white/70 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {isActive && (
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-violet-500" />
+                    )}
+                    <div className="flex items-center justify-between">
+                      <StepIcon
+                        className="w-4 h-4 transition-transform group-hover:scale-110"
+                        style={{ color: isActive ? step.color : undefined }}
+                      />
+                      {isActive && (
+                        <span className="w-2 h-2 rounded-full animate-ping" style={{ backgroundColor: step.color }} />
+                      )}
+                    </div>
+                    <span className={`text-xs font-bold ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`}>
+                      {step.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Selected Stage Spotlight Card */}
-          <div className={`p-6 sm:p-7 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-2xl relative overflow-hidden bg-gradient-to-b ${currentWorkflow.gradient}`}>
+          {/* Selected Stage Spotlight Card with 2D Glass Styling */}
+          <div
+            className={`p-6 sm:p-7 rounded-3xl bg-white/95 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xl relative overflow-hidden bg-gradient-to-b ${currentWorkflow.gradient}`}
+          >
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div className="space-y-1.5">
-                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold tracking-wider uppercase text-white/90">
+                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-white/10 text-[10px] font-bold tracking-wider uppercase text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-white/10">
                   <CurrentIcon className="w-3 h-3" />
-                  <span>{currentWorkflow.badge}</span>
+                  <span>Stage {currentWorkflow.stepNum} • {currentWorkflow.badge}</span>
                 </div>
-                <h3 className="text-lg sm:text-xl font-bold text-white">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
                   {currentWorkflow.title}
                 </h3>
-                <p className="text-xs font-medium text-indigo-300">
+                <p className="text-xs font-medium text-indigo-600 dark:text-indigo-300">
                   {currentWorkflow.highlight}
                 </p>
               </div>
 
-              <div className="px-3.5 py-2 rounded-xl bg-slate-950/80 border border-white/10 text-right shrink-0">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">ROI Impact</span>
-                <span className="text-xs font-extrabold text-emerald-400 flex items-center gap-1 justify-end">
+              <div className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 text-right shrink-0">
+                <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">
+                  ROI Impact
+                </span>
+                <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 justify-end">
                   <TrendingUp className="w-3.5 h-3.5" />
                   {currentWorkflow.metrics}
                 </span>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 mt-3 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-3 leading-relaxed">
               {currentWorkflow.description}
             </p>
 
             {/* Facilities List for Current Stage */}
-            <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="mt-4 pt-4 border-t border-slate-200/80 dark:border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {currentWorkflow.facilities.map((fac, idx) => (
-                <div key={idx} className="flex items-start gap-2 text-xs text-slate-300">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                <div key={idx} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
                   <span>{fac}</span>
                 </div>
               ))}
@@ -550,73 +776,73 @@ export const LoginPage: React.FC = () => {
         {/* 4 Core Facilities Grid */}
         <div className="space-y-3 relative z-10">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
               Full Suite Facility Breakdown
             </span>
             <span className="text-[11px] text-slate-500">
-              One account connects all 4 engines
+              One account connects all 4 engines seamlessly
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-blue-500/40 transition-colors group">
+            <div className="p-4 rounded-2xl bg-white/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-blue-500/40 transition-colors shadow-2xs group cursor-pointer" onClick={() => setActiveWorkflow('build')}>
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                   <Globe className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     AI Website & Store Builder
                   </h4>
-                  <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
                     Prompt-to-site generation with live subdomains & WhatsApp checkout.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/40 transition-colors group">
+            <div className="p-4 rounded-2xl bg-white/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/40 transition-colors shadow-2xs group cursor-pointer" onClick={() => setActiveWorkflow('crm')}>
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                   <Users className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                     Enterprise Pipeline CRM
                   </h4>
-                  <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
                     Visual Kanban pipeline, deal scoring, notes & omnichannel contact tracking.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-rose-500/40 transition-colors group">
+            <div className="p-4 rounded-2xl bg-white/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-rose-500/40 transition-colors shadow-2xs group cursor-pointer" onClick={() => setActiveWorkflow('social')}>
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-400 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
                   <Share2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white group-hover:text-rose-400 transition-colors">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
                     Mediamation Social Hub
                   </h4>
-                  <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
                     Pinterest, Meta & LinkedIn multi-queue scheduler with AI captions.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-amber-500/40 transition-colors group">
+            <div className="p-4 rounded-2xl bg-white/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-amber-500/40 transition-colors shadow-2xs group cursor-pointer" onClick={() => setActiveWorkflow('analytics')}>
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                   <Brain className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                     STRATIQ Business Advisory
                   </h4>
-                  <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
                     Autonomous SWOT audits, financial forecast models & 7-day profit roadmaps.
                   </p>
                 </div>
@@ -626,15 +852,15 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* Benefits & Value Retention Footnote */}
-        <div className="pt-6 mt-6 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
+        <div className="pt-6 mt-6 border-t border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400 relative z-10">
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1 font-semibold text-slate-300">
-              <Zap className="w-3.5 h-3.5 text-indigo-400" />
-              Replaces 5+ Subscriptions
+            <span className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300">
+              <Zap className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              Replaces 5+ SaaS Subscriptions
             </span>
             <span>•</span>
-            <span className="flex items-center gap-1 font-semibold text-slate-300">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
               99.9% Cloud Uptime
             </span>
           </div>
@@ -643,7 +869,7 @@ export const LoginPage: React.FC = () => {
             href="https://tarasaka.com"
             target="_blank"
             rel="noreferrer"
-            className="text-indigo-400 hover:text-indigo-300 font-semibold inline-flex items-center gap-1 transition-colors"
+            className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-semibold inline-flex items-center gap-1 transition-colors"
           >
             <span>Learn more about Tarasaka ecosystem</span>
             <ArrowUpRight className="w-3.5 h-3.5" />

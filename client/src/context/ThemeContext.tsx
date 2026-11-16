@@ -15,7 +15,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('nexus_theme') as Theme;
       if (saved === 'dark' || saved === 'light') return saved;
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      return 'light'; // Default platform theme is Light mode
     } catch {
       return 'light';
     }

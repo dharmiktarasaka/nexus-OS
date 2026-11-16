@@ -5,10 +5,10 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234F46E5'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SYS • Developed by Tarasaka | Autonomous Enterprise Platform</title>
-    <!-- Prevent theme flash script -->
+    <!-- Prevent theme flash script: Default is Light Mode -->
     <script>
       try {
-        const theme = localStorage.getItem('nexus_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        const theme = localStorage.getItem('nexus_theme') || 'light';
         if (theme === 'dark') {
           document.documentElement.classList.add('dark');
         } else {
