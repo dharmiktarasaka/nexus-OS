@@ -311,44 +311,29 @@ export const LoginPage: React.FC = () => {
           className="absolute inset-0 pointer-events-auto w-full h-full z-0 opacity-70"
         />
 
-        {/* Floating 2D Live Micro-Cards for Visual Magnetism */}
-        <div className="hidden xl:block absolute top-8 right-8 z-10 animate-float-slow pointer-events-none">
-          <div className="px-3.5 py-2 rounded-2xl bg-white/95 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xl backdrop-blur-md flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs">
-              🛍️
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Storefront Live
-              </p>
-              <p className="text-xs font-bold text-slate-900 dark:text-white">
-                shop.tarasaka.com • $1,240 Today
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="hidden xl:block absolute bottom-12 right-12 z-10 animate-float-reverse pointer-events-none">
-          <div className="px-3.5 py-2 rounded-2xl bg-white/95 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xl backdrop-blur-md flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs">
-              ⚡
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Pipeline Automation
-              </p>
-              <p className="text-xs font-bold text-slate-900 dark:text-white">
-                +42 Deals Qualified • 98% Win Rate
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Hero Banner */}
+        {/* Hero Banner with Live Telemetry Badges */}
         <div className="space-y-4 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 text-xs font-bold text-indigo-600 dark:text-indigo-400 shadow-2xs">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>The Autonomous All-in-One Enterprise Platform</span>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 text-xs font-bold text-indigo-600 dark:text-indigo-400 shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>The Autonomous All-in-One Enterprise Platform</span>
+            </div>
+
+            {/* Live Ecosystem Telemetry Pills */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-2xs backdrop-blur-md">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                  Storefront: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">$1,240 Today</span>
+                </span>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-2xs backdrop-blur-md">
+                <span className="text-xs">⚡</span>
+                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                  Pipeline: <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">+42 Deals (98% Win)</span>
+                </span>
+              </div>
+            </div>
           </div>
 
           <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
