@@ -5,6 +5,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
+  initCountdownTimer();
   initMockupTabs();
   initCalculator();
   initFaqAccordion();
@@ -229,4 +230,58 @@ function initLiveTicker() {
     count += Math.floor(Math.random() * 4) + 1;
     counter.textContent = count.toLocaleString();
   }, 2400);
+}
+
+/* ==============================================================================
+   8. 24-Hour Special Launch Countdown Timer
+   ============================================================================== */
+function initCountdownTimer() {
+  const timerDisplays = document.querySelectorAll('.countdown-timer-display');
+  if (!timerDisplays.length) return;
+
+  const storageKey = 'sys_launch_countdown_target';
+  let targetTime = parseInt(localStorage.getItem(storageKey), 10);
+
+  // If no stored target or stored target is in the past, seed with 23h 48m 12s from now
+  const now = Date.now();
+  if (!targetTime || targetTime <= now) {
+    targetTime = now + (23 * 3600 + 48 * 60 + 12) * 1000;
+    try {
+      localStorage.setItem(storageKey, targetTime.toString());
+    } catch (e) {
+      // LocalStorage might be disabled in private mode
+    }
+  }
+
+  function renderTimer() {
+    const current = Date.now();
+    let diff = Math.max(0, targetTime - current);
+
+    // If timer reaches 0, roll over to a 45-minute urgent final grace period
+    if (diff <= 0) {
+      targetTime = current + 45 * 60 * 1000;
+      try {
+        localStorage.setItem(storageKey, targetTime.toString());
+      } catch (e) {}
+      diff = 45 * 60 * 1000;
+    }
+
+    const totalSeconds = Math.floor(diff / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const formatted = [
+      hours.toString().padStart(2, '0'),
+      minutes.toString().padStart(2, '0'),
+      seconds.toString().padStart(2, '0')
+    ].join(':');
+
+    timerDisplays.forEach(el => {
+      el.textContent = formatted;
+    });
+  }
+
+  renderTimer();
+  setInterval(renderTimer, 1000);
 }
