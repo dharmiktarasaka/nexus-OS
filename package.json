@@ -17,6 +17,8 @@
     "social:server": "node server/social/src/index.js",
     "analytics:server": "node server/analytics/dist/index.js",
     "client": "npm --prefix client run dev",
+    "landing": "npm --prefix landing-page run dev",
+    "landing:dev": "npm --prefix landing-page run dev",
     "admin": "npm --prefix admin run dev",
     "admin:preview": "npm --prefix admin run preview",
     "build": "npm --prefix client run build",

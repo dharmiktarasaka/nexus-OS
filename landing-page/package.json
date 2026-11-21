@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "description": "SYS by Tarasaka - Autonomous Business Operating System Landing Page & SEO/AEO Hub",
   "main": "index.html",
+  "type": "module",
   "scripts": {
-    "start": "npx serve . -p 3000",
-    "preview": "npx serve ."
+    "dev": "node serve.js",
+    "start": "node serve.js",
+    "serve": "node serve.js",
+    "preview": "node serve.js",
+    "build": "echo 'Static landing page is ready in landing-page/'"
   },
   "keywords": [
     "landing-page",
