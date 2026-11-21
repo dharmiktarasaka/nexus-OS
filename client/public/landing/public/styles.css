@@ -1268,14 +1268,26 @@ h1, h2, h3, h4 {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  flex-wrap: wrap;
 }
 
-.urgent-top-left {
+.urgent-top-info {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.urgent-pills-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.urgent-top-text {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 .urgent-pill {
@@ -1311,7 +1323,21 @@ h1, h2, h3, h4 {
 .urgent-top-actions {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.urgent-scarcity-tag {
+  font-size: 0.82rem;
+  opacity: 0.95;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.urgent-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-urgent-claim {
@@ -1554,32 +1580,93 @@ h1, h2, h3, h4 {
 @media (max-width: 768px) {
   /* 24-Hour Urgent Top Banner */
   .urgent-top-bar {
-    padding: 0.75rem 0.9rem;
-    font-size: 0.8rem;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.78rem;
     text-align: center;
   }
   .urgent-top-container {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 0.55rem;
+    gap: 0.4rem;
+    width: 100%;
   }
-  .urgent-top-left {
+  .urgent-top-info {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 0.45rem;
+    gap: 0.35rem;
+    width: 100%;
+  }
+  .urgent-pills-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .urgent-pill {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.55rem;
+  }
+  .urgent-countdown-pill {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+  }
+  .urgent-top-text {
+    font-size: 0.78rem;
+    line-height: 1.35;
+    margin: 0;
+    text-align: center;
+    max-width: 340px;
+    opacity: 0.95;
   }
   .urgent-top-actions {
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+  }
+  .urgent-scarcity-tag {
+    font-size: 0.75rem;
+    opacity: 0.92;
+    font-weight: 700;
+  }
+  .urgent-btn-group {
+    display: flex;
+    align-items: center;
     justify-content: center;
     gap: 0.5rem;
     width: 100%;
+    max-width: 340px;
   }
   .btn-urgent-claim,
   .btn-urgent-demo {
-    font-size: 0.76rem;
-    padding: 0.42rem 0.85rem;
+    flex: 1 1 0%;
+    min-width: 0;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 0.45rem 0.5rem;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+    border-radius: var(--radius-full);
+  }
+
+  /* Compact Sleek Mobile Navbar */
+  .nav-container {
+    height: 58px;
+  }
+  .logo-badge {
+    width: 32px;
+    height: 32px;
+  }
+  .brand-name {
+    font-size: 1.15rem;
+  }
+  .brand-desc {
+    font-size: 0.7rem;
   }
 
   /* Mockup Window Header & Swipeable Tab Bar */
@@ -1649,6 +1736,28 @@ h1, h2, h3, h4 {
 }
 
 @media (max-width: 640px) {
+  /* Hero Typography & Spacing */
+  .hero-section {
+    padding-top: 1.8rem;
+    padding-bottom: 2.5rem;
+  }
+  .hero-title {
+    font-size: clamp(1.85rem, 6.8vw, 2.35rem) !important;
+    line-height: 1.15;
+    margin-bottom: 0.9rem;
+  }
+  .hero-subtitle {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 1.4rem;
+  }
+  .section-title {
+    font-size: clamp(1.6rem, 5.5vw, 2rem) !important;
+  }
+  .section-subtitle {
+    font-size: 0.9rem;
+  }
+
   /* Hero Call-to-Actions */
   .hero-cta-group {
     flex-direction: column;
