@@ -1,7 +1,10 @@
 // Central API Service Client
+import { getBackendBaseUrl, warmupServer } from './apiConfig';
 
-const rawApiUrl = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
-const BASE_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
+export { warmupServer };
+
+const rawApiUrl = getBackendBaseUrl();
+const BASE_URL = rawApiUrl ? `${rawApiUrl}/api` : '/api';
 
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('auth_token') || localStorage.getItem('crm_token');
@@ -200,46 +203,45 @@ export const api = {
     return res.json();
   },
 
-  // Central Auth Bridge with automatic retry for server cold starts
-  async bridgeAuth(user: any, maxRetries = 2): Promise<{
+  // Central Auth Bridge with high-speed timeout & robust fallback
+  async bridgeAuth(user: any, timeoutMs = 6000): Promise<{
     success: boolean;
     token: string;
     user: any;
     tokens: { central: string; crm: string; stratiq: string };
   }> {
-    let lastError: any = null;
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        const res = await fetch(`${BASE_URL}/auth/bridge`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(user)
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          const err: any = new Error(data.message || 'Auth bridge synchronization failed');
-          err.status = data.status || (res.status === 403 ? 'PENDING' : 'ERROR');
-          err.data = data;
-          // Don't retry definite client status codes like 403 (pending approval) or 400
-          if (res.status === 403 || res.status === 400) {
-            throw err;
-          }
-          lastError = err;
-        } else {
-          return data;
-        }
-      } catch (err: any) {
-        if (err.status === 'PENDING' || err.status === 'REJECTED') {
-          throw err;
-        }
-        lastError = err;
-        if (attempt < maxRetries) {
-          // Wait 2 seconds before retry to accommodate Render cold start
-          await new Promise(r => setTimeout(r, 2000));
-        }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const res = await fetch(`${BASE_URL}/auth/bridge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user),
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+
+      const data = await res.json();
+      if (!res.ok) {
+        const err: any = new Error(data.message || 'Auth bridge synchronization failed');
+        err.status = data.status || (res.status === 403 ? 'PENDING' : 'ERROR');
+        err.data = data;
+        throw err;
       }
+      return data;
+    } catch (err: any) {
+      clearTimeout(timer);
+      if (err.status === 'PENDING' || err.status === 'REJECTED') {
+        throw err;
+      }
+      if (err.name === 'AbortError') {
+        console.warn('[API] Auth bridge timed out waiting for server; activating client fallback session');
+      } else {
+        console.warn('[API] Auth bridge notice:', err.message);
+      }
+      throw err;
     }
-    throw lastError || new Error('Auth bridge synchronization failed');
   },
 
   // Check User Access Request Status

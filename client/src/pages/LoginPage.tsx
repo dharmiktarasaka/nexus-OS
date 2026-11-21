@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { warmupServer } from '../services/apiConfig';
 
 type AuthMode = 'login' | 'register';
 type WorkflowStep = 'build' | 'crm' | 'social' | 'analytics';
@@ -52,6 +53,11 @@ export const LoginPage: React.FC = () => {
 
   // Canvas ref for 2D animated interactive particles
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Pre-warm the deployed backend on Render so authentication responds instantaneously
+  useEffect(() => {
+    warmupServer();
+  }, []);
 
   // -------------------------------------------------------------
   // 2D ANIMATED PARTICLE NETWORK ENGINE (HTML5 Canvas)

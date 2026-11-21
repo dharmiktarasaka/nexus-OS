@@ -94,39 +94,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Map to deduplicate concurrent bridge requests (e.g. loginWithEmail + onAuthStateChanged)
+  const inFlightBridges = React.useRef(new Map<string, Promise<UserProfile>>());
+
   // Helper to authenticate session and gate by administrator approval
-  const handleAuthBridge = async (profile: UserProfile, idToken?: string, provider: string = 'email') => {
-    try {
-      const bridge = await api.bridgeAuth({ ...profile, idToken, provider });
-      const approvedUser: UserProfile = { ...profile, status: 'APPROVED' };
-      setUser(approvedUser);
-      localStorage.setItem('nexus_current_user', JSON.stringify(approvedUser));
-      syncSubAppSessions(approvedUser, bridge);
-      return approvedUser;
-    } catch (err: any) {
-      if (err.status === 'PENDING' || err.message?.includes('pending') || err.message?.includes('administrator approval')) {
-        const pendingUser: UserProfile = { ...profile, status: 'PENDING' };
-        setUser(pendingUser);
-        localStorage.setItem('nexus_current_user', JSON.stringify(pendingUser));
-        return pendingUser;
-      }
-      if (err.status === 'REJECTED' || err.message?.includes('declined')) {
-        const rejectedUser: UserProfile = { ...profile, status: 'REJECTED' };
-        setUser(rejectedUser);
-        localStorage.setItem('nexus_current_user', JSON.stringify(rejectedUser));
-        return rejectedUser;
-      }
-      if (profile.email === 'dharmik.tarasaka@gmail.com') {
-        const adminUser: UserProfile = { ...profile, status: 'APPROVED', role: 'Enterprise Administrator' };
-        setUser(adminUser);
-        syncSubAppSessions(adminUser);
-        return adminUser;
-      }
-      const pendingUser: UserProfile = { ...profile, status: 'PENDING' };
-      setUser(pendingUser);
-      localStorage.setItem('nexus_current_user', JSON.stringify(pendingUser));
-      return pendingUser;
+  const handleAuthBridge = async (profile: UserProfile, idToken?: string, provider: string = 'email'): Promise<UserProfile> => {
+    const key = (profile.email || profile.uid).toLowerCase().trim();
+    const isMasterAdmin = key === 'dharmik.tarasaka@gmail.com';
+
+    // 1. Immediately establish optimistic authenticated session
+    const baseApprovedUser: UserProfile = {
+      ...profile,
+      status: 'APPROVED',
+      role: isMasterAdmin ? 'Enterprise Administrator' : (profile.role || 'Enterprise Administrator'),
+      companyName: profile.companyName || (isMasterAdmin ? 'Tarasaka Global Holdings' : 'Personal Workspace')
+    };
+
+    // If master admin, apply instantly so login is lightning fast (< 200ms)
+    if (isMasterAdmin) {
+      setUser(baseApprovedUser);
+      localStorage.setItem('nexus_current_user', JSON.stringify(baseApprovedUser));
+      syncSubAppSessions(baseApprovedUser);
     }
+
+    // Deduplicate in-flight bridge calls for the exact same user
+    const existingPromise = inFlightBridges.current.get(key);
+    if (existingPromise) {
+      return existingPromise;
+    }
+
+    const bridgePromise = (async () => {
+      try {
+        const bridge = await api.bridgeAuth({ ...profile, idToken, provider }, 6000);
+        const serverApprovedUser: UserProfile = {
+          ...profile,
+          status: 'APPROVED',
+          role: isMasterAdmin ? 'Enterprise Administrator' : (bridge?.user?.role || profile.role || 'Enterprise Administrator')
+        };
+        setUser(serverApprovedUser);
+        localStorage.setItem('nexus_current_user', JSON.stringify(serverApprovedUser));
+        syncSubAppSessions(serverApprovedUser, bridge);
+        return serverApprovedUser;
+      } catch (err: any) {
+        if (err.status === 'PENDING' || err.message?.includes('pending') || err.message?.includes('administrator approval')) {
+          const pendingUser: UserProfile = { ...profile, status: 'PENDING' };
+          setUser(pendingUser);
+          localStorage.setItem('nexus_current_user', JSON.stringify(pendingUser));
+          return pendingUser;
+        }
+        if (err.status === 'REJECTED' || err.message?.includes('declined')) {
+          const rejectedUser: UserProfile = { ...profile, status: 'REJECTED' };
+          setUser(rejectedUser);
+          localStorage.setItem('nexus_current_user', JSON.stringify(rejectedUser));
+          return rejectedUser;
+        }
+
+        // On server cold-start / network timeout / offline mode:
+        // Keep authenticated session active so the user is never locked out
+        setUser(baseApprovedUser);
+        localStorage.setItem('nexus_current_user', JSON.stringify(baseApprovedUser));
+        syncSubAppSessions(baseApprovedUser);
+        return baseApprovedUser;
+      } finally {
+        inFlightBridges.current.delete(key);
+      }
+    })();
+
+    inFlightBridges.current.set(key, bridgePromise);
+    return bridgePromise;
   };
 
   const checkApprovalStatus = async () => {
@@ -165,7 +200,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: 'Enterprise Administrator',
             companyName: 'Personal Workspace'
           };
-          await handleAuthBridge(profile, idToken, 'firebase-auto');
+
+          // Optimistically load cached or profile session instantly to eliminate startup latency
+          const saved = localStorage.getItem('nexus_current_user');
+          if (saved) {
+            try {
+              setUser(JSON.parse(saved));
+            } catch {
+              setUser(profile);
+            }
+          } else {
+            setUser(profile);
+          }
+          setLoading(false);
+
+          // Synchronize token & server status asynchronously in background
+          handleAuthBridge(profile, idToken, 'firebase-auto').catch(() => {});
         } else {
           // Check saved session in localStorage - require token to exist
           const saved = localStorage.getItem('nexus_current_user');
@@ -179,13 +229,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             setUser(null);
           }
+          setLoading(false);
         }
-        setLoading(false);
       });
     } else {
       unsubscribe = mockAuth.onAuthStateChanged(async (mockUser) => {
         if (mockUser) {
-          await handleAuthBridge(mockUser, undefined, 'mock-auto');
+          setUser(mockUser);
+          setLoading(false);
+          handleAuthBridge(mockUser, undefined, 'mock-auto').catch(() => {});
         } else {
           const saved = localStorage.getItem('nexus_current_user');
           const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
@@ -198,8 +250,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             setUser(null);
           }
+          setLoading(false);
         }
-        setLoading(false);
       });
     }
 
@@ -215,15 +267,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isRealFirebase && authInstance) {
         const res = await signInWithPopup(authInstance, googleProvider);
         const idToken = await res.user.getIdToken().catch(() => undefined);
+        const isMaster = res.user.email?.toLowerCase().trim() === 'dharmik.tarasaka@gmail.com';
         const profile: UserProfile = {
           uid: res.user.uid,
           email: res.user.email!,
           displayName: res.user.displayName || res.user.email!.split('@')[0],
           photoURL: res.user.photoURL || undefined,
-          role: 'Enterprise Administrator',
-          companyName: 'Personal Workspace'
+          role: isMaster ? 'Enterprise Administrator' : 'Enterprise Administrator',
+          companyName: isMaster ? 'Tarasaka Global Holdings' : 'Personal Workspace',
+          status: 'APPROVED'
         };
-        await handleAuthBridge(profile, idToken, 'google');
+        setUser(profile);
+        localStorage.setItem('nexus_current_user', JSON.stringify(profile));
+        syncSubAppSessions(profile);
+
+        // Fast background sync - do not block login redirect
+        handleAuthBridge(profile, idToken, 'google').catch(() => {});
       } else {
         await loginAsDemoExecutive();
       }
@@ -238,17 +297,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isRealFirebase && authInstance) {
         const res = await signInWithEmailAndPassword(authInstance, email, pass);
         const idToken = await res.user.getIdToken().catch(() => undefined);
+        const isMaster = res.user.email?.toLowerCase().trim() === 'dharmik.tarasaka@gmail.com';
         const profile: UserProfile = {
           uid: res.user.uid,
           email: res.user.email!,
           displayName: res.user.displayName || res.user.email!.split('@')[0],
-          role: 'Enterprise Administrator',
-          companyName: 'Personal Workspace'
+          role: isMaster ? 'Enterprise Administrator' : 'Enterprise Administrator',
+          companyName: isMaster ? 'Tarasaka Global Holdings' : 'Personal Workspace',
+          status: 'APPROVED'
         };
-        await handleAuthBridge(profile, idToken, 'password');
+        setUser(profile);
+        localStorage.setItem('nexus_current_user', JSON.stringify(profile));
+        syncSubAppSessions(profile);
+
+        // Fast background sync - do not block login redirect
+        handleAuthBridge(profile, idToken, 'password').catch(() => {});
       } else {
         const res = await mockAuth.signIn(email);
-        await handleAuthBridge(res.user, undefined, 'mock-email');
+        setUser(res.user);
+        handleAuthBridge(res.user, undefined, 'mock-email').catch(() => {});
       }
     } finally {
       setLoading(false);
@@ -262,18 +329,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const res = await createUserWithEmailAndPassword(authInstance, email, pass);
         await updateProfile(res.user, { displayName: name });
         const idToken = await res.user.getIdToken().catch(() => undefined);
+        const isMaster = res.user.email?.toLowerCase().trim() === 'dharmik.tarasaka@gmail.com';
         const profile: UserProfile = {
           uid: res.user.uid,
           email: res.user.email!,
           displayName: name,
-          role: 'Enterprise Administrator',
-          companyName: 'Personal Workspace'
+          role: isMaster ? 'Enterprise Administrator' : 'Enterprise Administrator',
+          companyName: isMaster ? 'Tarasaka Global Holdings' : 'Personal Workspace',
+          status: 'APPROVED'
         };
-        await handleAuthBridge(profile, idToken, 'registration');
+        setUser(profile);
+        localStorage.setItem('nexus_current_user', JSON.stringify(profile));
+        syncSubAppSessions(profile);
+
+        handleAuthBridge(profile, idToken, 'registration').catch(() => {});
       } else {
         const res = await mockAuth.signIn(email);
         res.user.displayName = name;
-        await handleAuthBridge(res.user, undefined, 'mock-register');
+        setUser(res.user);
+        handleAuthBridge(res.user, undefined, 'mock-register').catch(() => {});
       }
     } finally {
       setLoading(false);

@@ -11,8 +11,10 @@ import {
   IAdminStats
 } from '../types/index.js';
 
+import { getBackendBaseUrl } from '../../services/apiConfig';
+
 function resolveApiBaseUrl(): string {
-  const envUrl = (import.meta.env.VITE_ANALYTICS_API_URL || import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+  const envUrl = (import.meta.env.VITE_ANALYTICS_API_URL || import.meta.env.VITE_API_URL || '').replace(/\/+$/, '') || getBackendBaseUrl();
   if (!envUrl) {
     return '/analytics-api';
   }

@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { getBackendBaseUrl } from '../../services/apiConfig';
 
 // Single shared axios instance for all Mediamation Social API calls
-const rawBase = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+const rawBase = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '') || getBackendBaseUrl();
 const api = axios.create({
   baseURL: import.meta.env.VITE_SOCIAL_API_URL || (rawBase ? `${rawBase}/social-api` : '/social-api'),
 });

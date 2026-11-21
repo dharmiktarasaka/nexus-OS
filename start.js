@@ -208,9 +208,9 @@ const gateway = http.createServer((req, res) => {
     return res.end();
   }
 
-  // Root / Health Check
+  // Root / Health Check (Instant 0ms gateway response for fast Render pre-warming)
   const urlPath = req.url || '/';
-  if (urlPath === '/' || urlPath === '/health' || urlPath === '/ping') {
+  if (urlPath === '/' || urlPath === '/health' || urlPath === '/ping' || urlPath === '/api/health' || urlPath === '/api/ping') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
       success: true,

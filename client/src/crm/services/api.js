@@ -1,12 +1,9 @@
 import axios from 'axios';
+import { getBackendBaseUrl } from '../../services/apiConfig';
 
-// In production, VITE_CRM_API_URL or VITE_API_URL can point to production backend.
-// In development, we route through '/crm-api' which Vite proxies to http://localhost:5001/api.
-// Benefits:
-// 1. Same-origin: completely eliminates CORS friction
-// 2. Vite intercepts server disconnects gracefully with HTTP 200 mock responses instead of net::ERR_CONNECTION_REFUSED
-// 3. Guaranteed 0 console errors when port 5001 is starting or offline
-const rawBaseUrl = import.meta.env.VITE_CRM_API_URL || import.meta.env.VITE_API_URL || '/crm-api';
+const explicitUrl = (import.meta.env.VITE_CRM_API_URL || import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+const prodBase = getBackendBaseUrl();
+const rawBaseUrl = explicitUrl || (prodBase ? `${prodBase}/crm-api` : '/crm-api');
 const cleanBaseUrl = rawBaseUrl.replace(/\/+$/, '');
 const baseURL = (cleanBaseUrl.endsWith('/crm-api') || cleanBaseUrl.endsWith('/api'))
   ? cleanBaseUrl
