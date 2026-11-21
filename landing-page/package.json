@@ -1,0 +1,20 @@
+{
+  "name": "sys-landing-page",
+  "version": "1.0.0",
+  "description": "SYS by Tarasaka - Autonomous Business Operating System Landing Page & SEO/AEO Hub",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve . -p 3000",
+    "preview": "npx serve ."
+  },
+  "keywords": [
+    "landing-page",
+    "seo",
+    "aeo",
+    "sys",
+    "tarasaka",
+    "business-operating-system"
+  ],
+  "author": "Tarasaka Digital Solutions",
+  "license": "UNLICENSED"
+}
