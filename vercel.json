@@ -1,11 +1,19 @@
 {
-  "buildCommand": "npm --prefix client run build",
+  "buildCommand": "node scripts/sync_landing.js && npm --prefix client run build",
   "outputDirectory": "client/dist",
+  "cleanUrls": true,
   "rewrites": [
+    {
+      "source": "/landing",
+      "destination": "/landing/index.html"
+    },
+    {
+      "source": "/landing/(.*)",
+      "destination": "/landing/$1"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
 }
-

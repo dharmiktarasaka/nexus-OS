@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: nexus-os-backend
+    env: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: MASTER_ADMIN_KEY
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: CENTRAL_MONGODB_URI
+        sync: false
+      - key: CRM_MONGODB_URI
+        sync: false
+      - key: WEBSITE_MONGODB_URI
+        sync: false
+      - key: ANALYTICS_MONGODB_URI
+        sync: false

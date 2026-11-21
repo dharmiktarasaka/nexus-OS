@@ -1,8 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { ObjectId } from 'mongodb';
+import mongoose from 'mongoose';
 import { dbConnections, connectionStatus } from '../config/db.js';
+
+const ObjectId = mongoose.Types.ObjectId;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -21,7 +21,8 @@
     "landing:dev": "npm --prefix landing-page run dev",
     "admin": "npm --prefix admin run dev",
     "admin:preview": "npm --prefix admin run preview",
-    "build": "npm --prefix client run build",
+    "build": "node scripts/sync_landing.js && npm --prefix client run build",
+    "build:landing": "node scripts/sync_landing.js",
     "build:analytics": "npm --prefix server/analytics run build",
     "build:admin": "npm --prefix admin run build"
   }
