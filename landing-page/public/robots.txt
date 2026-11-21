@@ -1,0 +1,44 @@
+# ==============================================================================
+# SYS by Tarasaka - Robots.txt
+# Optimized for Web Crawlers & AI Answer Engines (AEO)
+# ==============================================================================
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /private/
+
+# Explicit permissions for Search & AI Answer Engines
+User-agent: Googlebot
+Allow: /
+
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://sys.tarasaka.com/sitemap.xml
