@@ -186,11 +186,90 @@ function initModal() {
   });
 
   if (demoForm) {
-    demoForm.addEventListener('submit', (e) => {
+    demoForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      const name = document.getElementById('demoFullName')?.value.trim() || '';
+      const email = document.getElementById('demoEmail')?.value.trim() || '';
+      const phone = document.getElementById('demoPhone')?.value.trim() || '';
+      const company = document.getElementById('demoCompany')?.value.trim() || '';
+      const notes = document.getElementById('demoNotes')?.value.trim() || '';
+      const submitBtn = document.getElementById('demoSubmitBtn');
+
+      if (!name || !email || !phone) {
+        alert('Please fill in your Name, Gmail ID / Email, and Contact Number.');
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span>Booking Demo Session...</span>`;
+      }
+
+      const payload = {
+        name,
+        email,
+        phone,
+        company,
+        notes,
+        source: 'landing-page'
+      };
+
+      // Determine backend endpoints with failover
+      const endpoints = [
+        '/api/admin/demo-booking',
+        'https://nexus-os-qg3c.onrender.com/api/admin/demo-booking',
+        'http://localhost:5050/api/admin/demo-booking'
+      ];
+
+      let booked = false;
+      for (const endpoint of endpoints) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          if (res.ok) {
+            booked = true;
+            break;
+          }
+        } catch (err) {
+          // Continue to next fallback
+        }
+      }
+
+      // Display success view
       demoForm.style.display = 'none';
-      if (formSuccess) formSuccess.style.display = 'block';
+      if (formSuccess) {
+        formSuccess.style.display = 'block';
+        const summaryBox = document.getElementById('demoSummaryBox');
+        if (summaryBox) {
+          summaryBox.innerHTML = `
+            <div style="margin-bottom: 0.35rem;"><strong>👤 Lead Name:</strong> ${escapeHtml(name)}</div>
+            <div style="margin-bottom: 0.35rem;"><strong>📧 Gmail / Email:</strong> ${escapeHtml(email)}</div>
+            <div style="margin-bottom: 0.35rem;"><strong>📱 Contact Number:</strong> ${escapeHtml(phone)}</div>
+            ${company ? `<div><strong>🏢 Company:</strong> ${escapeHtml(company)}</div>` : ''}
+          `;
+        }
+      }
     });
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>'"]/g, tag => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    }[tag] || tag));
   }
 }
 

@@ -9,6 +9,13 @@ import {
   getAccessStats,
   MASTER_ADMIN_EMAIL
 } from '../models/userAccessStorage.js';
+import {
+  createDemoBooking,
+  getAllDemoBookings,
+  updateDemoBookingStatus,
+  deleteDemoBooking,
+  getDemoBookingStats
+} from '../models/demoBookingStorage.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
@@ -282,6 +289,100 @@ router.delete('/requests/:id', authenticateAdmin, async (req, res) => {
     res.json({
       success: true,
       message: 'Access request record removed'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ==============================================================================
+// Demo Bookings Routes (Public Lead Ingestion & Protected Admin Review)
+// ==============================================================================
+
+// POST /api/admin/demo-booking - Public submission from Landing Page & Main App
+router.post('/demo-booking', async (req, res) => {
+  try {
+    const { name, email, phone, company, preferredDate, notes, source } = req.body || {};
+    const booking = await createDemoBooking({
+      name,
+      email,
+      phone,
+      company,
+      preferredDate,
+      notes,
+      source: source || 'main-website'
+    });
+    res.status(201).json({
+      success: true,
+      message: 'Demo booking request registered successfully! The executive team will reach out promptly.',
+      booking
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message || 'Failed to submit demo booking' });
+  }
+});
+
+// GET /api/admin/demo-bookings - List demo inquiries with status filter
+router.get('/demo-bookings', authenticateAdmin, async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = status && status !== 'ALL' ? status.toUpperCase() : null;
+    const bookings = await getAllDemoBookings(filter);
+    const counts = await getDemoBookingStats();
+
+    res.json({
+      success: true,
+      total: bookings.length,
+      counts,
+      bookings
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// PATCH /api/admin/demo-bookings/:id - Update status and/or admin notes
+router.patch('/demo-bookings/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNotes } = req.body || {};
+    const updated = await updateDemoBookingStatus(id, status, adminNotes);
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Demo booking record not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Demo booking updated successfully',
+      booking: updated
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/admin/demo-bookings/:id - Remove a demo booking
+router.delete('/demo-bookings/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await deleteDemoBooking(id);
+    res.json({
+      success: true,
+      message: 'Demo booking record removed'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/admin/demo-stats - Overview metrics for demo requests
+router.get('/demo-stats', authenticateAdmin, async (req, res) => {
+  try {
+    const stats = await getDemoBookingStats();
+    res.json({
+      success: true,
+      stats
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

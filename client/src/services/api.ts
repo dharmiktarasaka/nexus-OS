@@ -258,6 +258,32 @@ export const api = {
       body: JSON.stringify(payload)
     });
     return res.json();
+  },
+
+  // Submit Executive Live Demo Booking Request
+  async bookDemo(payload: {
+    name: string;
+    email: string;
+    phone: string;
+    company?: string;
+    preferredDate?: string;
+    notes?: string;
+    source?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    booking: any;
+  }> {
+    const res = await fetch(`${BASE_URL}/admin/demo-booking`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || 'Failed to submit demo booking');
+    }
+    return res.json();
   }
 };
 

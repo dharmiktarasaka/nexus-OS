@@ -24,11 +24,16 @@ import {
   Moon,
   Activity,
   Play,
-  Pause
+  Pause,
+  Video,
+  Phone,
+  Building,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { warmupServer } from '../services/apiConfig';
+import { api } from '../services/api';
 
 type AuthMode = 'login' | 'register';
 type WorkflowStep = 'build' | 'crm' | 'social' | 'analytics';
@@ -46,6 +51,42 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [resetSent, setResetSent] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Live Demo Booking Modal State
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+  const [demoName, setDemoName] = useState('');
+  const [demoEmail, setDemoEmail] = useState('');
+  const [demoPhone, setDemoPhone] = useState('');
+  const [demoCompany, setDemoCompany] = useState('');
+  const [demoNotes, setDemoNotes] = useState('');
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoSuccess, setDemoSuccess] = useState(false);
+  const [demoError, setDemoError] = useState('');
+
+  const handleDemoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!demoName.trim() || !demoEmail.trim() || !demoPhone.trim()) {
+      setDemoError('Please provide your Name, Gmail ID / Email, and Contact Number.');
+      return;
+    }
+    setDemoLoading(true);
+    setDemoError('');
+    try {
+      await api.bookDemo({
+        name: demoName.trim(),
+        email: demoEmail.trim(),
+        phone: demoPhone.trim(),
+        company: demoCompany.trim(),
+        notes: demoNotes.trim(),
+        source: 'main-website'
+      });
+      setDemoSuccess(true);
+    } catch (err: any) {
+      setDemoError(err.message || 'Failed to submit demo booking');
+    } finally {
+      setDemoLoading(false);
+    }
+  };
 
   const { loginWithEmail, loginWithGoogle, registerWithEmail, resetPassword } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -325,7 +366,7 @@ export const LoginPage: React.FC = () => {
               <span>The Autonomous All-in-One Enterprise Platform</span>
             </div>
 
-            {/* Live Ecosystem Telemetry Pills */}
+            {/* Live Ecosystem Telemetry Pills & Demo Button */}
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-2xs backdrop-blur-md">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -339,6 +380,18 @@ export const LoginPage: React.FC = () => {
                   Pipeline: <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">+42 Deals (98% Win)</span>
                 </span>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDemoModalOpen(true);
+                  setDemoSuccess(false);
+                  setDemoError('');
+                }}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-extrabold shadow-md shadow-indigo-600/20 cursor-pointer transition-all hover:scale-105 active:scale-95"
+              >
+                <Video className="w-3.5 h-3.5" />
+                <span>Book Live Demo</span>
+              </button>
             </div>
           </div>
 
@@ -654,6 +707,30 @@ export const LoginPage: React.FC = () => {
 
         {/* Form Body */}
         <div className="my-6 space-y-4">
+          {/* Quick Demo Invitation Card */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50/90 to-violet-50/90 dark:from-indigo-950/40 dark:to-violet-950/40 border border-indigo-200/90 dark:border-indigo-800/60 flex items-center justify-between gap-3 shadow-2xs">
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <span>Want a 1-on-1 Executive Walkthrough?</span>
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                Lock in your 15-minute live platform demonstration.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsDemoModalOpen(true);
+                setDemoSuccess(false);
+                setDemoError('');
+              }}
+              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs shrink-0 cursor-pointer transition-all shadow-sm shadow-indigo-600/25 hover:scale-105 active:scale-95"
+            >
+              Book Demo
+            </button>
+          </div>
+
           {/* Tab Switcher: Sign In vs Create Account */}
           <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
             <button
@@ -838,10 +915,158 @@ export const LoginPage: React.FC = () => {
             <span>256-bit AES Encryption • SOC-2 Compliant Architecture • Central SSO</span>
           </div>
           <p className="text-[10px] text-slate-400 dark:text-slate-500">
-            SYS Developed by Tarasaka. Operating across unified domains & dedicated tenant infrastructure.
+            SYS Developed by Tarasaka. Operating across unified domains &amp; dedicated tenant infrastructure.
           </p>
         </div>
       </div>
+
+      {/* ============================================================== */}
+      {/* Interactive 1-on-1 Live Demo Booking Modal                     */}
+      {/* ============================================================== */}
+      {isDemoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsDemoModalOpen(false)}
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {demoSuccess ? (
+              <div className="text-center py-4 space-y-4">
+                <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-500 border border-emerald-500/40 flex items-center justify-center mx-auto text-2xl font-bold shadow-lg shadow-emerald-500/20">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                    Demo Booking Confirmed!
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                    Thank you, <strong>{demoName}</strong>! Our executive onboarding leadership has received your request. We will reach you via WhatsApp / Call at <strong>{demoPhone}</strong> and email at <strong>{demoEmail}</strong> to confirm your calendar slot.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-left text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                  <div><strong>👤 Name:</strong> {demoName}</div>
+                  <div><strong>📧 Gmail / Email:</strong> {demoEmail}</div>
+                  <div><strong>📱 Contact:</strong> {demoPhone}</div>
+                  {demoCompany && <div><strong>🏢 Company:</strong> {demoCompany}</div>}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsDemoModalOpen(false)}
+                  className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-500/30 text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                    <Video className="w-3 h-3" />
+                    <span>Executive Strategy Walkthrough</span>
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                    Book an Executive SYS Demo
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Experience how SYS replaces 5+ SaaS tools and automates your business workflows live on a 15-minute call.
+                  </p>
+                </div>
+
+                {demoError && (
+                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-600 dark:text-rose-400 font-semibold">
+                    {demoError}
+                  </div>
+                )}
+
+                <form onSubmit={handleDemoSubmit} className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Your Full Name *
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        required
+                        value={demoName}
+                        onChange={(e) => setDemoName(e.target.value)}
+                        placeholder="e.g. Alex Morgan"
+                        className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:border-indigo-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Gmail ID / Corporate Email *
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="email"
+                        required
+                        value={demoEmail}
+                        onChange={(e) => setDemoEmail(e.target.value)}
+                        placeholder="alex@gmail.com or name@company.com"
+                        className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:border-indigo-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Contact Number (WhatsApp / Mobile) *
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="tel"
+                        required
+                        value={demoPhone}
+                        onChange={(e) => setDemoPhone(e.target.value)}
+                        placeholder="+1 (555) 019-2834 or +91 98765 43210"
+                        className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:border-indigo-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Company / Brand Name
+                    </label>
+                    <div className="relative">
+                      <Building className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={demoCompany}
+                        onChange={(e) => setDemoCompany(e.target.value)}
+                        placeholder="e.g. Apex Growth Solutions"
+                        className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:border-indigo-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={demoLoading}
+                    className="w-full py-2.5 px-4 mt-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 hover:scale-[1.01] active:scale-[0.99]"
+                  >
+                    <span>{demoLoading ? 'Submitting Request...' : 'Lock In Free 1-on-1 Live Demo'}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

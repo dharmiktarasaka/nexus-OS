@@ -16,7 +16,13 @@ import {
   Trash2,
   Mail,
   Calendar,
-  Globe
+  Globe,
+  Phone,
+  MessageSquare,
+  Building,
+  Video,
+  Check,
+  ArrowRight
 } from 'lucide-react';
 import { adminApi } from '../services/api';
 import { useAdminAuth } from '../context/AdminAuthContext';
@@ -24,9 +30,20 @@ import { useAdminAuth } from '../context/AdminAuthContext';
 export const AdminDashboardPage = () => {
   const { admin, logout } = useAdminAuth();
 
+  // Navigation View: 'REQUESTS' (User Access Control) | 'DEMOS' (Live Demo Bookings)
+  const [activeView, setActiveView] = useState('DEMOS'); // Default to DEMOS or user preference
+
+  // Access Requests State
   const [activeTab, setActiveTab] = useState('PENDING'); // PENDING, APPROVED, REJECTED, ALL
   const [requests, setRequests] = useState([]);
   const [counts, setCounts] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
+
+  // Demo Bookings State
+  const [demoActiveTab, setDemoActiveTab] = useState('NEW'); // NEW, CONTACTED, SCHEDULED, COMPLETED, ALL
+  const [demoBookings, setDemoBookings] = useState([]);
+  const [demoCounts, setDemoCounts] = useState({ total: 0, newCount: 0, contacted: 0, scheduled: 0, completed: 0 });
+  const [demoSearch, setDemoSearch] = useState('');
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
@@ -35,6 +52,7 @@ export const AdminDashboardPage = () => {
   const [autoRefreshCountdown, setAutoRefreshCountdown] = useState(5);
 
   const prevPendingCountRef = useRef(0);
+  const prevDemoCountRef = useRef(0);
 
   const showToast = (message, type = 'success') => {
     setToastMessage({ message, type });
@@ -44,21 +62,34 @@ export const AdminDashboardPage = () => {
   const loadData = async (isManual = false) => {
     if (isManual) setRefreshing(true);
     try {
-      const data = await adminApi.getRequests('ALL');
-      if (data.success) {
-        setRequests(data.requests || []);
-        if (data.counts) {
-          // Play visual cue if new pending request arrived
-          if (data.counts.pending > prevPendingCountRef.current && prevPendingCountRef.current !== 0) {
-            showToast(`🔔 New access request received!`, 'info');
+      // 1. Fetch User Access Requests
+      const reqData = await adminApi.getRequests('ALL').catch(() => ({ success: false }));
+      if (reqData.success) {
+        setRequests(reqData.requests || []);
+        if (reqData.counts) {
+          if (reqData.counts.pending > prevPendingCountRef.current && prevPendingCountRef.current !== 0) {
+            showToast(`🔔 New user access request received!`, 'info');
           }
-          prevPendingCountRef.current = data.counts.pending;
-          setCounts(data.counts);
+          prevPendingCountRef.current = reqData.counts.pending;
+          setCounts(reqData.counts);
+        }
+      }
+
+      // 2. Fetch Live Demo Bookings
+      const demoData = await adminApi.getDemoBookings('ALL').catch(() => ({ success: false }));
+      if (demoData.success) {
+        setDemoBookings(demoData.bookings || []);
+        if (demoData.counts) {
+          if (demoData.counts.newCount > prevDemoCountRef.current && prevDemoCountRef.current !== 0) {
+            showToast(`🔥 New Live Demo Booking inquiry arrived!`, 'info');
+          }
+          prevDemoCountRef.current = demoData.counts.newCount;
+          setDemoCounts(demoData.counts);
         }
       }
     } catch (err) {
       if (isManual) {
-        showToast(err.response?.data?.message || 'Failed to fetch access requests', 'error');
+        showToast(err.response?.data?.message || 'Failed to refresh data', 'error');
       }
     } finally {
       setLoading(false);
@@ -87,7 +118,9 @@ export const AdminDashboardPage = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Actions
+  // -------------------------------------------------------------
+  // Access Requests Actions
+  // -------------------------------------------------------------
   const handleApprove = async (id, email) => {
     setActionLoading(id);
     try {
@@ -105,7 +138,7 @@ export const AdminDashboardPage = () => {
 
   const handleReject = async (id, email) => {
     const reason = window.prompt(`Reason for rejecting access request for ${email} (optional):`, 'Access request declined by administrator');
-    if (reason === null) return; // User cancelled prompt
+    if (reason === null) return;
 
     setActionLoading(id);
     try {
@@ -159,6 +192,43 @@ export const AdminDashboardPage = () => {
     }
   };
 
+  // -------------------------------------------------------------
+  // Demo Bookings Actions
+  // -------------------------------------------------------------
+  const handleUpdateDemoStatus = async (id, newStatus, adminNotes = null) => {
+    setActionLoading(id);
+    try {
+      const res = await adminApi.updateDemoBooking(id, newStatus, adminNotes);
+      if (res.success) {
+        showToast(`✅ Demo lead updated to ${newStatus}!`, 'success');
+        loadData();
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to update demo lead', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteDemo = async (id, name) => {
+    if (!window.confirm(`Delete demo booking record for "${name}"?`)) {
+      return;
+    }
+
+    setActionLoading(id);
+    try {
+      const res = await adminApi.deleteDemoBooking(id);
+      if (res.success) {
+        showToast(`🗑️ Demo record for ${name} removed.`, 'info');
+        loadData();
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to delete demo record', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   // Filter requests
   const filteredRequests = requests.filter((req) => {
     const matchesTab = activeTab === 'ALL' ? true : req.status === activeTab;
@@ -166,6 +236,18 @@ export const AdminDashboardPage = () => {
     const matchesSearch = !query ||
       (req.email && req.email.toLowerCase().includes(query)) ||
       (req.displayName && req.displayName.toLowerCase().includes(query));
+    return matchesTab && matchesSearch;
+  });
+
+  // Filter demo bookings
+  const filteredDemos = demoBookings.filter((demo) => {
+    const matchesTab = demoActiveTab === 'ALL' ? true : demo.status === demoActiveTab;
+    const query = demoSearch.trim().toLowerCase();
+    const matchesSearch = !query ||
+      (demo.name && demo.name.toLowerCase().includes(query)) ||
+      (demo.email && demo.email.toLowerCase().includes(query)) ||
+      (demo.phone && demo.phone.toLowerCase().includes(query)) ||
+      (demo.company && demo.company.toLowerCase().includes(query));
     return matchesTab && matchesSearch;
   });
 
@@ -225,10 +307,10 @@ export const AdminDashboardPage = () => {
           <div>
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-sm sm:text-base tracking-tight text-white">
-                NEXUS OS
+                SYS PLATFORM ADMIN
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                Gatekeeper Control
+                Gatekeeper &amp; Inquiries
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
@@ -238,12 +320,51 @@ export const AdminDashboardPage = () => {
           </div>
         </div>
 
+        {/* Primary View Switcher Pills */}
+        <div className="hidden md:flex items-center gap-1 p-1 bg-slate-950 rounded-2xl border border-slate-800">
+          <button
+            type="button"
+            onClick={() => setActiveView('DEMOS')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeView === 'DEMOS'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Video className="w-3.5 h-3.5" />
+            <span>Live Demo Bookings</span>
+            {demoCounts.newCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 animate-pulse">
+                {demoCounts.newCount} New
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveView('REQUESTS')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeView === 'REQUESTS'
+                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>User Access Control</span>
+            {counts.pending > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 animate-pulse">
+                {counts.pending}
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Right side controls */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => loadData(true)}
             disabled={refreshing}
-            title="Refresh access requests immediately"
+            title="Refresh immediately"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer border border-slate-700"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
@@ -274,367 +395,835 @@ export const AdminDashboardPage = () => {
         </div>
       </header>
 
+      {/* Mobile View Switcher */}
+      <div className="md:hidden p-3 bg-slate-900 border-b border-slate-800 flex items-center justify-around gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveView('DEMOS')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold ${
+            activeView === 'DEMOS' ? 'bg-indigo-600 text-white' : 'text-slate-400 bg-slate-800'
+          }`}
+        >
+          <Video className="w-3.5 h-3.5" />
+          <span>Demo Bookings ({demoCounts.total})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveView('REQUESTS')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold ${
+            activeView === 'REQUESTS' ? 'bg-indigo-600 text-white' : 'text-slate-400 bg-slate-800'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>User Access ({counts.total})</span>
+        </button>
+      </div>
+
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-8 space-y-6">
-        {/* Banner Alert for Pending Requests */}
-        {counts.pending > 0 && (
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-amber-950/40 border border-amber-600/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5 animate-bounce" />
+
+        {/* ============================================================================== */}
+        {/* VIEW 1: LIVE DEMO BOOKINGS (Name, Gmail ID, Contact Number, Action Center)     */}
+        {/* ============================================================================== */}
+        {activeView === 'DEMOS' && (
+          <div className="space-y-6 animate-in fade-in">
+            {/* Banner Alert for New Demo Bookings */}
+            {demoCounts.newCount > 0 && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-indigo-950/40 border border-emerald-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
+                    <Video className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-emerald-300">
+                      {demoCounts.newCount} New Live Demo Booking Inquiry{demoCounts.newCount > 1 ? 's' : ''} Received!
+                    </h3>
+                    <p className="text-xs text-emerald-200/80">
+                      Prospects submitted their Name, Gmail ID, and Contact Number for a 1-on-1 walkthrough.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setDemoActiveTab('NEW')}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all self-start sm:self-auto cursor-pointer"
+                >
+                  Review New Leads
+                </button>
               </div>
-              <div>
-                <h3 className="text-sm font-extrabold text-amber-300">
-                  {counts.pending} User Access Request{counts.pending > 1 ? 's' : ''} Awaiting Approval
-                </h3>
-                <p className="text-xs text-amber-200/80">
-                  Users are currently held at the login screen until you accept them below.
-                </p>
+            )}
+
+            {/* 4 Demo KPI Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* 1. New Inquiries */}
+              <div
+                onClick={() => setDemoActiveTab('NEW')}
+                className={`p-5 rounded-2xl border transition-all cursor-pointer ${
+                  demoActiveTab === 'NEW'
+                    ? 'bg-amber-500/10 border-amber-500/50 shadow-lg shadow-amber-500/10'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">New Inquiries</span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-amber-400">{demoCounts.newCount}</span>
+                  <span className="text-[10px] text-amber-400/80 font-bold">Awaiting Call</span>
+                </div>
+              </div>
+
+              {/* 2. Contacted */}
+              <div
+                onClick={() => setDemoActiveTab('CONTACTED')}
+                className={`p-5 rounded-2xl border transition-all cursor-pointer ${
+                  demoActiveTab === 'CONTACTED'
+                    ? 'bg-blue-500/10 border-blue-500/50 shadow-lg shadow-blue-500/10'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">In Contact</span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                    <Phone className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-blue-400">{demoCounts.contacted}</span>
+                  <span className="text-[10px] text-blue-400/80 font-bold">Dialed / Messaged</span>
+                </div>
+              </div>
+
+              {/* 3. Scheduled */}
+              <div
+                onClick={() => setDemoActiveTab('SCHEDULED')}
+                className={`p-5 rounded-2xl border transition-all cursor-pointer ${
+                  demoActiveTab === 'SCHEDULED'
+                    ? 'bg-purple-500/10 border-purple-500/50 shadow-lg shadow-purple-500/10'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">Scheduled Demos</span>
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-purple-400">{demoCounts.scheduled}</span>
+                  <span className="text-[10px] text-purple-400/80 font-bold">Calendar Locked</span>
+                </div>
+              </div>
+
+              {/* 4. Total Inquiries */}
+              <div
+                onClick={() => setDemoActiveTab('ALL')}
+                className={`p-5 rounded-2xl border transition-all cursor-pointer ${
+                  demoActiveTab === 'ALL'
+                    ? 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">Total Demo Leads</span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                    <Video className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-emerald-400">{demoCounts.total}</span>
+                  <span className="text-[10px] text-emerald-400/80 font-bold">All Leads</span>
+                </div>
               </div>
             </div>
 
-            <button
-              onClick={() => setActiveTab('PENDING')}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all self-start sm:self-auto cursor-pointer"
-            >
-              Review Requests Now
-            </button>
+            {/* Filter Navigation Tabs and Search Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-900 rounded-2xl border border-slate-800 w-fit flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setDemoActiveTab('NEW')}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    demoActiveTab === 'NEW'
+                      ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>New Leads</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                    demoActiveTab === 'NEW' ? 'bg-slate-950 text-amber-400' : 'bg-slate-800 text-amber-400'
+                  }`}>
+                    {demoCounts.newCount}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDemoActiveTab('CONTACTED')}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    demoActiveTab === 'CONTACTED'
+                      ? 'bg-blue-500 text-white shadow-md font-extrabold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>Contacted</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                    demoActiveTab === 'CONTACTED' ? 'bg-slate-950 text-blue-400' : 'bg-slate-800 text-blue-400'
+                  }`}>
+                    {demoCounts.contacted}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDemoActiveTab('SCHEDULED')}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    demoActiveTab === 'SCHEDULED'
+                      ? 'bg-purple-600 text-white shadow-md font-extrabold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>Scheduled</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                    demoActiveTab === 'SCHEDULED' ? 'bg-slate-950 text-purple-300' : 'bg-slate-800 text-purple-300'
+                  }`}>
+                    {demoCounts.scheduled}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDemoActiveTab('COMPLETED')}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    demoActiveTab === 'COMPLETED'
+                      ? 'bg-emerald-600 text-white shadow-md font-extrabold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>Completed</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                    demoActiveTab === 'COMPLETED' ? 'bg-slate-950 text-emerald-400' : 'bg-slate-800 text-emerald-400'
+                  }`}>
+                    {demoCounts.completed}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDemoActiveTab('ALL')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    demoActiveTab === 'ALL'
+                      ? 'bg-indigo-600 text-white shadow-md font-extrabold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  All Inquiries ({demoCounts.total})
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative min-w-[260px] max-w-sm">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  value={demoSearch}
+                  onChange={(e) => setDemoSearch(e.target.value)}
+                  placeholder="Search name, Gmail ID, or phone..."
+                  className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Demo Bookings Table / Cards List */}
+            <div className="bg-slate-900/90 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+              {loading ? (
+                <div className="py-20 text-center space-y-3">
+                  <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin mx-auto" />
+                  <p className="text-xs text-slate-400">Loading demo booking leads...</p>
+                </div>
+              ) : filteredDemos.length === 0 ? (
+                <div className="py-16 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-800 text-slate-500 flex items-center justify-center mx-auto">
+                    <Video className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-300">
+                    {demoActiveTab === 'NEW'
+                      ? 'No New Demo Requests'
+                      : 'No Demo Bookings Match Filter'}
+                  </h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    When visitors submit the demo form on the Landing Page or Main Website, their Name, Gmail ID, and Contact Number will instantly appear here with 1-click WhatsApp and calling shortcuts.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-800/80">
+                  {filteredDemos.map((demo) => {
+                    const isItemLoading = actionLoading === demo._id;
+                    const isNew = demo.status === 'NEW';
+                    const isContacted = demo.status === 'CONTACTED';
+                    const isScheduled = demo.status === 'SCHEDULED';
+                    const isCompleted = demo.status === 'COMPLETED';
+
+                    // Clean phone for WhatsApp URL
+                    const cleanPhone = (demo.phone || '').replace(/[^0-9]/g, '');
+                    const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hi ${demo.name}, thank you for requesting an executive demo of SYS platform by Tarasaka! We would love to walk you through our platform.`)}` : null;
+
+                    return (
+                      <div
+                        key={demo._id}
+                        className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-800/40 transition-colors"
+                      >
+                        {/* Left: Lead Details */}
+                        <div className="flex items-start gap-4 min-w-0">
+                          {/* Avatar letter */}
+                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 border border-indigo-400/30 flex items-center justify-center text-base font-black text-white shrink-0 shadow-md">
+                            {(demo.name || 'D').charAt(0).toUpperCase()}
+                          </div>
+
+                          <div className="min-w-0 space-y-1.5">
+                            <div className="flex items-center gap-2.5 flex-wrap">
+                              <h4 className="text-sm font-black text-white truncate">
+                                {demo.name || 'Anonymous User'}
+                              </h4>
+
+                              {/* Status Badge */}
+                              {isNew && (
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5 shadow-sm">
+                                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                                  New Inquiry
+                                </span>
+                              )}
+
+                              {isContacted && (
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                                  <Phone className="w-3 h-3 text-blue-400" />
+                                  Contacted
+                                </span>
+                              )}
+
+                              {isScheduled && (
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                                  <Calendar className="w-3 h-3 text-purple-400" />
+                                  Demo Scheduled
+                                </span>
+                              )}
+
+                              {isCompleted && (
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                  Demo Completed
+                                </span>
+                              )}
+
+                              {/* Source Badge */}
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-800 text-indigo-300 border border-indigo-500/30">
+                                Source: {demo.source === 'landing-page' ? 'Landing Page' : 'Main Website'}
+                              </span>
+                            </div>
+
+                            {/* Contact Details (Gmail ID & Phone Number) */}
+                            <div className="flex items-center gap-4 text-xs text-slate-300 flex-wrap">
+                              {/* Gmail ID */}
+                              <div className="flex items-center gap-1.5 font-semibold text-slate-200">
+                                <Mail className="w-3.5 h-3.5 text-indigo-400" />
+                                <a href={`mailto:${demo.email}`} className="hover:underline hover:text-indigo-400">
+                                  {demo.email}
+                                </a>
+                              </div>
+
+                              <span className="text-slate-600">•</span>
+
+                              {/* Contact Number */}
+                              <div className="flex items-center gap-1.5 font-bold text-emerald-400">
+                                <Phone className="w-3.5 h-3.5" />
+                                <a href={`tel:${demo.phone}`} className="hover:underline">
+                                  {demo.phone}
+                                </a>
+                              </div>
+
+                              {demo.company && (
+                                <>
+                                  <span className="text-slate-600">•</span>
+                                  <div className="flex items-center gap-1.5 text-slate-400">
+                                    <Building className="w-3.5 h-3.5" />
+                                    <span>{demo.company}</span>
+                                  </div>
+                                </>
+                              )}
+
+                              <span className="text-slate-600">•</span>
+                              <span className="text-slate-500" title={formatDate(demo.createdAt)}>
+                                {formatRelativeTime(demo.createdAt)} ({formatDate(demo.createdAt)})
+                              </span>
+                            </div>
+
+                            {demo.notes && (
+                              <p className="text-[11px] text-slate-400 bg-slate-950/60 p-2 rounded-xl border border-slate-800 mt-1 max-w-2xl">
+                                <strong>Notes:</strong> {demo.notes}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Right: Quick Action Controls */}
+                        <div className="flex items-center gap-2 flex-wrap self-end lg:self-auto shrink-0">
+                          {/* 1-Click WhatsApp Shortcut */}
+                          {waUrl && (
+                            <a
+                              href={waUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                              title="Chat on WhatsApp"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              <span>WhatsApp</span>
+                            </a>
+                          )}
+
+                          {/* Email Client */}
+                          <a
+                            href={`mailto:${demo.email}?subject=SYS%20Executive%20Demo%20Session&body=Hi%20${encodeURIComponent(demo.name)},%0A%0AThank%20you%20for%20requesting%20a%20live%20walkthrough%20of%20the%20SYS%20platform.`}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 transition-colors"
+                            title="Send Email"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                            <span>Email</span>
+                          </a>
+
+                          {/* Status Progression Buttons */}
+                          {isNew && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateDemoStatus(demo._id, 'CONTACTED')}
+                              disabled={isItemLoading}
+                              className="px-3 py-1.5 rounded-xl bg-blue-600/80 hover:bg-blue-600 text-white font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              Mark Contacted
+                            </button>
+                          )}
+
+                          {(isNew || isContacted) && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateDemoStatus(demo._id, 'SCHEDULED')}
+                              disabled={isItemLoading}
+                              className="px-3 py-1.5 rounded-xl bg-purple-600/80 hover:bg-purple-600 text-white font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              Schedule Demo
+                            </button>
+                          )}
+
+                          {isScheduled && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateDemoStatus(demo._id, 'COMPLETED')}
+                              disabled={isItemLoading}
+                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              Mark Completed
+                            </button>
+                          )}
+
+                          {/* Delete Lead */}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDemo(demo._id, demo.name)}
+                            disabled={isItemLoading}
+                            title="Delete demo lead"
+                            className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* 4 KPI Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* 1. Pending */}
-          <div
-            onClick={() => setActiveTab('PENDING')}
-            className={`p-5 rounded-2xl border transition-all cursor-pointer ${
-              activeTab === 'PENDING'
-                ? 'bg-amber-500/10 border-amber-500/50 shadow-lg shadow-amber-500/10'
-                : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">Pending Review</span>
-              <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
-                <Clock className="w-4 h-4" />
+        {/* ============================================================================== */}
+        {/* VIEW 2: GATEKEEPER USER ACCESS CONTROL                                         */}
+        {/* ============================================================================== */}
+        {activeView === 'REQUESTS' && (
+          <div className="space-y-6 animate-in fade-in">
+            {/* Banner Alert for Pending Requests */}
+            {counts.pending > 0 && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-amber-950/40 border border-amber-600/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5 animate-bounce" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-amber-300">
+                      {counts.pending} User Access Request{counts.pending > 1 ? 's' : ''} Awaiting Approval
+                    </h3>
+                    <p className="text-xs text-amber-200/80">
+                      Users are currently held at the login screen until you accept them below.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('PENDING')}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all self-start sm:self-auto cursor-pointer"
+                >
+                  Review Requests Now
+                </button>
+              </div>
+            )}
+
+            {/* 4 Access KPI Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* 1. Pending */}
+              <div
+                onClick={() => setActiveTab('PENDING')}
+                className={`p-5 rounded-2xl border transition-all cursor-pointer ${
+                  activeTab === 'PENDING'
+                    ? 'bg-amber-500/10 border-amber-500/50 shadow-lg shadow-amber-500/10'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">Pending Review</span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-amber-400">{counts.pending}</span>
+                  <span className="text-[10px] text-amber-400/80 font-bold">Awaiting Action</span>
+                </div>
+              </div>
+
+              {/* 2. Approved */}
+              <div
+                onClick={() => setActiveTab('APPROVED')}
+                className={`p-5 rounded-2xl border transition-all cursor-pointer ${
+                  activeTab === 'APPROVED'
+                    ? 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">Approved Users</span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-emerald-400">{counts.approved}</span>
+                  <span className="text-[10px] text-emerald-400/80 font-bold">Active in Platform</span>
+                </div>
+              </div>
+
+              {/* 3. Rejected */}
+              <div
+                onClick={() => setActiveTab('REJECTED')}
+                className={`p-5 rounded-2xl border transition-all cursor-pointer ${
+                  activeTab === 'REJECTED'
+                    ? 'bg-rose-500/10 border-rose-500/50 shadow-lg shadow-rose-500/10'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">Rejected / Blocked</span>
+                  <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold">
+                    <XCircle className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-rose-400">{counts.rejected}</span>
+                  <span className="text-[10px] text-rose-400/80 font-bold">Access Blocked</span>
+                </div>
+              </div>
+
+              {/* 4. Total Users */}
+              <div
+                onClick={() => setActiveTab('ALL')}
+                className={`p-5 rounded-2xl border transition-all cursor-pointer ${
+                  activeTab === 'ALL'
+                    ? 'bg-indigo-500/10 border-indigo-500/50 shadow-lg shadow-indigo-500/10'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">Total User Base</span>
+                  <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+                    <Users className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-indigo-400">{counts.total}</span>
+                  <span className="text-[10px] text-indigo-400/80 font-bold">All Records</span>
+                </div>
               </div>
             </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-black text-amber-400">{counts.pending}</span>
-              <span className="text-[10px] text-amber-400/80 font-bold">Awaiting Action</span>
-            </div>
-          </div>
 
-          {/* 2. Approved */}
-          <div
-            onClick={() => setActiveTab('APPROVED')}
-            className={`p-5 rounded-2xl border transition-all cursor-pointer ${
-              activeTab === 'APPROVED'
-                ? 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
-                : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">Approved Users</span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
-                <CheckCircle2 className="w-4 h-4" />
+            {/* Filter Navigation Tabs and Search Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-900 rounded-2xl border border-slate-800 w-fit">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('PENDING')}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === 'PENDING'
+                      ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>Pending</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                    activeTab === 'PENDING' ? 'bg-slate-950 text-amber-400' : 'bg-slate-800 text-amber-400'
+                  }`}>
+                    {counts.pending}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('APPROVED')}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === 'APPROVED'
+                      ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>Approved</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                    activeTab === 'APPROVED' ? 'bg-slate-950 text-emerald-400' : 'bg-slate-800 text-emerald-400'
+                  }`}>
+                    {counts.approved}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('REJECTED')}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === 'REJECTED'
+                      ? 'bg-rose-500 text-white shadow-md font-extrabold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>Rejected</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                    activeTab === 'REJECTED' ? 'bg-slate-950 text-rose-400' : 'bg-slate-800 text-rose-400'
+                  }`}>
+                    {counts.rejected}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('ALL')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === 'ALL'
+                      ? 'bg-indigo-600 text-white shadow-md font-extrabold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  All Users ({counts.total})
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative min-w-[260px] max-w-sm">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search by name or email..."
+                  className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                />
               </div>
             </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-black text-emerald-400">{counts.approved}</span>
-              <span className="text-[10px] text-emerald-400/80 font-bold">Active in Platform</span>
-            </div>
-          </div>
 
-          {/* 3. Rejected */}
-          <div
-            onClick={() => setActiveTab('REJECTED')}
-            className={`p-5 rounded-2xl border transition-all cursor-pointer ${
-              activeTab === 'REJECTED'
-                ? 'bg-rose-500/10 border-rose-500/50 shadow-lg shadow-rose-500/10'
-                : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">Rejected / Blocked</span>
-              <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold">
-                <XCircle className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-black text-rose-400">{counts.rejected}</span>
-              <span className="text-[10px] text-rose-400/80 font-bold">Access Blocked</span>
-            </div>
-          </div>
+            {/* Requests Table */}
+            <div className="bg-slate-900/90 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+              {loading ? (
+                <div className="py-20 text-center space-y-3">
+                  <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin mx-auto" />
+                  <p className="text-xs text-slate-400">Loading user access requests...</p>
+                </div>
+              ) : filteredRequests.length === 0 ? (
+                <div className="py-16 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-800 text-slate-500 flex items-center justify-center mx-auto">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-300">
+                    {activeTab === 'PENDING'
+                      ? 'No Pending Requests'
+                      : activeTab === 'APPROVED'
+                        ? 'No Approved Users Found'
+                        : 'No Records Match Filter'}
+                  </h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    {activeTab === 'PENDING'
+                      ? 'All user access requests have been reviewed. When someone attempts to sign up or log in on the main site, they will instantly appear here.'
+                      : 'Try adjusting your search query or filter tab.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-800/80">
+                  {filteredRequests.map((req) => {
+                    const isItemLoading = actionLoading === req._id || actionLoading === req.uid;
+                    const isPending = req.status === 'PENDING';
+                    const isApproved = req.status === 'APPROVED';
+                    const isRejected = req.status === 'REJECTED';
 
-          {/* 4. Total Inquiries */}
-          <div
-            onClick={() => setActiveTab('ALL')}
-            className={`p-5 rounded-2xl border transition-all cursor-pointer ${
-              activeTab === 'ALL'
-                ? 'bg-indigo-500/10 border-indigo-500/50 shadow-lg shadow-indigo-500/10'
-                : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-400">Total User Base</span>
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
-                <Users className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-black text-indigo-400">{counts.total}</span>
-              <span className="text-[10px] text-indigo-400/80 font-bold">All Records</span>
-            </div>
-          </div>
-        </div>
+                    return (
+                      <div
+                        key={req._id || req.uid}
+                        className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-800/40 transition-colors"
+                      >
+                        {/* User Info */}
+                        <div className="flex items-start gap-3.5 min-w-0">
+                          {/* Avatar */}
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-slate-700 to-slate-800 border border-slate-700 flex items-center justify-center text-sm font-bold text-white shrink-0 overflow-hidden shadow-sm">
+                            {req.photoURL ? (
+                              <img src={req.photoURL} alt={req.displayName} className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{(req.displayName || req.email || 'U').charAt(0).toUpperCase()}</span>
+                            )}
+                          </div>
 
-        {/* Filter Navigation Tabs and Search Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          {/* Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-900 rounded-2xl border border-slate-800 w-fit">
-            <button
-              onClick={() => setActiveTab('PENDING')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'PENDING'
-                  ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>Pending</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                activeTab === 'PENDING' ? 'bg-slate-950 text-amber-400' : 'bg-slate-800 text-amber-400'
-              }`}>
-                {counts.pending}
-              </span>
-            </button>
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="text-sm font-extrabold text-white truncate">
+                                {req.displayName || 'Unspecified Name'}
+                              </h4>
 
-            <button
-              onClick={() => setActiveTab('APPROVED')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'APPROVED'
-                  ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>Approved</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                activeTab === 'APPROVED' ? 'bg-slate-950 text-emerald-400' : 'bg-slate-800 text-emerald-400'
-              }`}>
-                {counts.approved}
-              </span>
-            </button>
+                              {/* Status Badge */}
+                              {isPending && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                                  Pending Approval
+                                </span>
+                              )}
 
-            <button
-              onClick={() => setActiveTab('REJECTED')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'REJECTED'
-                  ? 'bg-rose-500 text-white shadow-md font-extrabold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>Rejected</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                activeTab === 'REJECTED' ? 'bg-slate-950 text-rose-400' : 'bg-slate-800 text-rose-400'
-              }`}>
-                {counts.rejected}
-              </span>
-            </button>
+                              {isApproved && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                  Approved &amp; Active
+                                </span>
+                              )}
 
-            <button
-              onClick={() => setActiveTab('ALL')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'ALL'
-                  ? 'bg-indigo-600 text-white shadow-md font-extrabold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              All Users ({counts.total})
-            </button>
-          </div>
+                              {isRejected && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1">
+                                  <XCircle className="w-3 h-3 text-rose-400" />
+                                  Rejected
+                                </span>
+                              )}
 
-          {/* Search Bar */}
-          <div className="relative min-w-[260px] max-w-sm">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or email..."
-              className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
-            />
-          </div>
-        </div>
+                              {/* Provider Badge */}
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+                                {req.provider || 'email'}
+                              </span>
+                            </div>
 
-        {/* Requests Table / Cards List */}
-        <div className="bg-slate-900/90 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
-          {loading ? (
-            <div className="py-20 text-center space-y-3">
-              <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin mx-auto" />
-              <p className="text-xs text-slate-400">Loading user access requests...</p>
-            </div>
-          ) : filteredRequests.length === 0 ? (
-            <div className="py-16 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-slate-800 text-slate-500 flex items-center justify-center mx-auto">
-                <Users className="w-6 h-6" />
-              </div>
-              <h4 className="text-sm font-bold text-slate-300">
-                {activeTab === 'PENDING'
-                  ? 'No Pending Requests'
-                  : activeTab === 'APPROVED'
-                    ? 'No Approved Users Found'
-                    : 'No Records Match Filter'}
-              </h4>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
-                {activeTab === 'PENDING'
-                  ? 'All user access requests have been reviewed. When someone attempts to sign up or log in on the main site, they will instantly appear here.'
-                  : 'Try adjusting your search query or filter tab.'}
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-800/80">
-              {filteredRequests.map((req) => {
-                const isItemLoading = actionLoading === req._id || actionLoading === req.uid;
-                const isPending = req.status === 'PENDING';
-                const isApproved = req.status === 'APPROVED';
-                const isRejected = req.status === 'REJECTED';
+                            {/* Email & Timestamps */}
+                            <div className="flex items-center gap-4 text-xs text-slate-400 flex-wrap">
+                              <span className="text-slate-300 font-medium">{req.email}</span>
+                              <span className="text-slate-600">•</span>
+                              <span title={formatDate(req.requestedAt)}>
+                                Requested {formatRelativeTime(req.requestedAt)} ({formatDate(req.requestedAt)})
+                              </span>
+                            </div>
 
-                return (
-                  <div
-                    key={req._id || req.uid}
-                    className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-800/40 transition-colors"
-                  >
-                    {/* User Info */}
-                    <div className="flex items-start gap-3.5 min-w-0">
-                      {/* Avatar */}
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-slate-700 to-slate-800 border border-slate-700 flex items-center justify-center text-sm font-bold text-white shrink-0 overflow-hidden shadow-sm">
-                        {req.photoURL ? (
-                          <img src={req.photoURL} alt={req.displayName} className="w-full h-full object-cover" />
-                        ) : (
-                          <span>{(req.displayName || req.email || 'U').charAt(0).toUpperCase()}</span>
-                        )}
-                      </div>
+                            {req.rejectionReason && (
+                              <p className="text-[11px] text-rose-400 mt-0.5">
+                                Reason: {req.rejectionReason}
+                              </p>
+                            )}
+                          </div>
+                        </div>
 
-                      <div className="min-w-0 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-sm font-extrabold text-white truncate">
-                            {req.displayName || 'Unspecified Name'}
-                          </h4>
-
-                          {/* Status Badge */}
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
                           {isPending && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-                              Pending Approval
-                            </span>
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleApprove(req._id || req.uid, req.email)}
+                                disabled={isItemLoading}
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-50"
+                              >
+                                <UserCheck className="w-4 h-4" />
+                                <span>Accept &amp; Grant Access</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleReject(req._id || req.uid, req.email)}
+                                disabled={isItemLoading}
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                              >
+                                <UserX className="w-4 h-4" />
+                                <span>Decline</span>
+                              </button>
+                            </>
                           )}
 
                           {isApproved && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                              Approved & Active
-                            </span>
+                            <>
+                              <span className="text-xs text-emerald-400 font-semibold hidden lg:inline mr-2">
+                                Can log in to Main Site
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRevoke(req._id || req.uid, req.email)}
+                                disabled={isItemLoading}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                                title="Temporarily suspend access"
+                              >
+                                <span>Revoke Access</span>
+                              </button>
+                            </>
                           )}
 
                           {isRejected && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1">
-                              <XCircle className="w-3 h-3 text-rose-400" />
-                              Rejected
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleApprove(req._id || req.uid, req.email)}
+                              disabled={isItemLoading}
+                              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition-colors cursor-pointer"
+                            >
+                              <UserCheck className="w-4 h-4" />
+                              <span>Re-approve Access</span>
+                            </button>
                           )}
 
-                          {/* Provider Badge */}
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">
-                            {req.provider || 'email'}
-                          </span>
+                          {/* Delete */}
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(req._id || req.uid, req.email)}
+                            disabled={isItemLoading}
+                            title="Delete request"
+                            className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-
-                        {/* Email & Timestamps */}
-                        <div className="flex items-center gap-4 text-xs text-slate-400 flex-wrap">
-                          <span className="text-slate-300 font-medium">{req.email}</span>
-                          <span className="text-slate-600">•</span>
-                          <span title={formatDate(req.requestedAt)}>
-                            Requested {formatRelativeTime(req.requestedAt)} ({formatDate(req.requestedAt)})
-                          </span>
-                        </div>
-
-                        {req.rejectionReason && (
-                          <p className="text-[11px] text-rose-400 mt-0.5">
-                            Reason: {req.rejectionReason}
-                          </p>
-                        )}
                       </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
-                      {isPending && (
-                        <>
-                          <button
-                            onClick={() => handleApprove(req._id || req.uid, req.email)}
-                            disabled={isItemLoading}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-50"
-                          >
-                            <UserCheck className="w-4 h-4" />
-                            <span>Accept & Grant Access</span>
-                          </button>
-
-                          <button
-                            onClick={() => handleReject(req._id || req.uid, req.email)}
-                            disabled={isItemLoading}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
-                          >
-                            <UserX className="w-4 h-4" />
-                            <span>Decline</span>
-                          </button>
-                        </>
-                      )}
-
-                      {isApproved && (
-                        <>
-                          <span className="text-xs text-emerald-400 font-semibold hidden lg:inline mr-2">
-                            Can log in to Main Site
-                          </span>
-                          <button
-                            onClick={() => handleRevoke(req._id || req.uid, req.email)}
-                            disabled={isItemLoading}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 text-xs font-bold transition-colors cursor-pointer"
-                            title="Temporarily suspend access"
-                          >
-                            <span>Revoke Access</span>
-                          </button>
-                        </>
-                      )}
-
-                      {isRejected && (
-                        <button
-                          onClick={() => handleApprove(req._id || req.uid, req.email)}
-                          disabled={isItemLoading}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition-colors cursor-pointer"
-                        >
-                          <UserCheck className="w-4 h-4" />
-                          <span>Re-approve Access</span>
-                        </button>
-                      )}
-
-                      {/* Delete */}
-                      <button
-                        onClick={() => handleDelete(req._id || req.uid, req.email)}
-                        disabled={isItemLoading}
-                        title="Delete request"
-                        className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
       </main>
     </div>
   );
 };
-

@@ -7,6 +7,7 @@ import {
   checkUserStatus,
   MASTER_ADMIN_EMAIL
 } from '../models/userAccessStorage.js';
+import { createDemoBooking } from '../models/demoBookingStorage.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_central_saas_platform_key_2026';
@@ -170,6 +171,29 @@ router.post('/bridge', async (req, res) => {
 // GET /api/auth/me - Get current user profile (protected)
 router.get('/me', authenticateUser, (req, res) => {
   res.json({ success: true, user: req.user });
+});
+
+// POST /api/auth/demo-booking - Public demo booking endpoint
+router.post('/demo-booking', async (req, res) => {
+  try {
+    const { name, email, phone, company, preferredDate, notes, source } = req.body || {};
+    const booking = await createDemoBooking({
+      name,
+      email,
+      phone,
+      company,
+      preferredDate,
+      notes,
+      source: source || 'main-website'
+    });
+    res.status(201).json({
+      success: true,
+      message: 'Demo booking request registered successfully! The executive team will reach out promptly.',
+      booking
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message || 'Failed to submit demo booking' });
+  }
 });
 
 export default router;

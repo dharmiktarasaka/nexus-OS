@@ -111,6 +111,35 @@ export const adminApi = {
       const res = await client.delete(`/requests/${encodeURIComponent(id)}`);
       return res.data;
     });
+  },
+
+  // Demo Booking APIs
+  getDemoBookings: async (status = 'ALL') => {
+    return executeWithFallback(async (client) => {
+      const res = await client.get(`/demo-bookings?status=${encodeURIComponent(status)}`);
+      return res.data;
+    });
+  },
+
+  updateDemoBooking: async (id, status, adminNotes = null) => {
+    return executeWithFallback(async (client) => {
+      const res = await client.patch(`/demo-bookings/${encodeURIComponent(id)}`, { status, adminNotes });
+      return res.data;
+    });
+  },
+
+  deleteDemoBooking: async (id) => {
+    return executeWithFallback(async (client) => {
+      const res = await client.delete(`/demo-bookings/${encodeURIComponent(id)}`);
+      return res.data;
+    });
+  },
+
+  getDemoStats: async () => {
+    return executeWithFallback(async (client) => {
+      const res = await client.get('/demo-stats');
+      return res.data;
+    });
   }
 };
 
