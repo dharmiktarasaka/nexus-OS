@@ -251,8 +251,8 @@
           </svg>
         </button>
 
-        <a href="https://sys.tarasaka.com/login" class="btn btn-outline btn-sm">Sign In</a>
-        <a href="#pricing" class="btn btn-primary btn-sm">Start Free</a>
+        <a href="https://sys.tarasaka.com/login" class="btn btn-outline btn-sm nav-desktop-btn">Sign In</a>
+        <a href="#pricing" class="btn btn-primary btn-sm nav-desktop-btn">Start Free</a>
 
         <button type="button" class="hamburger-btn" id="mobileHamburgerBtn" aria-label="Open mobile menu">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -266,14 +266,19 @@
   </header>
 
   <!-- Mobile Drawer -->
-  <div id="mobileNavDrawer" style="display: none; flex-direction: column; padding: 1.5rem; background: var(--bg-card); border-bottom: 1px solid var(--border-subtle); gap: 1rem;">
-    <a href="#problem" class="nav-link mobile-nav-link">The Problem</a>
-    <a href="#modules" class="nav-link mobile-nav-link">Platform Modules</a>
-    <a href="#how-it-works" class="nav-link mobile-nav-link">How It Works</a>
-    <a href="#calculator" class="nav-link mobile-nav-link">ROI Calculator</a>
-    <a href="#pricing" class="nav-link mobile-nav-link">Pricing</a>
-    <a href="#faq" class="nav-link mobile-nav-link">FAQ</a>
-    <a href="https://sys.tarasaka.com/login" class="btn btn-primary" style="margin-top: 0.5rem;">Launch App Workspace</a>
+  <div id="mobileNavDrawer" class="mobile-nav-drawer">
+    <div class="mobile-nav-links">
+      <a href="#problem" class="mobile-nav-link">The Problem</a>
+      <a href="#modules" class="mobile-nav-link">Platform Modules</a>
+      <a href="#how-it-works" class="mobile-nav-link">How It Works</a>
+      <a href="#calculator" class="mobile-nav-link">ROI Calculator</a>
+      <a href="#pricing" class="mobile-nav-link">Pricing</a>
+      <a href="#faq" class="mobile-nav-link">FAQ</a>
+    </div>
+    <div class="mobile-nav-actions">
+      <a href="https://sys.tarasaka.com/login" class="btn btn-primary" style="width: 100%;">Launch SYS Workspace &rarr;</a>
+      <button type="button" class="btn btn-outline open-demo-modal" style="width: 100%;">Book Free 1-on-1 Demo</button>
+    </div>
   </div>
 
   <main>
@@ -421,7 +426,7 @@
                   </div>
                   <span style="padding: 0.3rem 0.8rem; border-radius: 9999px; background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700; font-size: 0.75rem;">Live on shop.tarasaka.com</span>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                <div class="mockup-grid mockup-grid-3">
                   <div style="background: rgba(30, 41, 59, 0.6); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-subtle);">
                     <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Pages Synthesized</span>
                     <strong style="font-size: 1.4rem; color: var(--text-primary); font-family: var(--font-mono);">6 Pages</strong>
@@ -445,7 +450,7 @@
                   <h3 style="font-size: 1.1rem; color: var(--text-primary);">Visual Deal Pipeline (Drag & Drop)</h3>
                   <span style="font-size: 0.8rem; color: var(--text-secondary);">42 Deals Active • 98% Win Rate</span>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem;">
+                <div class="mockup-grid mockup-grid-4">
                   <div style="background: rgba(30, 41, 59, 0.5); padding: 0.8rem; border-radius: 8px; border-top: 3px solid #3b82f6;">
                     <span style="font-size: 0.75rem; font-weight: 700;">NEW LEADS (12)</span>
                     <div style="background: rgba(15, 23, 42, 0.7); padding: 0.6rem; border-radius: 6px; margin-top: 0.5rem; font-size: 0.75rem;">
@@ -485,7 +490,7 @@
                   <h3 style="font-size: 1.1rem; color: var(--text-primary);">Mediamation Omnichannel Scheduler</h3>
                   <span style="font-size: 0.8rem; color: #10b981;">Pinterest • Meta • LinkedIn Active</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
+                <div class="mockup-grid mockup-grid-2-1">
                   <div style="background: rgba(30, 41, 59, 0.6); padding: 1rem; border-radius: 8px;">
                     <span style="font-size: 0.75rem; color: var(--text-muted);">Upcoming Automated Campaign</span>
                     <p style="font-size: 0.85rem; margin-top: 0.4rem; color: var(--text-primary);">"Q4 Growth Framework & Strategic Blueprint" (AI captions generated)</p>
@@ -507,7 +512,7 @@
                   <h3 style="font-size: 1.1rem; color: var(--text-primary);">STRATIQ AI Business Intelligence</h3>
                   <span style="padding: 0.25rem 0.6rem; border-radius: 9999px; background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-size: 0.75rem; font-weight: 700;">Four Pillars Health: 92/100</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="mockup-grid mockup-grid-2">
                   <div style="background: rgba(30, 41, 59, 0.6); padding: 1rem; border-radius: 8px;">
                     <strong style="font-size: 0.85rem; color: #10b981; display: block; margin-bottom: 0.3rem;">Autonomous SWOT Finding</strong>
                     <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">Opportunity detected: B2B retention margin can increase by 24% by bundling recurring maintenance retainers.</p>

@@ -279,18 +279,17 @@ function initModal() {
 function initMobileNav() {
   const hamburger = document.getElementById('mobileHamburgerBtn');
   const mobileNav = document.getElementById('mobileNavDrawer');
-  const mobileLinks = document.querySelectorAll('.mobile-nav-link');
-
   if (!hamburger || !mobileNav) return;
 
+  const mobileActions = mobileNav.querySelectorAll('a, button');
+
   hamburger.addEventListener('click', () => {
-    const isShown = mobileNav.style.display === 'flex';
-    mobileNav.style.display = isShown ? 'none' : 'flex';
+    mobileNav.classList.toggle('open');
   });
 
-  mobileLinks.forEach(link => {
-    link.addEventListener('click', () => {
-      mobileNav.style.display = 'none';
+  mobileActions.forEach(el => {
+    el.addEventListener('click', () => {
+      mobileNav.classList.remove('open');
     });
   });
 }
